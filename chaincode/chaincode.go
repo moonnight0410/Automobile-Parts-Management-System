@@ -1,14 +1,365 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
+	"time"
 
+	"github.com/hyperledger/fabric-chaincode-go/pkg/cid"
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
+)
+
+// Part 零部件核心信息
+type Part struct {
+	PartID       string `json:"partID"`       // 零部件唯一标识（如"ENG-PISTON-202505"）
+	VIN          string `json:"vin"`          // 关联车辆VIN码（如有）
+	BatchNo      string `json:"batchNo"`      // 生产批次号
+	Name         string `json:"name"`         // 零部件名称（如"发动机活塞"）
+	Type         string `json:"type"`         // 类型（如"发动机部件"）
+	Manufacturer string `json:"manufacturer"` // 生产厂商ID（关联身份管理）
+	CreateTime   string `json:"createTime"`   // 创建时间戳（上链时间）
+	Status       string `json:"status"`       // 状态（在产/在售/召回/报废等）
+}
+
+// PartLifecycle 零部件全生命周期轨迹
+type PartLifecycle struct {
+	PartID          string            `json:"partID"`          // 关联零部件
+	BOMInfo         BOMReference      `json:"bomInfo"`         // 关联BOM信息
+	ProductionInfo  ProductionData    `json:"productionInfo"`  // 关联生产数据
+	QualityInfo     QualityInspection `json:"qualityInfo"`     // 关联质检数据
+	SupplyChainInfo []SupplyChainData `json:"supplyChainInfo"` // 关联供应链数据（订单+物流）
+	AftersaleInfo   []AftersaleRecord `json:"aftersaleInfo"`   // 关联售后/故障数据
+}
+
+// BOMReference BOM信息引用
+type BOMReference struct {
+	BOMID   string `json:"bomID"`   // 关联BOM的ID
+	Version string `json:"version"` // 关联BOM版本
+	Type    string `json:"type"`    // 研发BOM/生产BOM
+}
+
+// BOM 物料清单主结构体（链上存储核心数据）
+type BOM struct {
+	// 基础标识字段
+	BOMID        string `json:"bomID"`        // BOM唯一ID（如研发BOM：R-BOM-202505-001；生产BOM：P-BOM-202505-001）
+	BOMType      string `json:"bomType"`      // BOM类型：研发BOM/生产BOM
+	ProductModel string `json:"productModel"` // 对应车型（如2025款XX车型）
+	PartBatchNo  string `json:"partBatchNo"`  // 零部件批次号（关联溯源模块）
+	Version      string `json:"version"`      // BOM版本号（如V1.0、V1.1）
+	Creator      string `json:"creator"`      // 创建人（企业数字身份标识）
+	CreateTime   string `json:"createTime"`   // 创建时间（时间戳）
+	Status       string `json:"status"`       // 状态：草稿/已发布/已变更/已作废
+
+	// 物料清单核心字段
+	MaterialList []MaterialItem `json:"materialList"` // 物料明细列表
+
+	// 研发BOM专属：图纸/设计文件关联（适配普通数据库存储）
+	RDBOMFileInfo *BOMFileInfo `json:"rdBOMFileInfo,omitempty"` // 研发BOM图纸文件信息（omitempty：生产BOM可忽略）
+
+	// 生产BOM专属：与研发BOM比对
+	ProductionBOMInfo *ProductionBOMInfo `json:"productionBOMInfo,omitempty"` // 生产BOM比对信息
+
+	// BOM变更相关
+	ChangeRecords []BOMChangeRecord `json:"changeRecords,omitempty"` // 变更记录（版本迭代/变更申请）
+}
+
+// MaterialItem 物料明细项
+type MaterialItem struct {
+	MaterialID   string `json:"materialID"`   // 物料唯一ID
+	MaterialName string `json:"materialName"` // 物料名称（如发动机活塞）
+	Spec         string `json:"spec"`         // 规格型号
+	Quantity     int    `json:"quantity"`     // 数量
+	SupplierID   string `json:"supplierID"`   // 供应商ID（关联供应链模块）
+}
+
+// BOMFileInfo 研发BOM图纸/文件信息（适配普通数据库存储）
+type BOMFileInfo struct {
+	FileStorageID  string `json:"fileStorageID"`  // 普通数据库中的文件唯一ID（如MySQL的主键ID）
+	FilePath       string `json:"filePath"`       // 文件存储路径（如：/data/bom/rd/202505/R-BOM-001-CAD.dwg）
+	FileHash       string `json:"fileHash"`       // 文件内容哈希（SHA256，链上存哈希，验证数据库文件未被篡改）
+	FileType       string `json:"fileType"`       // 文件类型（如CAD图纸、PNG图片、Excel清单）
+	FileSize       int64  `json:"fileSize"`       // 文件大小（字节，便于前端展示）
+	UploadTime     string `json:"uploadTime"`     // 文件上传时间
+	DatabaseSource string `json:"databaseSource"` // 存储数据库标识（如：mysql-bom-file-01，多数据库部署时区分）
+}
+
+// ProductionBOMInfo 生产BOM专属信息
+type ProductionBOMInfo struct {
+	RDOMReferenceID string `json:"rdBOMReferenceID"` // 关联的研发BOM ID
+	CompareResult   string `json:"compareResult"`    // 比对结果：一致/不一致
+	CompareDetails  string `json:"compareDetails"`   // 比对详情（如：物料A规格不一致，研发为XX，生产为YY）
+	Verifier        string `json:"verifier"`         // 核验人（数字身份）
+	VerifyTime      string `json:"verifyTime"`       // 核验时间
+}
+
+// BOMChangeRecord BOM变更记录
+type BOMChangeRecord struct {
+	ChangeID     string      `json:"changeID"`     // 变更申请ID
+	ChangeReason string      `json:"changeReason"` // 变更原因（如设计优化、物料替代）
+	OldVersion   string      `json:"oldVersion"`   // 变更前版本
+	NewVersion   string      `json:"newVersion"`   // 变更后版本
+	AuditFlow    []AuditNode `json:"auditFlow"`    // 审批流程
+	ChangeTime   string      `json:"changeTime"`   // 变更生效时间
+}
+
+// AuditNode 审批节点
+type AuditNode struct {
+	Auditor     string `json:"auditor"`          // 审批人
+	AuditRole   string `json:"auditRole"`        // 审批角色（如研发负责人、生产负责人）
+	AuditResult string `json:"auditResult"`      // 审批结果：通过/驳回
+	AuditTime   string `json:"auditTime"`        // 审批时间
+	Remark      string `json:"remark,omitempty"` // 审批备注
+}
+
+// ProductionData 生产数据
+type ProductionData struct {
+	ProductionID   string            `json:"productionID"`   // 生产记录ID
+	PartID         string            `json:"partID"`         // 关联零部件
+	BatchNo        string            `json:"batchNo"`        // 生产批次
+	Params         map[string]string `json:"params"`         // 关键生产参数（如"温度":"180℃"、"时长":"2h"）
+	ProductionLine string            `json:"productionLine"` // 生产线编号
+	Operator       string            `json:"operator"`       // 操作员ID
+	FinishTime     string            `json:"finishTime"`     // 生产完成时间
+}
+
+// QualityInspection 质检数据
+type QualityInspection struct {
+	InspectionID string            `json:"inspectionID"` // 质检记录ID
+	PartID       string            `json:"partID"`       // 关联零部件
+	BatchNo      string            `json:"batchNo"`      // 批次
+	Indicators   map[string]string `json:"indicators"`   // 检测指标（如"尺寸":"10±0.1mm"、"硬度":"HRC50"）
+	Result       string            `json:"result"`       // 结果（合格/不合格）
+	Handler      string            `json:"handler"`      // 质检人员ID
+	HandleTime   string            `json:"handleTime"`   // 质检时间
+	Disposal     string            `json:"disposal"`     // 不合格处理（返工/报废），合格则为空
+}
+
+// SupplyOrder 采购订单
+type SupplyOrder struct {
+	OrderID    string `json:"orderID"`    // 订单ID
+	Buyer      string `json:"buyer"`      // 采购方ID（车企）
+	Seller     string `json:"seller"`     // 销售方ID（零部件厂商）
+	PartID     string `json:"partID"`     // 零部件ID
+	Quantity   int    `json:"quantity"`   // 数量
+	BatchNo    string `json:"batchNo"`    // 涉及批次
+	AgreedTime string `json:"agreedTime"` // 约定交付时间
+	Status     string `json:"status"`     // 状态（待发货/已发货/已签收）
+	CreateTime string `json:"createTime"` // 订单创建时间
+}
+
+// LogisticsData 物流数据
+type LogisticsData struct {
+	LogisticsID string `json:"logisticsID"` // 物流记录ID
+	OrderID     string `json:"orderID"`     // 关联订单ID
+	Carrier     string `json:"carrier"`     // 物流商ID
+	StartTime   string `json:"startTime"`   // 出发时间
+	EndTime     string `json:"endTime"`     // 送达时间
+	GPSHash     string `json:"gpsHash"`     // GPS轨迹数据哈希（分布式存储引用）
+	Receiver    string `json:"receiver"`    // 签收人ID
+}
+
+// Reconciliation 对账结算
+type Reconciliation struct {
+	ReconID    string `json:"reconID"`    // 对账ID
+	OrderID    string `json:"orderID"`    // 关联订单
+	Amount     string `json:"amount"`     // 金额
+	Status     string `json:"status"`     // 状态（待对账/已确认/已结算）
+	SettleTime string `json:"settleTime"` // 结算时间
+}
+
+// SupplyChainData 供应关联数据
+type SupplyChainData struct {
+	// 1. 关联Part/批次
+	ChainID string `json:"chainID"` // 供应链环节唯一ID（区分不同环节）
+	PartID  string `json:"partID"`  // 关联零部件
+	BatchNo string `json:"batchNo"` // 关联批次
+
+	// 2. 供应链模块关联订单/物流
+	OrderID     string `json:"orderID"`     // 复用SupplyOrder.OrderID：关联采购订单
+	LogisticsID string `json:"logisticsID"` // 复用LogisticsData.LogisticsID：关联物流记录（仅物流环节有值）
+
+	// 3. 环节核心信息
+	StageType        string `json:"stageType"`        // 环节类型：采购下单/物流发货/仓库入库/仓库出库/车企签收
+	StageStatus      string `json:"stageStatus"`      // 环节状态：待处理/处理中/已完成/异常
+	Participator     string `json:"participator"`     // 环节参与方ID（供应商/物流商/车企仓库）
+	ParticipatorRole string `json:"participatorRole"` // 参与方角色
+
+	// 4. 环节详情
+	Quantity    int    `json:"quantity"`    // 环节涉及数量
+	OperateTime string `json:"operateTime"` // 环节操作时间
+	Operator    string `json:"operator"`    // 操作人ID（数字身份）
+
+	// 5. 通用附件复用（与BOM/售后复用同一个Attachment结构体）
+	AttachmentInfo *Attachment `json:"attachmentInfo,omitempty"` // 复用通用附件结构体
+	Remark         string      `json:"remark,omitempty"`         // 环节备注
+}
+
+type Attachment struct {
+	FileStorageID  string `json:"fileStorageID"`  // 普通数据库文件主键ID（复用规则）
+	FilePath       string `json:"filePath"`       // 文件存储路径
+	FileHash       string `json:"fileHash"`       // 文件哈希（SHA256，链上校验）
+	FileType       string `json:"fileType"`       // 文件类型：PNG/JPG/PDF
+	DatabaseSource string `json:"databaseSource"` // 存储数据库标识（复用多库规则）
+}
+
+// 售后模块结构体
+// FaultReport 故障上报
+type FaultReport struct {
+	FaultID     string  `json:"faultID"`     // 故障ID
+	PartID      string  `json:"partID"`      // 关联零部件
+	VIN         string  `json:"vin"`         // 车辆VIN码
+	Reporter    string  `json:"reporter"`    // 上报者ID（4S店/用户）
+	Description string  `json:"description"` // 故障描述（如"发动机活塞磨损严重"）
+	FaultType   string  `json:"faultType"`   // AI分类结果（如"磨损类"，NLP输出）
+	RiskProb    float64 `json:"riskProb"`    // 风险概率（AI预测，0-1）
+	ReportTime  string  `json:"reportTime"`  // 上报时间
+	Status      string  `json:"status"`      // 处理状态（待审核/已审核/已召回）
+}
+
+// RecallRecord 召回记录
+type RecallRecord struct {
+	RecallID      string   `json:"recallID"`      // 召回ID
+	BatchNos      []string `json:"batchNos"`      // 涉及批次列表
+	Reason        string   `json:"reason"`        // 召回原因
+	AffectedParts []string `json:"affectedParts"` // 受影响零部件ID列表
+	Status        string   `json:"status"`        // 进度（待通知/通知中/已完成）
+	CreateTime    string   `json:"createTime"`    // 召回发起时间
+	FinishTime    string   `json:"finishTime"`    // 完成时间（如有）
+}
+
+// AftersaleRecord 售后记录
+type AftersaleRecord struct {
+	// 1. 关联Part/车辆/批次
+	AftersaleID string `json:"aftersaleID"` // 售后记录唯一ID
+	PartID      string `json:"partID"`      // 关联零部件
+	BatchNo     string `json:"batchNo"`     // 关联批次
+	VIN         string `json:"vin"`         // 关联车辆
+
+	// 2. 关联故障/召回
+	FaultID  string `json:"faultID"`  // 关联故障上报（仅故障/维修环节有值）
+	RecallID string `json:"recallID"` // 关联召回记录（仅召回环节有值）
+
+	// 3. 售后核心信息
+	AftersaleType   string `json:"aftersaleType"`   // 售后类型：故障报修/维修处理/召回登记/报废处理
+	AftersaleStatus string `json:"aftersaleStatus"` // 处理状态：待审核/处理中/已完成
+	HandlerOrgID    string `json:"handlerOrgID"`    // 处理机构ID（4S店/售后中心）
+	HandlerID       string `json:"handlerID"`       // 处理人ID
+
+	// 4. 处理详情
+	Description   string `json:"description"`    // 售后描述
+	ProcessResult string `json:"processResult"`  // 处理结果
+	ProcessTime   string `json:"processTime"`    // 处理完成时间
+	Cost          string `json:"cost,omitempty"` // 售后成本
+
+	// 5. 通用附件复用
+	AttachmentInfo *Attachment `json:"attachmentInfo,omitempty"` // 复用通用附件
+	Remark         string      `json:"remark,omitempty"`         // 售后备注
+}
+
+// UserIdentity 数字身份
+type UserIdentity struct {
+	UserID       string   `json:"userID"`       // 用户唯一标识
+	Org          string   `json:"org"`          // 所属组织（厂商/物流/车企/售后）
+	Role         string   `json:"role"`         // 角色（如"厂商-生产员"、"车企-审核员"）
+	CertHash     string   `json:"certHash"`     // 数字证书哈希（CA颁发）
+	Permissions  []string `json:"permissions"`  // 权限列表（如"上传生产数据"、"查询召回"）
+	RegisterTime string   `json:"registerTime"` // 注册时间
+}
+
+// 组织 MSP ID 常量
+const (
+	MANUFACTURER_ORG_MSPID = "Org1MSP" // 零部件生产厂商组织 MSP ID
+	AUTOMAKER_ORG_MSPID    = "Org2MSP" // 整车车企（采购方）组织 MSP ID
+	LOGISTICS_ORG_MSPID    = "Org3MSP" // 物流服务商组织 MSP ID
+	AFTERSALE_ORG_MSPID    = "Org4MSP" // 4S店/售后中心组织 MSP ID
+	REGULATOR_ORG_MSPID    = "Org5MSP" // 行业监管组织 MSP ID
 )
 
 // SmartContract structure 提供零部件数据上链功能
 type SmartContract struct {
 	contractapi.Contract
+}
+
+func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
+	testPart := Part{
+		PartID:       "ENG-PISTON-001",
+		VIN:          "LVX1234568789798",
+		BatchNo:      "B20260127",
+		Name:         "发动机活塞",
+		Type:         "发动机部件",
+		Manufacturer: "厂商A",
+		CreateTime:   fmt.Sprintf("%d", time.Now().Unix()),
+		Status:       "NORMAL",
+	}
+	partJson, err := json.Marshal(testPart)
+	if err != nil {
+		return fmt.Errorf("序列化测试零部件失败: %v", err)
+	}
+
+	return ctx.GetStub().PutState(testPart.PartID, partJson)
+}
+
+// 通用方法: 获取客户端身份信息
+func (s *SmartContract) getClientIdentityMSPID(ctx contractapi.TransactionContextInterface) (string, error) {
+	clientID, err := cid.New(ctx.GetStub())
+	if err != nil {
+		return "", fmt.Errorf("获取客户端身份信息失败：%v", err)
+	}
+	return clientID.GetMSPID()
+}
+
+// CreatePart 创建新零部件
+func (s *SmartContract) CreatePart(ctx contractapi.TransactionContextInterface, partJSON string) error {
+	// //校验调用者身份
+	// clientMSPID, err := s.getClientIdentityMSPID(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("获取调用者身份失败：%v", err)
+	// }
+	// 验证是否是零部件生产厂商组织的成员
+	// if clientMSPID != MANUFACTURER_ORG_MSPID {
+	// 	return fmt.Errorf("只有零部件生产厂商组织的成员才能创建零部件信息")
+	// }
+
+	//将前端传入的JSON字符串反序列化为Part结构体
+	var part Part
+	err := json.Unmarshal([]byte(partJSON), &part)
+	if err != nil {
+		return fmt.Errorf("反序列化零部件数据失败: %v", err)
+	}
+
+	//校验核心字段（可以在后端部分校验）
+	if part.PartID == "" || part.BatchNo == "" {
+		return fmt.Errorf("PartID和BatchNo不能为空")
+	}
+
+	//序列化结构体并存入账本
+	partBytes, err := json.Marshal(part)
+	if err != nil {
+		return fmt.Errorf("序列化零部件数据失败: %v", err)
+	}
+	return ctx.GetStub().PutState(part.PartID, partBytes)
+}
+
+// QueryPart 查询零部件
+func (s *SmartContract) QueryPart(ctx contractapi.TransactionContextInterface, partID string) (*Part, error) {
+	//从账本获取核心part数据
+	partBytes, err := ctx.GetStub().GetState(partID)
+	if err != nil {
+		return nil, fmt.Errorf("查询零部件失败: %v", err)
+	}
+	if partBytes == nil {
+		return nil, fmt.Errorf("零部件ID %s 不存在", partID)
+	}
+
+	//反序列化Part数据
+	var part Part
+	err = json.Unmarshal(partBytes, &part)
+	if err != nil {
+		return nil, fmt.Errorf("反序列化零部件失败: %v", err)
+	}
+
+	return &part, nil
 }
 
 func main() {
