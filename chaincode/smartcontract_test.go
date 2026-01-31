@@ -116,3 +116,776 @@ func TestCreatePart_Unauthorized(t *testing.T) {
 	// 输出测试通过信息，打印返回的错误消息
 	t.Log("测试通过，预期失败：", response.Message)
 }
+
+// TestCreateLogisticsData 测试创建物流数据功能（正常流程）
+// 验证 Org2MSP 成员（整车车企/物流服务商）能够成功创建物流数据
+func TestCreateLogisticsData(t *testing.T) {
+	// 0. 设置测试模式标志
+	// 在测试开始前设置全局 TestMode 为 true，使链码使用测试环境的身份验证
+	TestMode = true
+	// 测试结束后恢复为 false，避免影响其他测试
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	// Org2MSP 代表整车车企/物流服务商组织，有权限创建物流数据
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个物流数据的 JSON 字符串，包含物流ID、订单ID、承运商、时间等信息
+	logisticsJSON := `{"logisticsID":"LOGISTICS-001","orderID":"ORDER-001","carrier":"物流商A","startTime":"1735689600","endTime":"1735689700","gpsHash":"hash123","receiver":"车企A"}`
+
+	// 4. 调用链码方法
+	// 构造参数数组：第一个元素是方法名，第二个元素是方法参数
+	args := [][]byte{[]byte("CreateLogisticsData"), []byte(logisticsJSON)}
+	// 使用 MockInvoke 模拟链码调用
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	// 检查返回状态是否为 OK (200)
+	if response.Status != shim.OK {
+		t.Fatalf("CreateLogisticsData执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 使用 GetState 查询刚才创建的物流数据，键格式为 "LOGISTICS_" + logisticsID
+	result, err := mockStub.GetState("LOGISTICS_LOGISTICS-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("物流数据未写入账本")
+	}
+	// 输出测试通过信息，打印写入的数据
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestUpdateSupplyChainStage 测试更新供应链阶段功能（正常流程）
+// 验证 Org2MSP 成员（整车车企/物流服务商）能够成功更新供应链阶段信息
+func TestUpdateSupplyChainStage(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	// Org2MSP 代表整车车企/物流服务商组织，有权限更新供应链阶段
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个供应链阶段的 JSON 字符串，包含阶段ID、零部件ID、阶段类型、状态等信息
+	stageJSON := `{"chainID":"CHAIN-001","partID":"ENG-PISTON-001","batchNo":"B20250502","orderID":"ORDER-001","logisticsID":"","stageType":"采购下单","stageStatus":"已完成","participator":"车企A","participatorRole":"采购方","quantity":100,"operateTime":"1735689600","operator":"OP-001","attachmentInfo":null,"remark":""}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("UpdateSupplyChainStage"), []byte(stageJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("UpdateSupplyChainStage执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 键格式为 "CHAIN_" + chainID
+	result, err := mockStub.GetState("CHAIN_CHAIN-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("供应链数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestCreateReconciliation 测试创建对账记录功能（正常流程）
+// 验证 Org2MSP 成员（整车车企/物流服务商）能够成功创建对账记录
+func TestCreateReconciliation(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	// Org2MSP 代表整车车企/物流服务商组织，有权限创建对账记录
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个对账记录的 JSON 字符串，包含对账ID、订单ID、金额、状态等信息
+	reconJSON := `{"reconID":"RECON-001","orderID":"ORDER-001","amount":"100000.00","status":"已结算","settleTime":"1735689600"}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("CreateReconciliation"), []byte(reconJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("CreateReconciliation执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 键格式为 "RECON_" + reconID
+	result, err := mockStub.GetState("RECON_RECON-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("对账数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestCreateFaultReport 测试创建故障报告功能（正常流程）
+// 验证 Org4MSP 成员（4S店/售后中心）能够成功创建故障报告
+func TestCreateFaultReport(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org4MSP 身份
+	// Org4MSP 代表4S店/售后中心组织，有权限创建故障报告
+	mockStub, err := createMockStubWithIdentity("Org4MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个故障报告的 JSON 字符串，包含故障ID、零部件ID、VIN码、描述等信息
+	faultJSON := `{"faultID":"FAULT-001","partID":"ENG-PISTON-001","vin":"LVX1234568789798","reporter":"4S店A","description":"发动机活塞磨损严重","faultType":"磨损类","riskProb":0.85,"reportTime":"1735689600","status":"待审核"}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("CreateFaultReport"), []byte(faultJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("CreateFaultReport执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 键格式为 "FAULT_" + faultID
+	result, err := mockStub.GetState("FAULT_FAULT-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("故障数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestCreateRecallRecord 测试创建召回记录功能（正常流程）
+// 验证 Org5MSP 成员（行业监管机构）能够成功创建召回记录
+func TestCreateRecallRecord(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org5MSP 身份
+	// Org5MSP 代表行业监管机构组织，有权限创建召回记录
+	mockStub, err := createMockStubWithIdentity("Org5MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个召回记录的 JSON 字符串，包含召回ID、批次号、原因、受影响零部件等信息
+	recallJSON := `{"recallID":"RECALL-001","batchNos":["B20250502","B20250503"],"reason":"质量问题","affectedParts":["ENG-PISTON-001","ENG-PISTON-002"],"status":"待通知","createTime":"1735689600","finishTime":""}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("CreateRecallRecord"), []byte(recallJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("CreateRecallRecord执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 键格式为 "RECALL_" + recallID
+	result, err := mockStub.GetState("RECALL_RECALL-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("召回数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestCreateAftersaleRecord 测试创建售后记录功能（正常流程）
+// 验证 Org4MSP 成员（4S店/售后中心）能够成功创建售后记录
+func TestCreateAftersaleRecord(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org4MSP 身份
+	// Org4MSP 代表4S店/售后中心组织，有权限创建售后记录
+	mockStub, err := createMockStubWithIdentity("Org4MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 预先写入零部件数据到账本
+	// 由于 CreateAftersaleRecord 需要验证零部件是否存在，而创建零部件需要 Org1MSP 身份
+	// 因此使用 MockTransactionStart/End 直接写入数据，绕过身份验证
+	mockStub.MockTransactionStart("tx0")
+	partJSON := `{"partID":"ENG-PISTON-001","vin":"LVX1234568789798","batchNo":"B20250502","name":"发动机活塞","type":"发动机部件","manufacturer":"厂商A","createTime":"1735689600","status":"NORMAL"}`
+	mockStub.PutState("ENG-PISTON-001", []byte(partJSON))
+	mockStub.MockTransactionEnd("tx0")
+
+	// 4. 构造测试数据
+	// 创建一个售后记录的 JSON 字符串，包含售后ID、零部件ID、类型、处理结果等信息
+	aftersaleJSON := `{"aftersaleID":"AFTER-001","partID":"ENG-PISTON-001","batchNo":"B20250502","vin":"LVX1234568789798","faultID":"FAULT-001","recallID":"","aftersaleType":"故障报修","aftersaleStatus":"已完成","handlerOrgID":"4S店A","handlerID":"TECH-001","description":"更换活塞","processResult":"维修完成","processTime":"1735689600","cost":"500.00","attachmentInfo":null,"remark":""}`
+
+	// 5. 调用链码方法
+	args := [][]byte{[]byte("CreateAftersaleRecord"), []byte(aftersaleJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 6. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("CreateAftersaleRecord执行失败：%s", response.Message)
+	}
+
+	// 7. 验证数据是否写入账本
+	// 键格式为 "AFTERSALE_" + aftersaleID
+	result, err := mockStub.GetState("AFTERSALE_AFTER-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("售后数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestRegisterUser 测试注册用户功能（正常流程）
+// 验证各组织成员能够成功注册用户
+func TestRegisterUser(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表零部件生产厂商组织，有权限注册用户
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个用户信息的 JSON 字符串，包含用户ID、组织、角色、权限等信息
+	// 注意：org 字段必须是"零部件生产厂商"、"整车车企"、"物流服务商"、"4S店/售后中心"或"行业监管机构"之一
+	userJSON := `{"userID":"USER-001","org":"零部件生产厂商","role":"生产员","certHash":"hash123","permissions":["上传生产数据","查询零部件"],"registerTime":"1735689600"}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("RegisterUser"), []byte(userJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("RegisterUser执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 键格式为 "USER_" + userID
+	result, err := mockStub.GetState("USER_USER-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("用户数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestQueryUserPermissions 测试查询用户权限功能（正常流程）
+// 验证能够成功查询已注册用户的权限信息
+func TestQueryUserPermissions(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 先注册一个用户
+	userJSON := `{"userID":"USER-001","org":"零部件生产厂商","role":"生产员","certHash":"hash123","permissions":["上传生产数据","查询零部件"],"registerTime":"1735689600"}`
+	createArgs := [][]byte{[]byte("RegisterUser"), []byte(userJSON)}
+	mockStub.MockInvoke("tx1", createArgs)
+
+	// 4. 调用查询方法
+	queryArgs := [][]byte{[]byte("QueryUserPermissions"), []byte("USER-001")}
+	queryResponse := mockStub.MockInvoke("tx2", queryArgs)
+
+	// 5. 校验查询结果
+	if queryResponse.Status != shim.OK {
+		t.Fatalf("QueryUserPermissions执行失败：%s", queryResponse.Message)
+	}
+
+	// 6. 输出查询结果
+	t.Log("测试通过，查询结果：", string(queryResponse.Payload))
+}
+
+// TestRecordQAInteraction 测试记录QA交互功能（正常流程）
+// 验证能够成功记录用户与智能助手的问答交互
+func TestRecordQAInteraction(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个QA交互记录的 JSON 字符串，包含QAID、用户ID、问题、答案、调用的方法等信息
+	qaJSON := `{"qaid":"QA-001","userID":"USER-001","question":"如何查询零部件状态？","intent":"查询","partID":"","answer":"请使用QueryPart方法查询零部件状态","queryTime":"1735689600","contractMethod":"QueryPart"}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("RecordQAInteraction"), []byte(qaJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("RecordQAInteraction执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 键格式为 "QA_" + qaid
+	result, err := mockStub.GetState("QA_QA-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("QA数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestQueryQAInteraction 测试查询QA交互功能（正常流程）
+// 验证能够成功查询已记录的QA交互信息
+func TestQueryQAInteraction(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 先记录一个QA交互
+	qaJSON := `{"qaid":"QA-001","userID":"USER-001","question":"如何查询零部件状态？","intent":"查询","partID":"","answer":"请使用QueryPart方法查询零部件状态","queryTime":"1735689600","contractMethod":"QueryPart"}`
+	createArgs := [][]byte{[]byte("RecordQAInteraction"), []byte(qaJSON)}
+	mockStub.MockInvoke("tx1", createArgs)
+
+	// 4. 调用查询方法
+	queryArgs := [][]byte{[]byte("QueryQAInteraction"), []byte("QA-001")}
+	queryResponse := mockStub.MockInvoke("tx2", queryArgs)
+
+	// 5. 校验查询结果
+	if queryResponse.Status != shim.OK {
+		t.Fatalf("QueryQAInteraction执行失败：%s", queryResponse.Message)
+	}
+
+	// 6. 输出查询结果
+	t.Log("测试通过，查询结果：", string(queryResponse.Payload))
+}
+
+// TestQueryFaultProgress 测试查询故障进度功能（正常流程）
+// 验证能够成功查询故障报告的处理进度
+func TestQueryFaultProgress(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org4MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org4MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 先创建一个故障报告
+	faultJSON := `{"faultID":"FAULT-001","partID":"ENG-PISTON-001","vin":"LVX1234568789798","reporter":"4S店A","description":"发动机活塞磨损严重","faultType":"磨损类","riskProb":0.85,"reportTime":"1735689600","status":"待审核"}`
+	createArgs := [][]byte{[]byte("CreateFaultReport"), []byte(faultJSON)}
+	mockStub.MockInvoke("tx1", createArgs)
+
+	// 4. 调用查询方法
+	queryArgs := [][]byte{[]byte("QueryFaultProgress"), []byte("FAULT-001")}
+	queryResponse := mockStub.MockInvoke("tx2", queryArgs)
+
+	// 5. 校验查询结果
+	if queryResponse.Status != shim.OK {
+		t.Fatalf("QueryFaultProgress执行失败：%s", queryResponse.Message)
+	}
+
+	// 6. 输出查询结果
+	t.Log("测试通过，查询结果：", string(queryResponse.Payload))
+}
+
+// createMockStubWithIdentity 创建带有指定身份的 MockStub 辅助函数
+// 参数：
+//   - mspid: 组织 MSP ID（如 "Org1MSP"、"Org2MSP" 等）
+//   - cc: 智能合约实例
+//
+// 返回：
+//   - *shimtest.MockStub: 配置好身份的 MockStub 实例
+//   - error: 序列化失败时返回错误
+func createMockStubWithIdentity(mspid string, cc *contractapi.ContractChaincode) (*shimtest.MockStub, error) {
+	// 1. 构造身份对象
+	// 使用 msp.SerializedIdentity 结构体模拟 Fabric 网络中的身份
+	identity := &msp.SerializedIdentity{
+		Mspid:   mspid,
+		IdBytes: []byte("test-user-" + mspid),
+	}
+	// 2. 将身份对象序列化为字节数组
+	creatorBytes, err := proto.Marshal(identity)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. 创建 MockStub 并设置 Creator
+	// MockStub 是 Fabric 提供的测试工具，用于模拟链码执行环境
+	mockStub := shimtest.NewMockStub("realty-chaincode", cc)
+	// 设置 Creator 字段，模拟交易发起者的身份信息
+	mockStub.Creator = creatorBytes
+	return mockStub, nil
+}
+
+// TestCreateBOM 测试创建BOM功能（正常流程）
+// 验证 Org1MSP 成员（零部件生产厂商）能够成功创建BOM
+func TestCreateBOM(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表零部件生产厂商组织，有权限创建BOM
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	// 创建一个研发BOM的 JSON 字符串，包含BOMID、类型、物料清单等信息
+	// 注意：rdBOMFileInfo、productionBOMInfo、changeRecords 字段需要满足schema要求
+	// MaterialItem 结构体字段：materialID, materialName, spec, quantity, supplierID
+	bomJSON := `{"bomID":"R-BOM-202505-001","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250501","version":"V1.0","creator":"厂商A","createTime":"1735689600","status":"草稿","materialList":[{"materialID":"MAT-001","materialName":"发动机活塞","spec":"V1.0","quantity":100,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("CreateBOM"), []byte(bomJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 校验调用结果
+	if response.Status != shim.OK {
+		t.Fatalf("CreateBOM执行失败：%s", response.Message)
+	}
+
+	// 6. 验证数据是否写入账本
+	// 键格式为 "BOM_" + bomID
+	result, err := mockStub.GetState("BOM_R-BOM-202505-001")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("BOM数据未写入账本")
+	}
+	t.Log("测试通过，数据：", string(result))
+}
+
+// TestCreateBOM_Unauthorized 测试创建BOM的权限控制
+// 验证非 Org1MSP 成员无法创建BOM，应该被拒绝
+func TestCreateBOM_Unauthorized(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	// Org2MSP 代表整车车企组织，不应该有权限创建BOM
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造测试数据
+	bomJSON := `{"bomID":"R-BOM-202505-002","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250502","version":"V1.0","creator":"厂商B","createTime":"1735689600","status":"草稿","materialList":[{"materialID":"MAT-002","materialName":"发动机活塞","spec":"V1.0","quantity":200,"supplierID":"SUP-002"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+
+	// 4. 调用链码方法
+	args := [][]byte{[]byte("CreateBOM"), []byte(bomJSON)}
+	response := mockStub.MockInvoke("tx1", args)
+
+	// 5. 验证权限控制是否生效
+	// 预期调用应该失败，因为 Org2MSP 没有权限创建BOM
+	if response.Status == shim.OK {
+		t.Fatal("预期CreateBOM应该失败（非Org1MSP成员），但执行成功")
+	}
+	t.Log("测试通过，预期失败：", response.Message)
+}
+
+// TestQueryBOM 测试查询BOM功能（正常流程）
+// 验证能够成功查询已创建的BOM信息
+func TestQueryBOM(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 先创建一个BOM
+	// 注意：rdBOMFileInfo、productionBOMInfo 是结构体类型，需要用 {} 表示空对象
+	// changeRecords 是数组类型，需要用 [] 表示空数组
+	bomJSON := `{"bomID":"R-BOM-202505-003","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250503","version":"V1.0","creator":"厂商A","createTime":"1735689600","status":"草稿","materialList":[{"materialID":"MAT-003","materialName":"发动机活塞","spec":"V1.0","quantity":150,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+	createArgs := [][]byte{[]byte("CreateBOM"), []byte(bomJSON)}
+	mockStub.MockInvoke("tx1", createArgs)
+
+	// 4. 调用查询方法
+	queryArgs := [][]byte{[]byte("QueryBOM"), []byte("R-BOM-202505-003")}
+	queryResponse := mockStub.MockInvoke("tx2", queryArgs)
+
+	// 5. 校验查询结果
+	if queryResponse.Status != shim.OK {
+		t.Fatalf("QueryBOM执行失败：%s", queryResponse.Message)
+	}
+
+	// 6. 输出查询结果
+	t.Log("测试通过，查询结果：", string(queryResponse.Payload))
+}
+
+// TestUpdateBOM 测试更新BOM功能（正常流程）
+// 验证 Org1MSP 成员能够成功更新BOM信息
+func TestUpdateBOM(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 先创建一个BOM
+	bomJSON := `{"bomID":"R-BOM-202505-004","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250504","version":"V1.0","creator":"厂商A","createTime":"1735689600","status":"草稿","materialList":[{"materialID":"MAT-004","materialName":"发动机活塞","spec":"V1.0","quantity":100,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+	createArgs := [][]byte{[]byte("CreateBOM"), []byte(bomJSON)}
+	mockStub.MockInvoke("tx1", createArgs)
+
+	// 4. 构造更新数据
+	// 更新状态为"已发布"，版本为"V1.1"
+	updateBOMJSON := `{"bomID":"R-BOM-202505-004","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250504","version":"V1.1","creator":"厂商A","createTime":"1735689600","status":"已发布","materialList":[{"materialID":"MAT-004","materialName":"发动机活塞","spec":"V1.0","quantity":120,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+
+	// 5. 调用更新方法
+	updateArgs := [][]byte{[]byte("UpdateBOM"), []byte(updateBOMJSON)}
+	updateResponse := mockStub.MockInvoke("tx2", updateArgs)
+
+	// 6. 校验更新结果
+	if updateResponse.Status != shim.OK {
+		t.Fatalf("UpdateBOM执行失败：%s", updateResponse.Message)
+	}
+
+	// 7. 验证数据是否更新
+	result, err := mockStub.GetState("BOM_R-BOM-202505-004")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("BOM数据未更新")
+	}
+	t.Log("测试通过，更新后数据：", string(result))
+}
+
+// TestUpdateBOM_Unauthorized 测试更新BOM的权限控制
+// 验证非 Org1MSP 成员无法更新BOM，应该被拒绝
+func TestUpdateBOM_Unauthorized(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 构造更新数据
+	updateBOMJSON := `{"bomID":"R-BOM-202505-005","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250505","version":"V1.1","creator":"厂商A","createTime":"1735689600","status":"已发布","materialList":[{"materialID":"MAT-005","materialName":"发动机活塞","spec":"V1.0","quantity":120,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+
+	// 4. 调用更新方法
+	updateArgs := [][]byte{[]byte("UpdateBOM"), []byte(updateBOMJSON)}
+	updateResponse := mockStub.MockInvoke("tx1", updateArgs)
+
+	// 5. 验证权限控制是否生效
+	// 预期调用应该失败，因为 Org2MSP 没有权限更新BOM
+	if updateResponse.Status == shim.OK {
+		t.Fatal("预期UpdateBOM应该失败（非Org1MSP成员），但执行成功")
+	}
+	t.Log("测试通过，预期失败：", updateResponse.Message)
+}
+
+// TestCompareBOM 测试比较BOM功能（正常流程）
+// 验证能够成功比较研发BOM和生产BOM的差异
+func TestCompareBOM(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 先创建两个BOM（研发BOM和生产BOM）
+	rdBOMJSON := `{"bomID":"R-BOM-202505-006","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250506","version":"V1.0","creator":"厂商A","createTime":"1735689600","status":"已发布","materialList":[{"materialID":"MAT-006","materialName":"发动机活塞","spec":"V1.0","quantity":100,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+	prodBOMJSON := `{"bomID":"P-BOM-202505-006","bomType":"生产BOM","productModel":"2025款XX车型","partBatchNo":"B20250506","version":"V1.0","creator":"厂商A","createTime":"1735689600","status":"已发布","materialList":[{"materialID":"MAT-006","materialName":"发动机活塞","spec":"V1.0","quantity":100,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+
+	createArgs1 := [][]byte{[]byte("CreateBOM"), []byte(rdBOMJSON)}
+	createArgs2 := [][]byte{[]byte("CreateBOM"), []byte(prodBOMJSON)}
+	mockStub.MockInvoke("tx1", createArgs1)
+	mockStub.MockInvoke("tx2", createArgs2)
+
+	// 4. 调用比较方法
+	compareArgs := [][]byte{[]byte("CompareBOM"), []byte("P-BOM-202505-006"), []byte("R-BOM-202505-006")}
+	compareResponse := mockStub.MockInvoke("tx3", compareArgs)
+
+	// 5. 校验比较结果
+	if compareResponse.Status != shim.OK {
+		t.Fatalf("CompareBOM执行失败：%s", compareResponse.Message)
+	}
+
+	// 6. 输出比较结果
+	t.Log("测试通过，比较结果：", string(compareResponse.Payload))
+}
+
+// TestSubmitBOMChange 测试提交BOM变更功能（正常流程）
+// 验证 Org1MSP 成员能够成功提交BOM变更记录
+func TestSubmitBOMChange(t *testing.T) {
+	// 0. 设置测试模式标志
+	TestMode = true
+	defer func() { TestMode = false }()
+
+	// 1. 创建智能合约实例
+	cc, err := contractapi.NewChaincode(&SmartContract{})
+	if err != nil {
+		t.Fatalf("创建链码实例失败：%v", err)
+	}
+
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
+	if err != nil {
+		t.Fatalf("创建MockStub失败：%v", err)
+	}
+
+	// 3. 先创建一个BOM
+	bomJSON := `{"bomID":"R-BOM-202505-007","bomType":"研发BOM","productModel":"2025款XX车型","partBatchNo":"B20250507","version":"V1.0","creator":"厂商A","createTime":"1735689600","status":"已发布","materialList":[{"materialID":"MAT-007","materialName":"发动机活塞","spec":"V1.0","quantity":100,"supplierID":"SUP-001"}],"rdBOMFileInfo":{},"productionBOMInfo":{},"changeRecords":[]}`
+	createArgs := [][]byte{[]byte("CreateBOM"), []byte(bomJSON)}
+	mockStub.MockInvoke("tx1", createArgs)
+
+	// 4. 构造变更记录数据
+	// BOMChangeRecord 结构体字段：changeID, changeReason, oldVersion, newVersion, auditFlow, changeTime
+	changeJSON := `{"changeID":"CHANGE-001","changeReason":"供应商变更","oldVersion":"V1.0","newVersion":"V1.1","auditFlow":[{"auditor":"工程师A","auditRole":"研发负责人","auditResult":"通过","auditTime":"1735689700","remark":"审核通过"}],"changeTime":"1735689700"}`
+
+	// 5. 调用提交变更方法
+	changeArgs := [][]byte{[]byte("SubmitBOMChange"), []byte("R-BOM-202505-007"), []byte(changeJSON)}
+	changeResponse := mockStub.MockInvoke("tx2", changeArgs)
+
+	// 6. 校验变更结果
+	if changeResponse.Status != shim.OK {
+		t.Fatalf("SubmitBOMChange执行失败：%s", changeResponse.Message)
+	}
+
+	// 7. 验证数据是否更新
+	result, err := mockStub.GetState("BOM_R-BOM-202505-007")
+	if err != nil || result == nil || len(result) == 0 {
+		t.Fatal("BOM变更数据未更新")
+	}
+	t.Log("测试通过，变更后数据：", string(result))
+}

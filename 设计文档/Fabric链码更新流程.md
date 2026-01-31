@@ -248,7 +248,7 @@ export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org2.examp
 export CORE_PEER_ADDRESS=localhost:9051
 
 # 批准链码定义
-peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID mychannel --name automobile-parts --version 1.1 --package-id <PACKAGE_ID> --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID test --name test1 --version 1.1 --package-id <PACKAGE_ID> --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 ```
 
 #### 7.3 Org3 批准（如果需要）
@@ -261,7 +261,7 @@ export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org3.examp
 export CORE_PEER_ADDRESS=localhost:11051
 
 # 批准链码定义
-peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID mychannel --name automobile-parts --version 1.1 --package-id <PACKAGE_ID> --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
+peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID test --name test1 --version 1.1 --package-id <PACKAGE_ID> --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem
 ```
 
 ---
@@ -270,7 +270,7 @@ peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameO
 
 ```bash
 # 检查链码定义是否准备好提交
-peer lifecycle chaincode checkcommitreadiness --channelID mychannel --name automobile-parts --version 1.1 --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --output json
+peer lifecycle chaincode checkcommitreadiness --channelID test --name test1 --version 1.1 --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --output json
 
 # 输出示例：
 # {
@@ -290,7 +290,7 @@ peer lifecycle chaincode checkcommitreadiness --channelID mychannel --name autom
 
 ```bash
 # 提交链码定义到通道
-peer lifecycle chaincode commit -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID mychannel --name automobile-parts --version 1.1 --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
+peer lifecycle chaincode commit -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID test --name test1 --version 1.1 --sequence 2 --init-required --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 ```
 
 **参数说明：**
@@ -303,12 +303,12 @@ peer lifecycle chaincode commit -o localhost:7050 --ordererTLSHostnameOverride o
 
 ```bash
 # 查询已提交的链码定义
-peer lifecycle chaincode querycommitted --channelID mychannel --name automobile-parts
+peer lifecycle chaincode querycommitted --channelID test --name test1 --output json
 
 # 输出示例：
 # {
 #   "Sequence": 2,
-#   "Name": "automobile-parts",
+#   "Name": "test1",
 #   "Version": "1.1",
 #   "InitRequired": false
 # }
@@ -322,7 +322,7 @@ peer lifecycle chaincode querycommitted --channelID mychannel --name automobile-
 
 ```bash
 # 如果是首次部署，需要初始化
-peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C mychannel -n automobile-parts --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt -c '{"function":"InitLedger","Args":[]}'
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C test -n test1 --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt -c '{"function":"InitLedger","Args":[]}'
 ```
 
 #### 11.2 调用链码方法（测试更新）

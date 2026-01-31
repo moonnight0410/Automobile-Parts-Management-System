@@ -124,7 +124,7 @@ export CORE_PEER_ADDRESS=localhost:7051
 export CORE_PEER_TLS_ENABLED=true
 export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
 
-peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --package-id "$PACKAGE_ID"
+peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --package-id "$PACKAGE_ID" --init-required
 
 if [ $? -ne 0 ]; then
     echo "错误: Org1 批准链码定义失败!"
@@ -141,7 +141,7 @@ export CORE_PEER_TLS_ENABLED=true
 export CORE_PEER_TLS_ROOTCERT_FILE=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 export CORE_PEER_TLS_ENABLED=true
 export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
-peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --package-id "$PACKAGE_ID"
+peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --package-id "$PACKAGE_ID" --init-required
 
 if [ $? -ne 0 ]; then
     echo "错误: Org2 批准链码定义失败!"
@@ -151,7 +151,7 @@ echo "✓ Org2 批准成功"
 
 # 步骤10: 检查提交准备状态
 echo -e "\n步骤10: 检查链码提交准备状态..."
-peer lifecycle chaincode checkcommitreadiness --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --output json
+peer lifecycle chaincode checkcommitreadiness --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --output json
 
 # 步骤11: 提交链码定义
 echo -e "\n步骤11: 提交链码定义到通道..."
@@ -172,18 +172,18 @@ fi
 echo "✓ 链码定义提交成功"
 
 # 步骤12: 验证更新
-echo -e "\n步骤12: 验证链码更新..."
-peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME"
+# echo -e "\n步骤12: 验证链码更新..."
+# peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json
 
-# 步骤13: 初始化链码（如果需要）
-echo -e "\n步骤13: 初始化链码..."
-peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt --isInit -c '{"function":"initLedger","Args":[]}'
+# # 步骤13: 初始化链码（如果需要）
+# echo -e "\n步骤13: 初始化链码..."
+# peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt --isInit -c '{"function":"initLedger","Args":[]}'
 
-if [ $? -ne 0 ]; then
-    echo "警告: 链码初始化失败（可能不需要初始化）"
-else
-    echo "✓ 链码初始化成功"
-fi
+# if [ $? -ne 0 ]; then
+#     echo "警告: 链码初始化失败（可能不需要初始化）"
+# else
+#     echo "✓ 链码初始化成功"
+# fi
 
 echo -e "\n================================"
 echo "链码更新完成!"

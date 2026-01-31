@@ -60,13 +60,13 @@ type BOM struct {
 	MaterialList []MaterialItem `json:"materialList"` // 物料明细列表
 
 	// 研发BOM专属：图纸/设计文件关联（适配普通数据库存储）
-	RDBOMFileInfo *BOMFileInfo `json:"rdBOMFileInfo,omitempty"` // 研发BOM图纸文件信息（omitempty：生产BOM可忽略）
+	RDBOMFileInfo *BOMFileInfo `json:"rdBOMFileInfo"` // 研发BOM图纸文件信息（生产BOM可为空对象）
 
 	// 生产BOM专属：与研发BOM比对
-	ProductionBOMInfo *ProductionBOMInfo `json:"productionBOMInfo,omitempty"` // 生产BOM比对信息
+	ProductionBOMInfo *ProductionBOMInfo `json:"productionBOMInfo"` // 生产BOM比对信息（研发BOM可为空对象）
 
 	// BOM变更相关
-	ChangeRecords []BOMChangeRecord `json:"changeRecords,omitempty"` // 变更记录（版本迭代/变更申请）
+	ChangeRecords []BOMChangeRecord `json:"changeRecords"` // 变更记录（版本迭代/变更申请）
 }
 
 // MaterialItem 物料明细项
