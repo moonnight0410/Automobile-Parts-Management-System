@@ -90,14 +90,13 @@ echo "✓ Org1 链码安装成功"
 
 # 步骤6: 设置 Org2 环境变量并安装
 echo -e "\n步骤6: 设置 Org2 环境并安装链码..."
-export PATH=~/fabric/fabric-samples/bin:$PATH
-export FABRIC_CFG_PATH=~/fabric/fabric-samples/config
-export CORE_PEER_LOCALMSPID="Org1MSP"
-export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-export CORE_PEER_ADDRESS=localhost:7051
+export CORE_PEER_LOCALMSPID="Org2MSP"
+export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
+export CORE_PEER_ADDRESS=localhost:9051
 export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-
+export CORE_PEER_TLS_ROOTCERT_FILE=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
+export CORE_PEER_TLS_ENABLED=true
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 # 安装到 Org2
 peer lifecycle chaincode install "$PACKAGE_FILE"
 if [ $? -ne 0 ]; then
@@ -135,14 +134,13 @@ echo "✓ Org1 批准成功"
 
 # 步骤9: Org2 批准链码定义
 echo -e "\n步骤9: Org2 批准新链码定义..."
-export PATH=~/fabric/fabric-samples/bin:$PATH
-export FABRIC_CFG_PATH=~/fabric/fabric-samples/config
-export CORE_PEER_LOCALMSPID="Org1MSP"
-export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-export CORE_PEER_ADDRESS=localhost:7051
+export CORE_PEER_LOCALMSPID="Org2MSP"
+export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
+export CORE_PEER_ADDRESS=localhost:9051
 export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-
+export CORE_PEER_TLS_ROOTCERT_FILE=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
+export CORE_PEER_TLS_ENABLED=true
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
 peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --package-id "$PACKAGE_ID"
 
 if [ $? -ne 0 ]; then
