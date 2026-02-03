@@ -29,12 +29,12 @@ type Part struct {
 
 // PartLifecycle 零部件全生命周期轨迹
 type PartLifecycle struct {
-	PartID          string            `json:"partID"`          // 关联零部件
-	BOMInfo         BOMReference      `json:"bomInfo"`         // 关联BOM信息
-	ProductionInfo  ProductionData    `json:"productionInfo"`  // 关联生产数据
-	QualityInfo     QualityInspection `json:"qualityInfo"`     // 关联质检数据
-	SupplyChainInfo []SupplyChainData `json:"supplyChainInfo"` // 关联供应链数据（订单+物流）
-	AftersaleInfo   []AftersaleRecord `json:"aftersaleInfo"`   // 关联售后/故障数据
+	PartID          string             `json:"partID"`          // 关联零部件
+	BOMInfo         *BOMReference      `json:"bomInfo"`         // 关联BOM信息
+	ProductionInfo  *ProductionData    `json:"productionInfo"`  // 关联生产数据
+	QualityInfo     *QualityInspection `json:"qualityInfo"`     // 关联质检数据
+	SupplyChainInfo []SupplyChainData  `json:"supplyChainInfo"` // 关联供应链数据（订单+物流）
+	AftersaleInfo   []AftersaleRecord  `json:"aftersaleInfo"`   // 关联售后/故障数据
 }
 
 // BOMReference BOM信息引用
@@ -252,14 +252,14 @@ type AftersaleRecord struct {
 	HandlerID       string `json:"handlerID"`       // 处理人ID
 
 	// 4. 处理详情
-	Description   string `json:"description"`    // 售后描述
-	ProcessResult string `json:"processResult"`  // 处理结果
-	ProcessTime   string `json:"processTime"`    // 处理完成时间
-	Cost          string `json:"cost,omitempty"` // 售后成本
+	Description   string `json:"description"`   // 售后描述
+	ProcessResult string `json:"processResult"` // 处理结果
+	ProcessTime   string `json:"processTime"`   // 处理完成时间
+	Cost          string `json:"cost"`          // 售后成本
 
 	// 5. 通用附件复用
-	AttachmentInfo *Attachment `json:"attachmentInfo,omitempty"` // 复用通用附件
-	Remark         string      `json:"remark,omitempty"`         // 售后备注
+	AttachmentInfo *Attachment `json:"attachmentInfo"` // 复用通用附件
+	Remark         string      `json:"remark"`         // 售后备注
 }
 
 // UserIdentity 数字身份
@@ -422,6 +422,13 @@ func (s *SmartContract) QueryPartLifecycle(ctx contractapi.TransactionContextInt
 	err = json.Unmarshal(partLifecycleBytes, &lifecycle)
 	if err != nil {
 		return nil, fmt.Errorf("反序列化生命周期数据失败: %v", err)
+	}
+
+	if lifecycle.AftersaleInfo == nil {
+		lifecycle.AftersaleInfo = []AftersaleRecord{}
+	}
+	if lifecycle.SupplyChainInfo == nil {
+		lifecycle.SupplyChainInfo = []SupplyChainData{}
 	}
 
 	return &lifecycle, nil
@@ -767,7 +774,7 @@ func (s *SmartContract) CreateProductionData(ctx contractapi.TransactionContextI
 		json.Unmarshal(lifecycleBytes, &lifecycle)
 	}
 	lifecycle.PartID = production.PartID
-	lifecycle.ProductionInfo = production
+	lifecycle.ProductionInfo = &production
 
 	lifecycleBytes, err = json.Marshal(lifecycle)
 	if err != nil {
@@ -841,7 +848,7 @@ func (s *SmartContract) CreateQualityInspection(ctx contractapi.TransactionConte
 		json.Unmarshal(lifecycleBytes, &lifecycle)
 	}
 	lifecycle.PartID = inspection.PartID
-	lifecycle.QualityInfo = inspection
+	lifecycle.QualityInfo = &inspection
 
 	lifecycleBytes, err = json.Marshal(lifecycle)
 	if err != nil {
@@ -1008,13 +1015,16 @@ func (s *SmartContract) UpdateSupplyChainStage(ctx contractapi.TransactionContex
 		json.Unmarshal(lifecycleBytes, &lifecycle)
 	}
 	lifecycle.PartID = stage.PartID
-	lifecycle.SupplyChainInfo = append(lifecycle.SupplyChainInfo, stage)
+	if lifecycle.SupplyChainInfo == nil {
+		lifecycle.SupplyChainInfo = []SupplyChainData{stage}
+	} else {
+		lifecycle.SupplyChainInfo = append(lifecycle.SupplyChainInfo, stage)
+	}
 
 	lifecycleBytes, err = json.Marshal(lifecycle)
 	if err != nil {
 		return fmt.Errorf("序列化生命周期数据失败: %v", err)
 	}
-
 	return ctx.GetStub().PutState("LIFECYCLE_"+stage.PartID, lifecycleBytes)
 }
 
@@ -1077,7 +1087,11 @@ func (s *SmartContract) CreateFaultReport(ctx contractapi.TransactionContextInte
 	aftersale.Description = fault.Description
 	aftersale.ProcessTime = fault.ReportTime
 
-	lifecycle.AftersaleInfo = append(lifecycle.AftersaleInfo, aftersale)
+	if lifecycle.AftersaleInfo == nil {
+		lifecycle.AftersaleInfo = []AftersaleRecord{aftersale}
+	} else {
+		lifecycle.AftersaleInfo = append(lifecycle.AftersaleInfo, aftersale)
+	}
 
 	lifecycleBytes, err = json.Marshal(lifecycle)
 	if err != nil {
@@ -1191,7 +1205,11 @@ func (s *SmartContract) CreateAftersaleRecord(ctx contractapi.TransactionContext
 		json.Unmarshal(lifecycleBytes, &lifecycle)
 	}
 	lifecycle.PartID = aftersale.PartID
-	lifecycle.AftersaleInfo = append(lifecycle.AftersaleInfo, aftersale)
+	if lifecycle.AftersaleInfo == nil {
+		lifecycle.AftersaleInfo = []AftersaleRecord{aftersale}
+	} else {
+		lifecycle.AftersaleInfo = append(lifecycle.AftersaleInfo, aftersale)
+	}
 
 	lifecycleBytes, err = json.Marshal(lifecycle)
 	if err != nil {
