@@ -1,0 +1,379 @@
+#############################################################################
+#   fabric-ca-server 命令的配置文件。
+#
+#   命令行参数和环境变量
+#   ------------------------------------------------
+#   每个配置元素都可以通过命令行参数或环境变量覆盖。
+#   确定每个元素值的优先级如下：
+#   1) 命令行参数
+#      示例：
+#      a) --port 443
+#         设置监听端口
+#      b) --ca.keyfile ../mykey.pem
+#         设置下面"ca"部分中的"keyfile"元素；
+#         注意 '.' 分隔符字符。
+#   2) 环境变量
+#      示例：
+#      a) FABRIC_CA_SERVER_PORT=443
+#         设置监听端口
+#      b) FABRIC_CA_SERVER_CA_KEYFILE="../mykey.pem"
+#         设置下面"ca"部分中的"keyfile"元素；
+#         注意 '_' 分隔符字符。
+#   3) 配置文件
+#   4) 默认值（如果有）
+#      所有默认值都显示在每个元素下方。
+#
+#   文件名元素
+#   ------------------
+#   所有名称以"file"或"files"结尾的字段的值
+#   是其他文件的名称。
+#   例如，参见"tls.certfile"和"tls.clientauth.certfiles"。
+#   这些字段中的每个值都可以是简单的文件名、相对路径或绝对路径。
+#   如果值不是绝对路径，则将其解释为相对于此配置文件的位置。
+#
+#############################################################################
+
+# 配置文件版本
+version: 1.2.0
+
+# 服务器监听端口（默认：7054）
+port: 12054
+
+# 启用调试日志（默认：false）
+debug: false
+
+# 可接受的 CRL 大小限制（字节）（默认：512000）
+crlsizelimit: 512000
+
+#############################################################################
+#  服务器监听端口的 TLS 部分
+#
+#  支持以下客户端认证类型：NoClientCert、RequestClientCert、
+#  RequireAnyClientCert、VerifyClientCertIfGiven 和 RequireAndVerifyClientCert。
+#
+#  Certfiles 是服务器在验证客户端证书时使用的根证书颁发机构列表。
+#############################################################################
+tls:
+  # 启用 TLS（默认：false）
+  enabled: true
+  # 服务器监听端口的 TLS
+  certfile:
+  keyfile:
+  clientauth:
+    type: noclientcert
+    certfiles:
+
+#############################################################################
+#  CA 部分包含与证书颁发机构相关的信息，包括 CA 的名称，
+#  该名称对于区块链网络的所有成员都应该是唯一的。
+#  它还包括在颁发注册证书（ECerts）和交易证书（TCerts）时使用的密钥和证书文件。
+#  chainfile（如果存在）包含应该被此 CA 信任的证书链，
+#  其中链中的第一个始终是根 CA 证书。
+#############################################################################
+ca:
+  # 此 CA 的名称
+  name: Org4CA
+  # 密钥文件（仅用于将私钥导入 BCCSP）
+  keyfile:
+  # 证书文件（默认：ca-cert.pem）
+  certfile:
+  # 链文件
+  chainfile:
+
+#############################################################################
+#  gencrl REST 端点用于生成包含已吊销证书的 CRL。
+#  此部分包含在 gencrl 请求处理期间使用的配置选项。
+#############################################################################
+crl:
+  # 指定生成的 CRL 的过期时间。此属性指定的小时数
+  # 将添加到 UTC 时间，结果时间用于设置 CRL 的"Next Update"日期。
+  expiry: 24h
+
+#############################################################################
+#  registry 部分控制 fabric-ca-server 如何做两件事：
+#  1) 认证包含用户名和密码的注册请求（也称为注册 ID 和密钥）。
+#  2) 一旦通过身份验证，检索身份的属性名称和值，
+#     fabric-ca-server 可选择将其放入它为在 Hyperledger Fabric 区块链上交易而颁发的 TCerts 中。
+#     这些属性对于在链码中做出访问控制决策很有用。
+#  有两个主要的配置选项：
+#  1) fabric-ca-server 是注册表。
+#     如果下面 ldap 部分中的"ldap.enabled"为 false，则这是真的。
+#  2) LDAP 服务器是注册表，在这种情况下，fabric-ca-server 调用 LDAP 服务器来执行这些任务。
+#     如果下面 ldap 部分中的"ldap.enabled"为 true，则这是真的，
+#     这意味着忽略此"registry"部分。
+#############################################################################
+registry:
+  # 密码/密钥可以重复用于注册的最大次数（默认：-1，这意味着没有限制）
+  maxenrollments: -1
+
+  # 包含在 LDAP 禁用时使用的身份信息
+  identities:
+     - name: admin
+       pass: adminpw
+       type: client
+       affiliation: ""
+       attrs:
+          hf.Registrar.Roles: "*"
+          hf.Registrar.DelegateRoles: "*"
+          hf.Revoker: true
+          hf.IntermediateCA: true
+          hf.GenCRL: true
+          hf.Registrar.Attributes: "*"
+          hf.AffiliationMgr: true
+
+#############################################################################
+#  数据库部分
+#  支持的类型为："sqlite3"、"postgres" 和 "mysql"。
+#  数据源值取决于类型。
+#  如果类型是"sqlite3"，则数据源值是用作数据库存储的文件名。
+#  由于"sqlite3"是嵌入式数据库，如果要运行 fabric-ca-server 集群，则可能不使用它。
+#  要运行 fabric-ca-server 集群，必须选择"postgres"或"mysql"。
+#############################################################################
+db:
+  type: sqlite3
+  datasource: fabric-ca-server.db
+  tls:
+      enabled: false
+      certfiles:
+      client:
+        certfile:
+        keyfile:
+
+#############################################################################
+#  LDAP 部分
+#  如果启用了 LDAP，fabric-ca-server 调用 LDAP 来：
+#  1) 认证注册请求的注册 ID 和密钥（即用户名和密码）；
+#  2) 检索身份属性
+#############################################################################
+ldap:
+   # 启用或禁用 LDAP 客户端（默认：false）
+   # 如果设置为 true，则忽略"registry"部分。
+   enabled: false
+   # LDAP 服务器的 URL
+   url: ldap://<adminDN>:<adminPassword>@<host>:<port>/<base>
+   # 与 LDAP 服务器的客户端连接的 TLS 配置
+   tls:
+      certfiles:
+      client:
+         certfile:
+         keyfile:
+   # 用于将 LDAP 条目映射到 Fabric CA 属性的属性相关配置
+   attribute:
+      # 'names' 是一个字符串数组，包含从 LDAP 服务器请求的 LDAP 属性名称
+      # 用于 LDAP 身份的条目
+      names: ['uid','member']
+      # 'converters' 部分用于将 LDAP 条目转换为 Fabric CA 属性的值。
+      # 例如，以下转换以'revoker'开头的 LDAP 'uid'属性
+      # 其值转换为名为"hf.Revoker"的 Fabric CA 属性
+      # 值为"true"（因为布尔表达式的计算结果为 true）。
+      #    converters:
+      #       - name: hf.Revoker
+      #         value: attr("uid") =~ "revoker*"
+      converters:
+         - name:
+           value:
+      # 'maps' 部分包含可以在'converters'部分的'map'函数中引用的命名映射。
+      # 例如，假设用户有一个名为'member'的 LDAP 属性，它有多个值，
+      # 每个值都是可分辨名称（即 DN）。为简单起见，假设
+      # 'member'属性的值为'dn1'、'dn2'和'dn3'。
+      # 进一步假设以下配置。
+      #    converters:
+      #       - name: hf.Registrar.Roles
+      #         value: map(attr("member"),"groups")
+      #    maps:
+      #       groups:
+      #          - name: dn1
+      #            value: peer
+      #          - name: dn2
+      #            value: client
+      # 然后用户的'hf.Registrar.Roles'属性的值计算为
+      # "peer,client,dn3"。这是因为'attr("member")'的值是
+      # "dn1,dn2,dn3"，并且使用第二个参数"group"调用'map'将"dn1"替换为"peer"，将"dn2"替换为"client"。
+      maps:
+         groups:
+            - name:
+              value:
+
+#############################################################################
+# 关联部分。Fabric CA 服务器可以使用本部分中指定的关联进行引导。
+# 关联被指定为映射。例如：
+#   businessunit1:
+#     department1:
+#       - team1
+#   businessunit2:
+#     - department2
+#     - department3
+#
+# 关联本质上是分层的。在上面的示例中，
+# department1（用作 businessunit1.department1）是 businessunit1 的子级。
+# team1（用作 businessunit1.department1.team1）是 department1 的子级。
+# department2（用作 businessunit2.department2）和 department3（businessunit2.department3）
+# 是 businessunit2 的子级。
+# 注意：关联区分大小写，除了在配置文件中指定的非叶关联
+# （如 businessunit1、department1、businessunit2），它们始终以小写形式存储。
+#############################################################################
+affiliations:
+   org1:
+      - department1
+      - department2
+   org2:
+      - department1
+   org3:
+      - department1
+   org4:
+      - department1
+
+#############################################################################
+#  签名部分
+#
+#  "default"子部分用于签署注册证书；
+#  默认过期时间（"expiry"字段）是"8760h"，即 1 年的小时数。
+#
+#  "ca"配置文件子部分用于签署中间 CA 证书；
+#  默认过期时间（"expiry"字段）是"43800h"，即 5 年的小时数。
+#  注意"isca"为 true，意味着它颁发 CA 证书。
+#  maxpathlen 为 0 意味着中间 CA 不能颁发其他
+#  中间 CA 证书，尽管它仍然可以颁发终端实体证书。
+#  （参见 RFC 5280，第 4.2.1.9 节）
+#
+#  "tls"配置文件子部分用于签署 TLS 证书请求；
+#  默认过期时间（"expiry"字段）是"8760h"，即 1 年的小时数。
+#############################################################################
+signing:
+    default:
+      usage:
+        - digital signature
+      expiry: 8760h
+    profiles:
+      ca:
+         usage:
+           - cert sign
+           - crl sign
+         expiry: 43800h
+         caconstraint:
+           isca: true
+           maxpathlen: 0
+      tls:
+         usage:
+            - signing
+            - key encipherment
+            - server auth
+            - client auth
+            - key agreement
+         expiry: 8760h
+
+###########################################################################
+#  证书签名请求（CSR）部分。
+#  这控制根 CA 证书的创建。
+#  根 CA 证书的过期时间使用下面的"ca.expiry"字段配置，
+#  其默认值为"131400h"，即 15 年的小时数。
+#  pathlength 字段用于限制 RFC 5280 第 4.2.1.9 节中所述的 CA 证书层次结构。
+#  示例：
+#  1) 没有 pathlength 值意味着没有请求限制。
+#  2) pathlength == 1 意味着请求限制为 1，这是根 CA 的默认值。
+#     这意味着根 CA 可以颁发中间 CA 证书，
+#     但这些中间 CA 可能不会反过来颁发其他 CA 证书，
+#     尽管它们仍然可以颁发终端实体证书。
+#  3) pathlength == 0 意味着请求限制为 0；
+#     这是中间 CA 的默认值，这意味着它不能颁发
+#     CA 证书，尽管它仍然可以颁发终端实体证书。
+###########################################################################
+csr:
+   cn: ca.org4.example.com
+   names:
+      - C: US
+        ST: "North Carolina"
+        L: "Raleigh"
+        O: org4.example.com
+        OU:
+   hosts:
+     - localhost
+     - org4.example.com
+   ca:
+      expiry: 131400h
+      pathlength: 1
+
+#############################################################################
+# BCCSP（区块链加密服务提供商）部分用于选择使用哪个加密库实现
+#############################################################################
+bccsp:
+    default: SW
+    sw:
+        hash: SHA2
+        security: 256
+        filekeystore:
+            # 基于软件的文件存储的目录
+            keystore: msp/keystore
+
+#############################################################################
+# 多 CA 部分
+#
+# 每个 Fabric CA 服务器默认包含一个 CA。此部分用于
+# 在单个服务器中配置多个 CA。
+#
+# 1) --cacount <number-of-CAs>
+# 自动生成 <number-of-CAs> 个非默认 CA。这些附加 CA 的名称为"ca1"、"ca2"、..."caN"，
+# 其中"N"是 <number-of-CAs>
+# 这在开发环境中特别有用，可以快速设置多个 CA。
+# 注意，此配置选项不适用于中间 CA 服务器，
+# 即使用 intermediate.parentserver.url 配置选项（-u 命令行选项）启动的 Fabric CA 服务器
+#
+# 2) --cafiles <CA-config-files>
+# 对于列表中的每个 CA 配置文件，生成一个单独的签名 CA。
+# 列表中的每个 CA 配置文件可能包含与服务器配置文件中相同的所有元素，
+# 除了 port、debug 和 tls 部分。
+#
+# 示例：
+# fabric-ca-server start -b admin:adminpw --cacount 2
+#
+# fabric-ca-server start -b admin:adminpw --cafiles ca/ca1/fabric-ca-server-config.yaml
+# --cafiles ca/ca2/fabric-ca-server-config.yaml
+#
+#############################################################################
+
+cacount:
+
+cafiles:
+
+#############################################################################
+# 中间 CA 部分
+#
+# 服务器和 CA 之间的关系如下：
+#   1) 单个服务器进程可以包含或作为一个或多个 CA 运行。
+#      这由上面的"多 CA 部分"配置。
+#   2) 每个 CA 要么是根 CA，要么是中间 CA。
+#   3) 每个中间 CA 都有一个父 CA，它要么是根 CA，要么是另一个中间 CA。
+#
+# 此部分涉及 #2 和 #3 的配置。
+# 如果设置了"intermediate.parentserver.url"属性，
+# 则这是具有指定父 CA 的中间 CA。
+#
+# parentserver 部分
+#    url - 父服务器的 URL
+#    caname - 要在服务器中注册的 CA 的名称
+#
+# 用于让中间 CA 向父 CA 注册的 enrollment 部分
+#    profile - 用于颁发证书的签名配置文件的名称
+#    label - 用于 HSM 操作的标签
+#
+# 用于安全套接字连接的 tls 部分
+#   certfiles - PEM 编码的可信根证书文件列表
+#   client:
+#     certfile - 在服务器上启用客户端认证时用于客户端认证的 PEM 编码证书文件
+#     keyfile - 在服务器上启用客户端认证时用于客户端认证的 PEM 编码密钥文件
+#############################################################################
+intermediate:
+  parentserver:
+    url:
+    caname:
+
+  enrollment:
+    hosts:
+    profile:
+    label:
+
+  tls:
+    certfiles:
+    client:
+      certfile:
+      keyfile:

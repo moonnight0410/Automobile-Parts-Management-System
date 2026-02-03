@@ -1,0 +1,40 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+networks:
+  test:
+    name: fabric_test
+
+services:
+  couchdb6:
+    container_name: couchdb6
+    image: couchdb:3.4.2
+    labels:
+      service: hyperledger-fabric
+    # 填充 COUCHDB_USER 和 COUCHDB_PASSWORD 以设置 CouchDB 的管理员用户和密码
+    # 这将防止 CouchDB 在"Admin Party"模式下运行。
+    environment:
+      - COUCHDB_USER=admin
+      - COUCHDB_PASSWORD=adminpw
+    # 注释/取消注释端口映射以隐藏/公开 CouchDB 服务，
+    # 例如，映射它以在开发环境中使用 Fauxton 用户界面。
+    ports:
+      - "9986:5984"
+    networks:
+      - test
+
+  peer0.org5.example.com:
+    environment:
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb6:5984
+      # CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME 和 CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD
+      # 提供账本连接到 CouchDB 的凭据。用户名和密码必须
+      # 与为关联的 CouchDB 设置的用户名和密码匹配。
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=admin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=adminpw
+    depends_on:
+      - couchdb6
+    networks:
+      - test
