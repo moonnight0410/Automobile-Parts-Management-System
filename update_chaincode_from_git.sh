@@ -6,7 +6,7 @@ GIT_REPO_URL="https://github.com/moonnight0410/Automobile-Parts-Management-Syste
 LOCAL_CHAINCODE_DIR="/home/jianyu-zou/code/Automobile-Parts-Management-System"
 CHANNEL_NAME="test"
 CHAINCODE_NAME="test1"
-NEW_VERSION="1.1"  # 每次更新需要修改版本号
+NEW_VERSION="1.2"  # 每次更新需要修改版本号
 CHAINCODE_PATH="${LOCAL_CHAINCODE_DIR}/chaincode"
 
 # 进入 Fabric 网络目录
