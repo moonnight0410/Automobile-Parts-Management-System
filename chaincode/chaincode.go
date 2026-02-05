@@ -284,21 +284,73 @@ type QAInteraction struct {
 	ContractMethod string `json:"contractMethod"` // 调用的智能合约方法（如"QueryFaultProgress"）
 }
 
-// 组织 MSP ID 常量
+// 组织 MSP ID 常量（重新设计为 3 个组织）
 const (
-	MANUFACTURER_ORG_MSPID = "Org1MSP" // 零部件生产厂商组织 MSP ID
-	AUTOMAKER_ORG_MSPID    = "Org2MSP" // 整车车企（采购方）组织 MSP ID
-	LOGISTICS_ORG_MSPID    = "Org3MSP" // 物流服务商组织 MSP ID
-	AFTERSALE_ORG_MSPID    = "Org4MSP" // 4S店/售后中心组织 MSP ID
-	REGULATOR_ORG_MSPID    = "Org5MSP" // 行业监管组织 MSP ID
+	MANUFACTURER_ORG_MSPID = "ManufacturerMSP" // 零部件生产厂商组织 MSP ID
+	AUTOMAKER_ORG_MSPID    = "AutomakerMSP"    // 整车车企（采购方）组织 MSP ID
+	AFTERSALE_ORG_MSPID    = "AftersaleMSP"    // 4S店/售后中心组织 MSP ID
+
+	// 零部件状态常量
+	PART_STATUS_NORMAL            = "NORMAL"            // 正常
+	PART_STATUS_IN_PRODUCTION     = "IN_PRODUCTION"     // 在产
+	PART_STATUS_QUALITY_INSPECTED = "QUALITY_INSPECTED" // 质检完成
+	PART_STATUS_IN_SUPPLY_CHAIN   = "IN_SUPPLY_CHAIN"   // 供应链中
+	PART_STATUS_RECALLED          = "RECALLED"          // 已召回
+
+	// BOM 状态常量
+	BOM_STATUS_DRAFT     = "草稿"
+	BOM_STATUS_PUBLISHED = "已发布"
+	BOM_STATUS_CHANGED   = "已变更"
+	BOM_STATUS_REVOKED   = "已作废"
+
+	// 售后类型常量
+	AFTERSALE_TYPE_FAULT_REPORT = "故障报修"
+	AFTERSALE_TYPE_MAINTENANCE  = "维修处理"
+	AFTERSALE_TYPE_RECALL       = "召回登记"
+	AFTERSALE_TYPE_SCRAP        = "报废处理"
+
+	// 售后状态常量
+	AFTERSALE_STATUS_PENDING    = "待审核"
+	AFTERSALE_STATUS_PROCESSING = "处理中"
+	AFTERSALE_STATUS_COMPLETED  = "已完成"
 )
+
+// checkPermission 检查调用者是否具有指定权限
+// 参数：
+//   - ctx: 交易上下文
+//   - allowedMSPID: 允许的 MSP ID
+//
+// 返回值：
+//   - error: 无权限返回错误，有权限返回 nil
+func (s *SmartContract) checkPermission(ctx contractapi.TransactionContextInterface, allowedMSPID string) error {
+	clientMSPID, err := s.getClientIdentityMSPID(ctx)
+	if err != nil {
+		return err
+	}
+
+	if clientMSPID != allowedMSPID {
+		return fmt.Errorf("权限错误：只有 %s 组织的成员才能执行此操作", allowedMSPID)
+	}
+
+	return nil
+}
 
 // SmartContract structure 提供零部件数据上链功能
 type SmartContract struct {
 	contractapi.Contract
 }
 
+// InitLedger 初始化账本数据
+// 功能：在链码首次部署时创建测试数据，验证链码功能正常
+// 参数：
+//   - ctx: 交易上下文
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用（仅用于初始化）
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
+	// 创建测试零部件数据
 	testPart := Part{
 		PartID:       "ENG-PISTON-001",
 		VIN:          "LVX1234568789798",
@@ -309,15 +361,24 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 		CreateTime:   fmt.Sprintf("%d", time.Now().Unix()),
 		Status:       "NORMAL",
 	}
+
+	// 序列化零部件数据
 	partJson, err := json.Marshal(testPart)
 	if err != nil {
 		return fmt.Errorf("序列化测试零部件失败: %v", err)
 	}
 
+	// 将测试数据写入账本
 	return ctx.GetStub().PutState(testPart.PartID, partJson)
 }
 
-// 通用方法: 获取客户端身份信息
+// getClientIdentityMSPID 获取客户端身份信息
+// 参数：
+//   - ctx: 交易上下文
+//
+// 返回值：
+//   - string: MSP ID
+//   - error: 获取失败返回错误
 func (s *SmartContract) getClientIdentityMSPID(ctx contractapi.TransactionContextInterface) (string, error) {
 	// 如果是测试模式，直接解析 Creator 字节获取 MSPID
 	if TestMode {
@@ -356,40 +417,61 @@ func (s *SmartContract) getClientIdentityMSPID(ctx contractapi.TransactionContex
 //
 // 返回：
 //   - error: 操作失败时返回错误
+//
+// CreatePart 创建零部件记录
+// 参数：
+//   - ctx: 交易上下文
+//   - partJSON: 零部件 JSON 字符串，包含 partID、vin、batchNo、name、type、manufacturer、createTime、status
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：仅 ManufacturerMSP 成员可调用
 func (s *SmartContract) CreatePart(ctx contractapi.TransactionContextInterface, partJSON string) error {
-	//校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	// 验证是否是零部件生产厂商组织的成员
-	if clientMSPID != MANUFACTURER_ORG_MSPID {
-		return fmt.Errorf("只有零部件生产厂商组织的成员才能创建零部件信息")
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
 	}
 
-	//将前端传入的JSON字符串反序列化为Part结构体
+	// 将前端传入的JSON字符串反序列化为Part结构体
 	var part Part
-	err = json.Unmarshal([]byte(partJSON), &part)
+	err := json.Unmarshal([]byte(partJSON), &part)
 	if err != nil {
 		return fmt.Errorf("反序列化零部件数据失败: %v", err)
 	}
 
-	//校验核心字段（可以在后端部分校验）
+	// 校验核心字段
 	if part.PartID == "" || part.BatchNo == "" {
 		return fmt.Errorf("PartID和BatchNo不能为空")
 	}
 
-	//序列化结构体并存入账本
+	// 序列化结构体并存入账本
 	partBytes, err := json.Marshal(part)
 	if err != nil {
 		return fmt.Errorf("序列化零部件数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	if err := ctx.GetStub().SetEvent("CreatePart", []byte(fmt.Sprintf("创建零部件: %s", part.PartID))); err != nil {
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState(part.PartID, partBytes)
 }
 
-// QueryPart 查询零部件
+// QueryPart 查询零部件信息
+// 功能：根据零部件ID查询零部件的详细信息
+// 参数：
+//   - ctx: 交易上下文
+//   - partID: 零部件唯一标识
+//
+// 返回值：
+//   - *Part: 零部件信息指针
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用
 func (s *SmartContract) QueryPart(ctx contractapi.TransactionContextInterface, partID string) (*Part, error) {
-	//从账本获取核心part数据
+	// 从账本获取核心part数据
 	partBytes, err := ctx.GetStub().GetState(partID)
 	if err != nil {
 		return nil, fmt.Errorf("查询零部件失败: %v", err)
@@ -398,7 +480,7 @@ func (s *SmartContract) QueryPart(ctx contractapi.TransactionContextInterface, p
 		return nil, fmt.Errorf("零部件ID %s 不存在", partID)
 	}
 
-	//反序列化Part数据
+	// 反序列化Part数据
 	var part Part
 	err = json.Unmarshal(partBytes, &part)
 	if err != nil {
@@ -409,7 +491,18 @@ func (s *SmartContract) QueryPart(ctx contractapi.TransactionContextInterface, p
 }
 
 // QueryPartLifecycle 查询零部件全生命周期轨迹
+// 功能：根据零部件ID查询其完整的生命周期信息，包括BOM、生产、质检、供应链和售后数据
+// 参数：
+//   - ctx: 交易上下文
+//   - partID: 零部件唯一标识
+//
+// 返回值：
+//   - *PartLifecycle: 零部件生命周期信息指针
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用
 func (s *SmartContract) QueryPartLifecycle(ctx contractapi.TransactionContextInterface, partID string) (*PartLifecycle, error) {
+	// 从账本获取生命周期数据
 	partLifecycleBytes, err := ctx.GetStub().GetState("LIFECYCLE_" + partID)
 	if err != nil {
 		return nil, fmt.Errorf("查询零部件生命周期失败: %v", err)
@@ -418,12 +511,14 @@ func (s *SmartContract) QueryPartLifecycle(ctx contractapi.TransactionContextInt
 		return nil, fmt.Errorf("零部件ID %s 的生命周期数据不存在", partID)
 	}
 
+	// 反序列化生命周期数据
 	var lifecycle PartLifecycle
 	err = json.Unmarshal(partLifecycleBytes, &lifecycle)
 	if err != nil {
 		return nil, fmt.Errorf("反序列化生命周期数据失败: %v", err)
 	}
 
+	// 初始化空切片，避免返回nil
 	if lifecycle.AftersaleInfo == nil {
 		lifecycle.AftersaleInfo = []AftersaleRecord{}
 	}
@@ -435,7 +530,19 @@ func (s *SmartContract) QueryPartLifecycle(ctx contractapi.TransactionContextInt
 }
 
 // QueryPartByBatchNo 按批次号查询零部件
+// 功能：根据生产批次号查询该批次的所有零部件信息
+// 参数：
+//   - ctx: 交易上下文
+//   - batchNo: 生产批次号
+//
+// 返回值：
+//   - []*Part: 零部件列表指针
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用
+// 注意：此方法使用富查询，需要在支持富查询的Fabric网络环境中使用
 func (s *SmartContract) QueryPartByBatchNo(ctx contractapi.TransactionContextInterface, batchNo string) ([]*Part, error) {
+	// 构造富查询字符串，按批次号筛选
 	queryString := fmt.Sprintf(`{"selector":{"batchNo":"%s"}}`, batchNo)
 	iterator, err := ctx.GetStub().GetQueryResult(queryString)
 	if err != nil {
@@ -443,6 +550,7 @@ func (s *SmartContract) QueryPartByBatchNo(ctx contractapi.TransactionContextInt
 	}
 	defer iterator.Close()
 
+	// 遍历查询结果并反序列化
 	var parts []*Part
 	for iterator.HasNext() {
 		queryResponse, err := iterator.Next()
@@ -462,7 +570,19 @@ func (s *SmartContract) QueryPartByBatchNo(ctx contractapi.TransactionContextInt
 }
 
 // QueryPartByVIN 按VIN码查询零部件
+// 功能：根据车辆VIN码查询该车辆关联的所有零部件信息
+// 参数：
+//   - ctx: 交易上下文
+//   - vin: 车辆VIN码
+//
+// 返回值：
+//   - []*Part: 零部件列表指针
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用
+// 注意：此方法使用富查询，需要在支持富查询的Fabric网络环境中使用
 func (s *SmartContract) QueryPartByVIN(ctx contractapi.TransactionContextInterface, vin string) ([]*Part, error) {
+	// 构造富查询字符串，按VIN码筛选
 	queryString := fmt.Sprintf(`{"selector":{"vin":"%s"}}`, vin)
 	iterator, err := ctx.GetStub().GetQueryResult(queryString)
 	if err != nil {
@@ -470,6 +590,7 @@ func (s *SmartContract) QueryPartByVIN(ctx contractapi.TransactionContextInterfa
 	}
 	defer iterator.Close()
 
+	// 遍历查询结果并反序列化
 	var parts []*Part
 	for iterator.HasNext() {
 		queryResponse, err := iterator.Next()
@@ -488,38 +609,70 @@ func (s *SmartContract) QueryPartByVIN(ctx contractapi.TransactionContextInterfa
 	return parts, nil
 }
 
-// CreateBOM 创建BOM
+// CreateBOM 创建BOM记录
+// 参数：
+//   - ctx: 交易上下文
+//   - bomJSON: BOM JSON 字符串，包含 bomID、bomType、productModel、partBatchNo、version、creator、createTime、status、materialList、rdBOMFileInfo、productionBOMInfo、changeRecords
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：仅 ManufacturerMSP 成员可调用
 func (s *SmartContract) CreateBOM(ctx contractapi.TransactionContextInterface, bomJSON string) error {
-	// 1. 校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	if clientMSPID != MANUFACTURER_ORG_MSPID {
-		return fmt.Errorf("只有零部件生产厂商组织的成员才能创建BOM")
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
 	}
 
-	// 2. 反序列化BOM数据
+	// 反序列化BOM数据
 	var bom BOM
-	err = json.Unmarshal([]byte(bomJSON), &bom)
+	err := json.Unmarshal([]byte(bomJSON), &bom)
 	if err != nil {
 		return fmt.Errorf("反序列化BOM数据失败: %v", err)
 	}
 
-	// 3. 数据验证
+	// 数据验证
 	if bom.BOMID == "" || bom.BOMType == "" {
 		return fmt.Errorf("BOMID和BOMType不能为空")
+	}
+
+	// 初始化空对象，确保必填字段存在
+	if bom.RDBOMFileInfo == nil {
+		bom.RDBOMFileInfo = &BOMFileInfo{}
+	}
+	if bom.ProductionBOMInfo == nil {
+		bom.ProductionBOMInfo = &ProductionBOMInfo{}
+	}
+	if bom.ChangeRecords == nil {
+		bom.ChangeRecords = []BOMChangeRecord{}
 	}
 
 	bomBytes, err := json.Marshal(bom)
 	if err != nil {
 		return fmt.Errorf("序列化BOM数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	if err := ctx.GetStub().SetEvent("CreateBOM", []byte(fmt.Sprintf("创建BOM: %s", bom.BOMID))); err != nil {
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState("BOM_"+bom.BOMID, bomBytes)
 }
 
-// QueryBOM 查询BOM
+// QueryBOM 查询BOM信息
+// 功能：根据BOM ID查询BOM的详细信息
+// 参数：
+//   - ctx: 交易上下文
+//   - bomID: BOM唯一标识
+//
+// 返回值：
+//   - *BOM: BOM信息指针
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用
 func (s *SmartContract) QueryBOM(ctx contractapi.TransactionContextInterface, bomID string) (*BOM, error) {
+	// 从账本获取BOM数据
 	bomBytes, err := ctx.GetStub().GetState("BOM_" + bomID)
 	if err != nil {
 		return nil, fmt.Errorf("查询BOM失败: %v", err)
@@ -528,6 +681,7 @@ func (s *SmartContract) QueryBOM(ctx contractapi.TransactionContextInterface, bo
 		return nil, fmt.Errorf("BOMID %s 不存在", bomID)
 	}
 
+	// 反序列化BOM数据
 	var bom BOM
 	err = json.Unmarshal(bomBytes, &bom)
 	if err != nil {
@@ -548,39 +702,48 @@ func (s *SmartContract) QueryBOM(ctx contractapi.TransactionContextInterface, bo
 //   - error: 操作失败时返回错误
 func (s *SmartContract) UpdateBOM(ctx contractapi.TransactionContextInterface, bomJSON string) error {
 	// 1. 校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	if clientMSPID != MANUFACTURER_ORG_MSPID {
-		return fmt.Errorf("只有零部件生产厂商组织的成员才能更新BOM")
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		log.Printf("权限验证失败：%v", err)
+		return err
 	}
 
 	// 2. 反序列化BOM数据
 	var bom BOM
-	err = json.Unmarshal([]byte(bomJSON), &bom)
+	err := json.Unmarshal([]byte(bomJSON), &bom)
 	if err != nil {
+		log.Printf("反序列化BOM数据失败：%v", err)
 		return fmt.Errorf("反序列化BOM数据失败: %v", err)
 	}
 
 	// 3. 检查BOM是否存在
 	existingBytes, err := ctx.GetStub().GetState("BOM_" + bom.BOMID)
 	if err != nil {
+		log.Printf("查询BOM失败，BOMID：%s，错误：%v", bom.BOMID, err)
 		return fmt.Errorf("查询BOM失败: %v", err)
 	}
 	if existingBytes == nil {
+		log.Printf("BOM不存在，BOMID：%s", bom.BOMID)
 		return fmt.Errorf("BOMID %s 不存在", bom.BOMID)
 	}
 
 	// 4. 数据验证
 	if bom.Status != "草稿" && bom.Status != "已发布" && bom.Status != "已变更" && bom.Status != "已作废" {
+		log.Printf("BOM状态无效，BOMID：%s，状态：%s", bom.BOMID, bom.Status)
 		return fmt.Errorf("BOM状态必须是：草稿、已发布、已变更或已作废")
 	}
 
 	// 5. 序列化并更新
 	bomBytes, err := json.Marshal(bom)
 	if err != nil {
+		log.Printf("序列化BOM数据失败，BOMID：%s，错误：%v", bom.BOMID, err)
 		return fmt.Errorf("序列化BOM数据失败: %v", err)
+	}
+
+	// 记录操作日志
+	log.Printf("更新BOM成功，BOMID：%s，状态：%s", bom.BOMID, bom.Status)
+	if err := ctx.GetStub().SetEvent("UpdateBOM", []byte(fmt.Sprintf("更新BOM: %s", bom.BOMID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
 	}
 
 	return ctx.GetStub().PutState("BOM_"+bom.BOMID, bomBytes)
@@ -601,27 +764,33 @@ func (s *SmartContract) CompareBOM(ctx contractapi.TransactionContextInterface, 
 	// 1. 校验调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
 	if err != nil {
+		log.Printf("获取调用者身份失败：%v", err)
 		return "", fmt.Errorf("获取调用者身份失败：%v", err)
 	}
 	if clientMSPID != MANUFACTURER_ORG_MSPID && clientMSPID != AUTOMAKER_ORG_MSPID {
+		log.Printf("权限不足，MSPID：%s", clientMSPID)
 		return "", fmt.Errorf("只有零部件生产厂商或整车车企组织的成员才能比对BOM")
 	}
 
 	// 2. 查询生产BOM
 	prodBOMBytes, err := ctx.GetStub().GetState("BOM_" + productionBOMID)
 	if err != nil {
+		log.Printf("查询生产BOM失败，BOMID：%s，错误：%v", productionBOMID, err)
 		return "", fmt.Errorf("查询生产BOM失败: %v", err)
 	}
 	if prodBOMBytes == nil {
+		log.Printf("生产BOM不存在，BOMID：%s", productionBOMID)
 		return "", fmt.Errorf("生产BOMID %s 不存在", productionBOMID)
 	}
 
 	// 3. 查询研发BOM
 	rdBOMBytes, err := ctx.GetStub().GetState("BOM_" + rdBOMID)
 	if err != nil {
+		log.Printf("查询研发BOM失败，BOMID：%s，错误：%v", rdBOMID, err)
 		return "", fmt.Errorf("查询研发BOM失败: %v", err)
 	}
 	if rdBOMBytes == nil {
+		log.Printf("研发BOM不存在，BOMID：%s", rdBOMID)
 		return "", fmt.Errorf("研发BOMID %s 不存在", rdBOMID)
 	}
 
@@ -629,15 +798,18 @@ func (s *SmartContract) CompareBOM(ctx contractapi.TransactionContextInterface, 
 	var prodBOM, rdBOM BOM
 	err = json.Unmarshal(prodBOMBytes, &prodBOM)
 	if err != nil {
+		log.Printf("反序列化生产BOM失败，BOMID：%s，错误：%v", productionBOMID, err)
 		return "", fmt.Errorf("反序列化生产BOM失败: %v", err)
 	}
 	err = json.Unmarshal(rdBOMBytes, &rdBOM)
 	if err != nil {
+		log.Printf("反序列化研发BOM失败，BOMID：%s，错误：%v", rdBOMID, err)
 		return "", fmt.Errorf("反序列化研发BOM失败: %v", err)
 	}
 
 	// 5. 比对物料数量
 	if len(prodBOM.MaterialList) != len(rdBOM.MaterialList) {
+		log.Printf("BOM比对结果：物料数量不同，生产BOM：%d，研发BOM：%d", len(prodBOM.MaterialList), len(rdBOM.MaterialList))
 		return "不一致：物料数量不同", nil
 	}
 
@@ -646,10 +818,13 @@ func (s *SmartContract) CompareBOM(ctx contractapi.TransactionContextInterface, 
 		if prodBOM.MaterialList[i].MaterialID != rdBOM.MaterialList[i].MaterialID ||
 			prodBOM.MaterialList[i].Spec != rdBOM.MaterialList[i].Spec ||
 			prodBOM.MaterialList[i].Quantity != rdBOM.MaterialList[i].Quantity {
+			log.Printf("BOM比对结果：物料 %s 规格或数量不同", prodBOM.MaterialList[i].MaterialID)
 			return fmt.Sprintf("不一致：物料 %s 规格或数量不同", prodBOM.MaterialList[i].MaterialID), nil
 		}
 	}
 
+	// 记录比对结果
+	log.Printf("BOM比对完成，生产BOMID：%s，研发BOMID：%s，结果：一致", productionBOMID, rdBOMID)
 	return "一致", nil
 }
 
@@ -665,27 +840,27 @@ func (s *SmartContract) CompareBOM(ctx contractapi.TransactionContextInterface, 
 //   - error: 操作失败时返回错误
 func (s *SmartContract) SubmitBOMChange(ctx contractapi.TransactionContextInterface, bomID string, changeJSON string) error {
 	// 1. 校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	if clientMSPID != MANUFACTURER_ORG_MSPID {
-		return fmt.Errorf("只有零部件生产厂商组织的成员才能提交BOM变更")
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		log.Printf("权限验证失败，BOMID：%s，错误：%v", bomID, err)
+		return err
 	}
 
 	// 2. 反序列化变更记录
 	var change BOMChangeRecord
-	err = json.Unmarshal([]byte(changeJSON), &change)
+	err := json.Unmarshal([]byte(changeJSON), &change)
 	if err != nil {
+		log.Printf("反序列化变更记录失败，BOMID：%s，错误：%v", bomID, err)
 		return fmt.Errorf("反序列化变更记录失败: %v", err)
 	}
 
 	// 3. 查询BOM
 	bomBytes, err := ctx.GetStub().GetState("BOM_" + bomID)
 	if err != nil {
+		log.Printf("查询BOM失败，BOMID：%s，错误：%v", bomID, err)
 		return fmt.Errorf("查询BOM失败: %v", err)
 	}
 	if bomBytes == nil {
+		log.Printf("BOM不存在，BOMID：%s", bomID)
 		return fmt.Errorf("BOMID %s 不存在", bomID)
 	}
 
@@ -693,6 +868,7 @@ func (s *SmartContract) SubmitBOMChange(ctx contractapi.TransactionContextInterf
 	var bom BOM
 	err = json.Unmarshal(bomBytes, &bom)
 	if err != nil {
+		log.Printf("反序列化BOM失败，BOMID：%s，错误：%v", bomID, err)
 		return fmt.Errorf("反序列化BOM失败: %v", err)
 	}
 
@@ -707,8 +883,17 @@ func (s *SmartContract) SubmitBOMChange(ctx contractapi.TransactionContextInterf
 	// 6. 序列化并更新
 	updatedBOMBytes, err := json.Marshal(bom)
 	if err != nil {
+		log.Printf("序列化BOM数据失败，BOMID：%s，错误：%v", bomID, err)
 		return fmt.Errorf("序列化BOM数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	log.Printf("提交BOM变更成功，BOMID：%s，变更ID：%s，版本：%s -> %s", bomID, change.ChangeID, change.OldVersion, change.NewVersion)
+	if err := ctx.GetStub().SetEvent("SubmitBOMChange", []byte(fmt.Sprintf("提交BOM变更: %s", bomID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState("BOM_"+bomID, updatedBOMBytes)
 }
 
@@ -719,31 +904,34 @@ func (s *SmartContract) SubmitBOMChange(ctx contractapi.TransactionContextInterf
 //   - ctx: 交易上下文
 //   - productionJSON: 生产数据JSON字符串
 //
-// 返回：
-//   - error: 操作失败时返回错误
+// CreateProductionData 创建生产数据记录
+// 参数：
+//   - ctx: 交易上下文
+//   - productionJSON: 生产数据 JSON 字符串，包含 productionID、partID、batchNo、params、productionLine、operator、finishTime
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：仅 ManufacturerMSP 成员可调用
 func (s *SmartContract) CreateProductionData(ctx contractapi.TransactionContextInterface, productionJSON string) error {
-	// 1. 校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	if clientMSPID != MANUFACTURER_ORG_MSPID {
-		return fmt.Errorf("只有零部件生产厂商组织的成员才能创建生产数据")
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
 	}
 
-	// 2. 反序列化生产数据
+	// 反序列化生产数据
 	var production ProductionData
-	err = json.Unmarshal([]byte(productionJSON), &production)
+	err := json.Unmarshal([]byte(productionJSON), &production)
 	if err != nil {
 		return fmt.Errorf("反序列化生产数据失败: %v", err)
 	}
 
-	// 3. 数据验证
+	// 数据验证
 	if production.ProductionID == "" || production.PartID == "" {
 		return fmt.Errorf("ProductionID和PartID不能为空")
 	}
 
-	// 4. 检查零部件是否存在
+	// 检查零部件是否存在
 	partBytes, err := ctx.GetStub().GetState(production.PartID)
 	if err != nil {
 		return fmt.Errorf("查询零部件失败: %v", err)
@@ -752,22 +940,21 @@ func (s *SmartContract) CreateProductionData(ctx contractapi.TransactionContextI
 		return fmt.Errorf("零部件ID %s 不存在", production.PartID)
 	}
 
-	// 5. 设置完成时间
+	// 设置完成时间
 	if production.FinishTime == "" {
 		production.FinishTime = fmt.Sprintf("%d", time.Now().Unix())
 	}
 
-	// 6. 序列化并存储生产数据
+	// 序列化并存储生产数据
 	productionBytes, err := json.Marshal(production)
 	if err != nil {
 		return fmt.Errorf("序列化生产数据失败: %v", err)
 	}
-	err = ctx.GetStub().PutState("PROD_"+production.ProductionID, productionBytes)
-	if err != nil {
+	if err := ctx.GetStub().PutState("PROD_"+production.ProductionID, productionBytes); err != nil {
 		return err
 	}
 
-	// 7. 更新零部件生命周期
+	// 更新零部件生命周期
 	lifecycleBytes, err := ctx.GetStub().GetState("LIFECYCLE_" + production.PartID)
 	var lifecycle PartLifecycle
 	if err == nil && lifecycleBytes != nil {
@@ -780,36 +967,38 @@ func (s *SmartContract) CreateProductionData(ctx contractapi.TransactionContextI
 	if err != nil {
 		return fmt.Errorf("序列化生命周期数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	if err := ctx.GetStub().SetEvent("CreateProductionData", []byte(fmt.Sprintf("创建生产数据: %s", production.ProductionID))); err != nil {
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState("LIFECYCLE_"+production.PartID, lifecycleBytes)
 }
 
 // CreateQualityInspection 创建质检记录
-// 权限要求：仅零部件生产厂商可执行
-// 功能：记录零部件质检结果和检测指标
 // 参数：
 //   - ctx: 交易上下文
-//   - inspectionJSON: 质检记录JSON字符串
+//   - inspectionJSON: 质检记录 JSON 字符串，包含 inspectionID、partID、batchNo、indicators、result、handler、handleTime、disposal
 //
-// 返回：
-//   - error: 操作失败时返回错误
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：仅 ManufacturerMSP 成员可调用
 func (s *SmartContract) CreateQualityInspection(ctx contractapi.TransactionContextInterface, inspectionJSON string) error {
-	// 1. 校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	if clientMSPID != MANUFACTURER_ORG_MSPID {
-		return fmt.Errorf("只有零部件生产厂商组织的成员才能创建质检记录")
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
 	}
 
-	// 2. 反序列化质检数据
+	// 反序列化质检数据
 	var inspection QualityInspection
-	err = json.Unmarshal([]byte(inspectionJSON), &inspection)
+	err := json.Unmarshal([]byte(inspectionJSON), &inspection)
 	if err != nil {
 		return fmt.Errorf("反序列化质检数据失败: %v", err)
 	}
 
-	// 3. 数据验证
+	// 数据验证
 	if inspection.InspectionID == "" || inspection.PartID == "" {
 		return fmt.Errorf("InspectionID和PartID不能为空")
 	}
@@ -817,7 +1006,7 @@ func (s *SmartContract) CreateQualityInspection(ctx contractapi.TransactionConte
 		return fmt.Errorf("质检结果必须是：合格或不合格")
 	}
 
-	// 4. 检查零部件是否存在
+	// 检查零部件是否存在
 	partBytes, err := ctx.GetStub().GetState(inspection.PartID)
 	if err != nil {
 		return fmt.Errorf("查询零部件失败: %v", err)
@@ -826,22 +1015,21 @@ func (s *SmartContract) CreateQualityInspection(ctx contractapi.TransactionConte
 		return fmt.Errorf("零部件ID %s 不存在", inspection.PartID)
 	}
 
-	// 5. 设置质检时间
+	// 设置质检时间
 	if inspection.HandleTime == "" {
 		inspection.HandleTime = fmt.Sprintf("%d", time.Now().Unix())
 	}
 
-	// 6. 序列化并存储质检数据
+	// 序列化并存储质检数据
 	inspectionBytes, err := json.Marshal(inspection)
 	if err != nil {
 		return fmt.Errorf("序列化质检数据失败: %v", err)
 	}
-	err = ctx.GetStub().PutState("QUALITY_"+inspection.InspectionID, inspectionBytes)
-	if err != nil {
+	if err := ctx.GetStub().PutState("QUALITY_"+inspection.InspectionID, inspectionBytes); err != nil {
 		return err
 	}
 
-	// 7. 更新零部件生命周期
+	// 更新零部件生命周期
 	lifecycleBytes, err := ctx.GetStub().GetState("LIFECYCLE_" + inspection.PartID)
 	var lifecycle PartLifecycle
 	if err == nil && lifecycleBytes != nil {
@@ -854,6 +1042,12 @@ func (s *SmartContract) CreateQualityInspection(ctx contractapi.TransactionConte
 	if err != nil {
 		return fmt.Errorf("序列化生命周期数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	if err := ctx.GetStub().SetEvent("CreateQualityInspection", []byte(fmt.Sprintf("创建质检记录: %s", inspection.InspectionID))); err != nil {
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState("LIFECYCLE_"+inspection.PartID, lifecycleBytes)
 }
 
@@ -871,23 +1065,28 @@ func (s *SmartContract) UpdatePartStatus(ctx contractapi.TransactionContextInter
 	// 1. 校验调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
 	if err != nil {
+		log.Printf("获取调用者身份失败，PartID：%s，错误：%v", partID, err)
 		return fmt.Errorf("获取调用者身份失败：%v", err)
 	}
 	if clientMSPID != MANUFACTURER_ORG_MSPID && clientMSPID != AUTOMAKER_ORG_MSPID {
+		log.Printf("权限不足，PartID：%s，MSPID：%s", partID, clientMSPID)
 		return fmt.Errorf("只有零部件生产厂商或整车车企组织的成员才能更新零部件状态")
 	}
 
 	// 2. 数据验证
 	if status != "在产" && status != "在售" && status != "召回" && status != "报废" && status != "NORMAL" {
+		log.Printf("零部件状态无效，PartID：%s，状态：%s", partID, status)
 		return fmt.Errorf("零部件状态必须是：在产、在售、召回、报废或NORMAL")
 	}
 
 	// 3. 查询零部件
 	partBytes, err := ctx.GetStub().GetState(partID)
 	if err != nil {
+		log.Printf("查询零部件失败，PartID：%s，错误：%v", partID, err)
 		return fmt.Errorf("查询零部件失败: %v", err)
 	}
 	if partBytes == nil {
+		log.Printf("零部件不存在，PartID：%s", partID)
 		return fmt.Errorf("零部件ID %s 不存在", partID)
 	}
 
@@ -895,16 +1094,27 @@ func (s *SmartContract) UpdatePartStatus(ctx contractapi.TransactionContextInter
 	var part Part
 	err = json.Unmarshal(partBytes, &part)
 	if err != nil {
+		log.Printf("反序列化零部件失败，PartID：%s，错误：%v", partID, err)
 		return fmt.Errorf("反序列化零部件失败: %v", err)
 	}
 
+	oldStatus := part.Status
 	part.Status = status
 
 	// 5. 序列化并更新
 	partBytes, err = json.Marshal(part)
 	if err != nil {
+		log.Printf("序列化零部件数据失败，PartID：%s，错误：%v", partID, err)
 		return fmt.Errorf("序列化零部件数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	log.Printf("更新零部件状态成功，PartID：%s，旧状态：%s，新状态：%s", partID, oldStatus, status)
+	if err := ctx.GetStub().SetEvent("UpdatePartStatus", []byte(fmt.Sprintf("更新零部件状态: %s -> %s", oldStatus, status))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState(partID, partBytes)
 }
 
@@ -917,40 +1127,53 @@ func (s *SmartContract) UpdatePartStatus(ctx contractapi.TransactionContextInter
 //
 // 返回：
 //   - error: 操作失败时返回错误
+//
+// CreateSupplyOrder 创建采购订单
+// 权限要求：仅整车车企可执行
+// 功能：创建零部件采购订单并上链存储
+// 参数：
+//   - ctx: 交易上下文
+//   - orderJSON: 订单JSON字符串
+//
+// 返回：
+//   - error: 操作失败时返回错误
 func (s *SmartContract) CreateSupplyOrder(ctx contractapi.TransactionContextInterface, orderJSON string) error {
 	// 1. 校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	if clientMSPID != AUTOMAKER_ORG_MSPID {
-		return fmt.Errorf("只有整车车企组织的成员才能创建采购订单")
+	if err := s.checkPermission(ctx, AUTOMAKER_ORG_MSPID); err != nil {
+		log.Printf("权限验证失败，错误：%v", err)
+		return err
 	}
 
 	// 2. 反序列化订单数据
 	var order SupplyOrder
-	err = json.Unmarshal([]byte(orderJSON), &order)
+	err := json.Unmarshal([]byte(orderJSON), &order)
 	if err != nil {
+		log.Printf("反序列化订单数据失败，错误：%v", err)
 		return fmt.Errorf("反序列化订单数据失败: %v", err)
 	}
 
 	// 3. 数据验证
 	if order.OrderID == "" || order.PartID == "" {
+		log.Printf("订单数据不完整，OrderID：%s，PartID：%s", order.OrderID, order.PartID)
 		return fmt.Errorf("OrderID和PartID不能为空")
 	}
 	if order.Quantity <= 0 {
+		log.Printf("订单数量无效，OrderID：%s，数量：%d", order.OrderID, order.Quantity)
 		return fmt.Errorf("订单数量必须大于0")
 	}
 	if order.Status != "待发货" && order.Status != "已发货" && order.Status != "已签收" {
+		log.Printf("订单状态无效，OrderID：%s，状态：%s", order.OrderID, order.Status)
 		return fmt.Errorf("订单状态必须是：待发货、已发货或已签收")
 	}
 
 	// 4. 检查零部件是否存在
 	partBytes, err := ctx.GetStub().GetState(order.PartID)
 	if err != nil {
+		log.Printf("查询零部件失败，PartID：%s，错误：%v", order.PartID, err)
 		return fmt.Errorf("查询零部件失败: %v", err)
 	}
 	if partBytes == nil {
+		log.Printf("零部件不存在，PartID：%s", order.PartID)
 		return fmt.Errorf("零部件ID %s 不存在", order.PartID)
 	}
 
@@ -962,23 +1185,44 @@ func (s *SmartContract) CreateSupplyOrder(ctx contractapi.TransactionContextInte
 	// 6. 序列化并存储订单
 	orderBytes, err := json.Marshal(order)
 	if err != nil {
+		log.Printf("序列化订单数据失败，OrderID：%s，错误：%v", order.OrderID, err)
 		return fmt.Errorf("序列化订单数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	log.Printf("创建采购订单成功，OrderID：%s，PartID：%s，数量：%d", order.OrderID, order.PartID, order.Quantity)
+	if err := ctx.GetStub().SetEvent("CreateSupplyOrder", []byte(fmt.Sprintf("创建采购订单: %s", order.OrderID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState("ORDER_"+order.OrderID, orderBytes)
 }
 
-// CreateLogisticsData 创建物流数据
+// CreateLogisticsData 创建物流数据记录
+// 功能：记录零部件的物流运输信息，包括物流商、时间、GPS轨迹等
+// 参数：
+//   - ctx: 交易上下文
+//   - logisticsJSON: 物流数据JSON字符串，包含 logisticsID、orderID、carrier、startTime、endTime、gpsHash、receiver
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用（建议由物流商或车企调用）
 func (s *SmartContract) CreateLogisticsData(ctx contractapi.TransactionContextInterface, logisticsJSON string) error {
+	// 反序列化物流数据
 	var logistics LogisticsData
 	err := json.Unmarshal([]byte(logisticsJSON), &logistics)
 	if err != nil {
 		return fmt.Errorf("反序列化物流数据失败: %v", err)
 	}
 
+	// 数据验证
 	if logistics.LogisticsID == "" || logistics.OrderID == "" {
 		return fmt.Errorf("LogisticsID和OrderID不能为空")
 	}
 
+	// 序列化并存储物流数据
 	logisticsBytes, err := json.Marshal(logistics)
 	if err != nil {
 		return fmt.Errorf("序列化物流数据失败: %v", err)
@@ -988,17 +1232,29 @@ func (s *SmartContract) CreateLogisticsData(ctx contractapi.TransactionContextIn
 }
 
 // UpdateSupplyChainStage 更新供应链环节
+// 功能：记录零部件在供应链中的流转信息（采购下单、物流发货、仓库入库、仓库出库、车企签收等）
+// 参数：
+//   - ctx: 交易上下文
+//   - stageJSON: 供应链环节数据JSON字符串，包含 chainID、partID、orderID、logisticsID、stageType、stageStatus、participator、participatorRole、quantity、operateTime、operator、attachmentInfo、remark
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用（建议由各环节参与方调用）
 func (s *SmartContract) UpdateSupplyChainStage(ctx contractapi.TransactionContextInterface, stageJSON string) error {
+	// 反序列化供应链环节数据
 	var stage SupplyChainData
 	err := json.Unmarshal([]byte(stageJSON), &stage)
 	if err != nil {
 		return fmt.Errorf("反序列化供应链环节数据失败: %v", err)
 	}
 
+	// 数据验证
 	if stage.ChainID == "" || stage.PartID == "" {
 		return fmt.Errorf("ChainID和PartID不能为空")
 	}
 
+	// 序列化并存储供应链环节
 	stageBytes, err := json.Marshal(stage)
 	if err != nil {
 		return fmt.Errorf("序列化供应链环节数据失败: %v", err)
@@ -1009,6 +1265,7 @@ func (s *SmartContract) UpdateSupplyChainStage(ctx contractapi.TransactionContex
 		return err
 	}
 
+	// 更新零部件生命周期，添加供应链环节信息
 	lifecycleBytes, err := ctx.GetStub().GetState("LIFECYCLE_" + stage.PartID)
 	var lifecycle PartLifecycle
 	if err == nil && lifecycleBytes != nil {
@@ -1029,17 +1286,29 @@ func (s *SmartContract) UpdateSupplyChainStage(ctx contractapi.TransactionContex
 }
 
 // CreateReconciliation 创建对账记录
+// 功能：记录采购订单的对账结算信息，包括金额、状态、结算时间等
+// 参数：
+//   - ctx: 交易上下文
+//   - reconJSON: 对账数据JSON字符串，包含 reconID、orderID、amount、status、settleTime
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用（建议由财务部门调用）
 func (s *SmartContract) CreateReconciliation(ctx contractapi.TransactionContextInterface, reconJSON string) error {
+	// 反序列化对账数据
 	var recon Reconciliation
 	err := json.Unmarshal([]byte(reconJSON), &recon)
 	if err != nil {
 		return fmt.Errorf("反序列化对账数据失败: %v", err)
 	}
 
+	// 数据验证
 	if recon.ReconID == "" || recon.OrderID == "" {
 		return fmt.Errorf("ReconID和OrderID不能为空")
 	}
 
+	// 序列化并存储对账数据
 	reconBytes, err := json.Marshal(recon)
 	if err != nil {
 		return fmt.Errorf("序列化对账数据失败: %v", err)
@@ -1048,18 +1317,30 @@ func (s *SmartContract) CreateReconciliation(ctx contractapi.TransactionContextI
 	return ctx.GetStub().PutState("RECON_"+recon.ReconID, reconBytes)
 }
 
-// CreateFaultReport 创建故障上报
+// CreateFaultReport 创建故障上报记录
+// 功能：记录零部件故障信息，包括故障描述、类型、风险概率等，并自动创建对应的售后记录
+// 参数：
+//   - ctx: 交易上下文
+//   - faultJSON: 故障数据JSON字符串，包含 faultID、partID、vin、reporter、description、faultType、riskProb、reportTime、status
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用（建议由4S店或用户调用）
 func (s *SmartContract) CreateFaultReport(ctx contractapi.TransactionContextInterface, faultJSON string) error {
+	// 反序列化故障数据
 	var fault FaultReport
 	err := json.Unmarshal([]byte(faultJSON), &fault)
 	if err != nil {
 		return fmt.Errorf("反序列化故障数据失败: %v", err)
 	}
 
+	// 数据验证
 	if fault.FaultID == "" || fault.PartID == "" {
 		return fmt.Errorf("FaultID和PartID不能为空")
 	}
 
+	// 序列化并存储故障数据
 	faultBytes, err := json.Marshal(fault)
 	if err != nil {
 		return fmt.Errorf("序列化故障数据失败: %v", err)
@@ -1070,6 +1351,7 @@ func (s *SmartContract) CreateFaultReport(ctx contractapi.TransactionContextInte
 		return err
 	}
 
+	// 自动创建对应的售后记录并更新零部件生命周期
 	lifecycleBytes, err := ctx.GetStub().GetState("LIFECYCLE_" + fault.PartID)
 	var lifecycle PartLifecycle
 	if err == nil && lifecycleBytes != nil {
@@ -1077,6 +1359,7 @@ func (s *SmartContract) CreateFaultReport(ctx contractapi.TransactionContextInte
 	}
 	lifecycle.PartID = fault.PartID
 
+	// 创建售后记录
 	var aftersale AftersaleRecord
 	aftersale.AftersaleID = "AFT_" + fault.FaultID
 	aftersale.PartID = fault.PartID
@@ -1087,6 +1370,7 @@ func (s *SmartContract) CreateFaultReport(ctx contractapi.TransactionContextInte
 	aftersale.Description = fault.Description
 	aftersale.ProcessTime = fault.ReportTime
 
+	// 更新生命周期中的售后信息
 	if lifecycle.AftersaleInfo == nil {
 		lifecycle.AftersaleInfo = []AftersaleRecord{aftersale}
 	} else {
@@ -1102,17 +1386,29 @@ func (s *SmartContract) CreateFaultReport(ctx contractapi.TransactionContextInte
 }
 
 // CreateRecallRecord 创建召回记录
+// 功能：记录零部件召回信息，包括涉及批次、原因、受影响零部件等，并自动更新相关零部件状态为"召回"
+// 参数：
+//   - ctx: 交易上下文
+//   - recallJSON: 召回数据JSON字符串，包含 recallID、batchNos、reason、affectedParts、status、createTime、finishTime
+//
+// 返回值：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+//
+// 权限要求：所有组织成员可调用（建议由车企或厂商调用）
 func (s *SmartContract) CreateRecallRecord(ctx contractapi.TransactionContextInterface, recallJSON string) error {
+	// 反序列化召回数据
 	var recall RecallRecord
 	err := json.Unmarshal([]byte(recallJSON), &recall)
 	if err != nil {
 		return fmt.Errorf("反序列化召回数据失败: %v", err)
 	}
 
+	// 数据验证
 	if recall.RecallID == "" || len(recall.BatchNos) == 0 {
 		return fmt.Errorf("RecallID和BatchNos不能为空")
 	}
 
+	// 序列化并存储召回数据
 	recallBytes, err := json.Marshal(recall)
 	if err != nil {
 		return fmt.Errorf("序列化召回数据失败: %v", err)
@@ -1123,6 +1419,7 @@ func (s *SmartContract) CreateRecallRecord(ctx contractapi.TransactionContextInt
 		return err
 	}
 
+	// 遍历所有涉及批次，更新相关零部件状态为"召回"
 	for _, batchNo := range recall.BatchNos {
 		parts, err := s.QueryPartByBatchNo(ctx, batchNo)
 		if err != nil {
@@ -1138,8 +1435,18 @@ func (s *SmartContract) CreateRecallRecord(ctx contractapi.TransactionContextInt
 }
 
 // CreateAftersaleRecord 创建售后记录
-// 权限要求：4S店/售后中心可执行
+// 权限要求：仅4S店/售后中心可执行
 // 功能：创建售后记录（维修处理、召回登记、报废处理等）
+// 参数：
+//   - ctx: 交易上下文
+//   - aftersaleJSON: 售后记录JSON字符串
+//
+// 返回：
+//   - error: 操作失败时返回错误
+//
+// CreateAftersaleRecord 创建售后记录
+// 权限要求：仅4S店/售后中心可执行
+// 功能：创建售后记录并更新零部件生命周期
 // 参数：
 //   - ctx: 交易上下文
 //   - aftersaleJSON: 售后记录JSON字符串
@@ -1148,38 +1455,41 @@ func (s *SmartContract) CreateRecallRecord(ctx contractapi.TransactionContextInt
 //   - error: 操作失败时返回错误
 func (s *SmartContract) CreateAftersaleRecord(ctx contractapi.TransactionContextInterface, aftersaleJSON string) error {
 	// 1. 校验调用者身份
-	clientMSPID, err := s.getClientIdentityMSPID(ctx)
-	if err != nil {
-		return fmt.Errorf("获取调用者身份失败：%v", err)
-	}
-	if clientMSPID != AFTERSALE_ORG_MSPID {
-		return fmt.Errorf("只有4S店/售后中心组织的成员才能创建售后记录")
+	if err := s.checkPermission(ctx, AFTERSALE_ORG_MSPID); err != nil {
+		log.Printf("权限验证失败，错误：%v", err)
+		return err
 	}
 
 	// 2. 反序列化售后数据
 	var aftersale AftersaleRecord
-	err = json.Unmarshal([]byte(aftersaleJSON), &aftersale)
+	err := json.Unmarshal([]byte(aftersaleJSON), &aftersale)
 	if err != nil {
+		log.Printf("反序列化售后数据失败，错误：%v", err)
 		return fmt.Errorf("反序列化售后数据失败: %v", err)
 	}
 
 	// 3. 数据验证
 	if aftersale.AftersaleID == "" || aftersale.PartID == "" {
+		log.Printf("售后数据不完整，AftersaleID：%s，PartID：%s", aftersale.AftersaleID, aftersale.PartID)
 		return fmt.Errorf("AftersaleID和PartID不能为空")
 	}
 	if aftersale.AftersaleType != "故障报修" && aftersale.AftersaleType != "维修处理" && aftersale.AftersaleType != "召回登记" && aftersale.AftersaleType != "报废处理" {
+		log.Printf("售后类型无效，AftersaleID：%s，类型：%s", aftersale.AftersaleID, aftersale.AftersaleType)
 		return fmt.Errorf("售后类型必须是：故障报修、维修处理、召回登记或报废处理")
 	}
 	if aftersale.AftersaleStatus != "待审核" && aftersale.AftersaleStatus != "处理中" && aftersale.AftersaleStatus != "已完成" {
+		log.Printf("售后状态无效，AftersaleID：%s，状态：%s", aftersale.AftersaleID, aftersale.AftersaleStatus)
 		return fmt.Errorf("售后状态必须是：待审核、处理中或已完成")
 	}
 
 	// 4. 检查零部件是否存在
 	partBytes, err := ctx.GetStub().GetState(aftersale.PartID)
 	if err != nil {
+		log.Printf("查询零部件失败，PartID：%s，错误：%v", aftersale.PartID, err)
 		return fmt.Errorf("查询零部件失败: %v", err)
 	}
 	if partBytes == nil {
+		log.Printf("零部件不存在，PartID：%s", aftersale.PartID)
 		return fmt.Errorf("零部件ID %s 不存在", aftersale.PartID)
 	}
 
@@ -1191,10 +1501,12 @@ func (s *SmartContract) CreateAftersaleRecord(ctx contractapi.TransactionContext
 	// 6. 序列化并存储售后记录
 	aftersaleBytes, err := json.Marshal(aftersale)
 	if err != nil {
+		log.Printf("序列化售后数据失败，AftersaleID：%s，错误：%v", aftersale.AftersaleID, err)
 		return fmt.Errorf("序列化售后数据失败: %v", err)
 	}
 	err = ctx.GetStub().PutState("AFTERSALE_"+aftersale.AftersaleID, aftersaleBytes)
 	if err != nil {
+		log.Printf("存储售后记录失败，AftersaleID：%s，错误：%v", aftersale.AftersaleID, err)
 		return err
 	}
 
@@ -1213,8 +1525,17 @@ func (s *SmartContract) CreateAftersaleRecord(ctx contractapi.TransactionContext
 
 	lifecycleBytes, err = json.Marshal(lifecycle)
 	if err != nil {
+		log.Printf("序列化生命周期数据失败，PartID：%s，错误：%v", aftersale.PartID, err)
 		return fmt.Errorf("序列化生命周期数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	log.Printf("创建售后记录成功，AftersaleID：%s，PartID：%s，类型：%s", aftersale.AftersaleID, aftersale.PartID, aftersale.AftersaleType)
+	if err := ctx.GetStub().SetEvent("CreateAftersaleRecord", []byte(fmt.Sprintf("创建售后记录: %s", aftersale.AftersaleID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState("LIFECYCLE_"+aftersale.PartID, lifecycleBytes)
 }
 
@@ -1263,7 +1584,7 @@ func (s *SmartContract) QueryAftersaleRecord(ctx contractapi.TransactionContextI
 }
 
 // RegisterUser 注册用户身份
-// 权限要求：监管机构可执行（或管理员）
+// 权限要求：所有组织成员可执行
 // 功能：注册用户数字身份，分配组织和权限
 // 参数：
 //   - ctx: 交易上下文
@@ -1275,33 +1596,40 @@ func (s *SmartContract) RegisterUser(ctx contractapi.TransactionContextInterface
 	// 1. 校验调用者身份
 	clientMSPID, err := s.getClientIdentityMSPID(ctx)
 	if err != nil {
+		log.Printf("获取调用者身份失败，错误：%v", err)
 		return fmt.Errorf("获取调用者身份失败：%v", err)
 	}
-	if clientMSPID != REGULATOR_ORG_MSPID && clientMSPID != MANUFACTURER_ORG_MSPID && clientMSPID != AUTOMAKER_ORG_MSPID && clientMSPID != LOGISTICS_ORG_MSPID && clientMSPID != AFTERSALE_ORG_MSPID {
-		return fmt.Errorf("只有各组织成员才能注册用户")
+	if clientMSPID != MANUFACTURER_ORG_MSPID && clientMSPID != AUTOMAKER_ORG_MSPID && clientMSPID != AFTERSALE_ORG_MSPID {
+		log.Printf("权限不足，MSPID：%s", clientMSPID)
+		return fmt.Errorf("只有零部件生产厂商、整车车企或4S店/售后中心组织的成员才能注册用户")
 	}
 
 	// 2. 反序列化用户数据
 	var user UserIdentity
 	err = json.Unmarshal([]byte(userJSON), &user)
 	if err != nil {
+		log.Printf("反序列化用户数据失败，错误：%v", err)
 		return fmt.Errorf("反序列化用户数据失败: %v", err)
 	}
 
 	// 3. 数据验证
 	if user.UserID == "" || user.Org == "" {
+		log.Printf("用户数据不完整，UserID：%s，Org：%s", user.UserID, user.Org)
 		return fmt.Errorf("UserID和Org不能为空")
 	}
-	if user.Org != "零部件生产厂商" && user.Org != "整车车企" && user.Org != "物流服务商" && user.Org != "4S店/售后中心" && user.Org != "行业监管机构" {
-		return fmt.Errorf("组织必须是：零部件生产厂商、整车车企、物流服务商、4S店/售后中心或行业监管机构")
+	if user.Org != "零部件生产厂商" && user.Org != "整车车企" && user.Org != "4S店/售后中心" {
+		log.Printf("组织无效，UserID：%s，Org：%s", user.UserID, user.Org)
+		return fmt.Errorf("组织必须是：零部件生产厂商、整车车企或4S店/售后中心")
 	}
 
 	// 4. 检查用户是否已存在
 	existingBytes, err := ctx.GetStub().GetState("USER_" + user.UserID)
 	if err != nil {
+		log.Printf("查询用户失败，UserID：%s，错误：%v", user.UserID, err)
 		return fmt.Errorf("查询用户失败: %v", err)
 	}
 	if existingBytes != nil {
+		log.Printf("用户已存在，UserID：%s", user.UserID)
 		return fmt.Errorf("用户ID %s 已存在", user.UserID)
 	}
 
@@ -1313,8 +1641,17 @@ func (s *SmartContract) RegisterUser(ctx contractapi.TransactionContextInterface
 	// 6. 序列化并存储用户数据
 	userBytes, err := json.Marshal(user)
 	if err != nil {
+		log.Printf("序列化用户数据失败，UserID：%s，错误：%v", user.UserID, err)
 		return fmt.Errorf("序列化用户数据失败: %v", err)
 	}
+
+	// 记录操作日志
+	log.Printf("注册用户成功，UserID：%s，Org：%s，Role：%s", user.UserID, user.Org, user.Role)
+	if err := ctx.GetStub().SetEvent("RegisterUser", []byte(fmt.Sprintf("注册用户: %s", user.UserID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
 	return ctx.GetStub().PutState("USER_"+user.UserID, userBytes)
 }
 
@@ -1441,12 +1778,17 @@ func (s *SmartContract) QueryFaultProgress(ctx contractapi.TransactionContextInt
 	return &fault, nil
 }
 
+// main 主函数
+// 功能：创建并启动智能合约链码
+// 注意：这是链码的入口点，Fabric网络会调用此函数来启动链码
 func main() {
+	// 创建智能合约实例
 	chaincode, err := contractapi.NewChaincode(&SmartContract{})
 	if err != nil {
 		log.Panicf("创建智能合约失败：%v", err)
 	}
 
+	// 启动智能合约
 	if err := chaincode.Start(); err != nil {
 		log.Panicf("启动智能合约失败：%v", err)
 	}

@@ -171,9 +171,10 @@ if [ $? -ne 0 ]; then
 fi
 echo "✓ 链码定义提交成功"
 
-# 步骤12: 验证更新
-# echo -e "\n步骤12: 验证链码更新..."
-# peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json
+步骤12: 验证更新
+echo -e "\n步骤12: 验证链码更新..."
+peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json
+#peer lifecycle chaincode querycommitted --channelID "test" --name "test1" --output json
 
 # # 步骤13: 初始化链码（如果需要）
 # echo -e "\n步骤13: 初始化链码..."
