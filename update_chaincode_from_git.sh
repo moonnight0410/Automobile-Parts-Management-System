@@ -1,194 +1,707 @@
 #!/bin/bash
-# 从 Git 更新链码并部署到 Fabric 网络
+# 从 Git 更新链码并部署到 Fabric 网络（支持断点续传）
 
-# 配置变量
+# ==================== 配置变量 ====================
 GIT_REPO_URL="https://github.com/moonnight0410/Automobile-Parts-Management-System.git"
 LOCAL_CHAINCODE_DIR="/home/jianyu-zou/code/Automobile-Parts-Management-System"
-CHANNEL_NAME="test"
-CHAINCODE_NAME="test1"
-NEW_VERSION="1.2"  # 每次更新需要修改版本号
+CHANNEL_NAME="channel1"
+CHAINCODE_NAME="auto-system"
+INITIAL_VERSION="1.0"
 CHAINCODE_PATH="${LOCAL_CHAINCODE_DIR}/chaincode"
+FABRIC_NETWORK_PATH="~/fabric/fabric-samples/test-network"
 
-# 进入 Fabric 网络目录
-cd ~/fabric/fabric-samples/test-network
+# 状态文件和日志文件
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+STATE_FILE="${SCRIPT_DIR}/deployment_state.json"
+LOG_FILE="${SCRIPT_DIR}/deployment_$(date +%Y%m%d_%H%M%S).log"
 
-echo "================================"
-echo "开始更新链码流程"
-echo "时间: $(date)"
-echo "================================"
+# 组织配置
+declare -A ORGS=(
+    ["Org1"]="7051:org1.example.com:Org1MSP"
+    ["Org2"]="9051:org2.example.com:Org2MSP"
+    ["Org3"]="11051:org3.example.com:Org3MSP"
+)
 
-# 步骤1: 从 Git 拉取最新代码
-echo "步骤1: 从 Git 拉取最新链码代码..."
-if [ -d "$LOCAL_CHAINCODE_DIR" ]; then
-    cd "$LOCAL_CHAINCODE_DIR"
-    git pull origin main
-    if [ $? -ne 0 ]; then
-        echo "错误: Git 拉取失败!"
-        exit 1
+# ==================== 日志函数 ====================
+log() {
+    local level="$1"
+    shift
+    local message="$@"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[${timestamp}] [${level}] ${message}" | tee -a "$LOG_FILE"
+}
+
+log_info() {
+    log "INFO" "$@"
+}
+
+log_success() {
+    log "SUCCESS" "$@"
+}
+
+log_error() {
+    log "ERROR" "$@"
+}
+
+log_warning() {
+    log "WARNING" "$@"
+}
+
+log_verify() {
+    log "VERIFY" "$@"
+}
+
+# ==================== 状态管理函数 ====================
+init_state() {
+    cat > "$STATE_FILE" << EOF
+{
+    "start_time": "$(date -Iseconds)",
+    "current_step": 0,
+    "completed_steps": [],
+    "failed_step": null,
+    "error_message": null
+}
+EOF
+}
+
+update_state() {
+    local step="$1"
+    local status="$2"
+    local error_msg="$3"
+    
+    local completed_steps=$(jq -r '.completed_steps' "$STATE_FILE")
+    
+    if [ "$status" = "completed" ]; then
+        completed_steps=$(echo "$completed_steps" | jq --arg step "$step" '. + [$step] | unique')
     fi
-    echo "✓ Git 拉取成功"
-else
-    echo "错误: 链码目录不存在: $LOCAL_CHAINCODE_DIR"
-    exit 1
-fi
+    
+    jq --arg step "$step" \
+       --argjson completed "$completed_steps" \
+       --arg status "$status" \
+       --arg error "${error_msg:-null}" \
+       '.current_step = '$step' | .completed_steps = $completed | .failed_step = (if $status == "failed" then '$step' else .failed_step end) | .error_message = (if $status == "failed" then $error else .error_message end)' \
+       "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+}
 
-# 返回 test-network 目录
-cd ~/fabric/fabric-samples/test-network
+is_step_completed() {
+    local step="$1"
+    local completed=$(jq -r --arg step "$step" '.completed_steps | index($step) != null' "$STATE_FILE")
+    [ "$completed" = "true" ]
+}
 
-# 步骤2: 检查链码目录是否存在
-echo -e "\n步骤2: 检查链码目录..."
-if [ ! -d "$CHAINCODE_PATH" ]; then
-    echo "错误: 链码路径不存在: $CHAINCODE_PATH"
-    exit 1
-fi
+delete_state() {
+    if [ -f "$STATE_FILE" ]; then
+        rm -f "$STATE_FILE"
+        log_info "状态文件已删除"
+    fi
+}
 
-ls -la "$CHAINCODE_PATH"
-echo "✓ 链码目录检查完成"
+show_state() {
+    if [ ! -f "$STATE_FILE" ]; then
+        log_info "没有找到状态文件，将从头开始执行"
+        return
+    fi
+    
+    log_info "================================"
+    log_info "当前部署状态"
+    log_info "================================"
+    
+    local start_time=$(jq -r '.start_time' "$STATE_FILE")
+    local current_step=$(jq -r '.current_step' "$STATE_FILE")
+    local completed_steps=$(jq -r '.completed_steps[]' "$STATE_FILE" 2>/dev/null)
+    local failed_step=$(jq -r '.failed_step' "$STATE_FILE")
+    local error_msg=$(jq -r '.error_message' "$STATE_FILE")
+    
+    log_info "开始时间: $start_time"
+    log_info "当前步骤: $current_step"
+    log_info ""
+    
+    if [ -n "$completed_steps" ]; then
+        log_info "已完成的步骤:"
+        echo "$completed_steps" | while read step; do
+            log_info "  ✓ $step"
+        done
+        log_info ""
+    fi
+    
+    if [ "$failed_step" != "null" ]; then
+        log_error "失败的步骤: $failed_step"
+        log_error "错误信息: $error_msg"
+        log_info ""
+    fi
+    
+    log_info "================================"
+}
 
-# 步骤3: 打包新版本链码
-echo -e "\n步骤3: 打包新版本链码 (v${NEW_VERSION})..."
-PACKAGE_FILE="${CHAINCODE_NAME}_v${NEW_VERSION}.tar.gz"
-peer lifecycle chaincode package "$PACKAGE_FILE" \
-    --lang golang \
-    --path "$CHAINCODE_PATH" \
-    --label "${CHAINCODE_NAME}_${NEW_VERSION}"
+# ==================== 环境设置函数 ====================
+setup_org_env() {
+    local org="$1"
+    local config="${ORGS[$org]}"
+    local port=$(echo "$config" | cut -d: -f1)
+    local org_name=$(echo "$config" | cut -d: -f2)
+    local mspid=$(echo "$config" | cut -d: -f3)
+    
+    export PATH=~/fabric/fabric-samples/bin:$PATH
+    export FABRIC_CFG_PATH=~/fabric/fabric-samples/config
+    export CORE_PEER_LOCALMSPID="$mspid"
+    export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/${org_name}/users/Admin@${org_name}/msp
+    export CORE_PEER_ADDRESS=localhost:${port}
+    export CORE_PEER_TLS_ENABLED=true
+    export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/${org_name}/peers/peer0.${org_name}/tls/ca.crt
+}
 
-if [ $? -ne 0 ]; then
-    echo "错误: 链码打包失败!"
-    exit 1
-fi
+# ==================== Git更新检测函数 ====================
+check_git_update() {
+    log_info "检查Git仓库是否有更新..."
+    
+    cd "$LOCAL_CHAINCODE_DIR"
+    
+    local local_commit=$(git rev-parse HEAD)
+    local remote_commit=$(git ls-remote origin main | awk '{print $1}')
+    
+    if [ "$local_commit" = "$remote_commit" ]; then
+        log_info "本地代码已是最新版本，无需更新"
+        return 1
+    else
+        log_info "检测到远程仓库有更新"
+        return 0
+    fi
+}
 
-echo "✓ 链码打包完成: $PACKAGE_FILE"
+# ==================== 版本管理函数 ====================
+get_chaincode_version() {
+    local result=$(peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json 2>/dev/null)
+    
+    if [ $? -ne 0 ] || [ -z "$result" ]; then
+        echo "$INITIAL_VERSION"
+    else
+        local version=$(echo "$result" | jq -r '.version')
+        if [ "$version" = "null" ] || [ -z "$version" ]; then
+            echo "$INITIAL_VERSION"
+        else
+            echo "$version"
+        fi
+    fi
+}
 
-# 步骤4: 获取当前序列号并递增
-echo -e "\n步骤4: 获取当前链码序列号..."
-CURRENT_SEQUENCE=$(peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json | jq -r '.sequence')
-if [ -z "$CURRENT_SEQUENCE" ] || [ "$CURRENT_SEQUENCE" = "null" ]; then
-    CURRENT_SEQUENCE=0
-fi
+increment_version() {
+    local version="$1"
+    local major=$(echo "$version" | cut -d. -f1)
+    local minor=$(echo "$version" | cut -d. -f2)
+    local patch=$(echo "$version" | cut -d. -f3)
+    
+    if [ -z "$patch" ]; then
+        patch=0
+    fi
+    
+    patch=$((patch + 1))
+    echo "${major}.${minor}.${patch}"
+}
 
-NEW_SEQUENCE=$((CURRENT_SEQUENCE + 1))
-echo "当前序列号: $CURRENT_SEQUENCE"
-echo "新序列号: $NEW_SEQUENCE"
+# ==================== 主函数 ====================
+main() {
+    log_info "================================"
+    log_info "开始链码部署流程"
+    log_info "时间: $(date)"
+    log_info "================================"
+    
+    # 进入Fabric网络目录
+    cd ~/fabric/fabric-samples/test-network || {
+        log_error "无法进入Fabric网络目录: $FABRIC_NETWORK_PATH"
+        exit 1
+    }
+    
+    # ==================== 步骤1: 初始化和状态检查 ====================
+    local step=1
+    if ! is_step_completed "step1_init"; then
+        log_info "步骤1: 初始化和状态检查"
+        
+        if [ -f "$STATE_FILE" ]; then
+            show_state
+            echo ""
+            read -p "请选择执行模式:
+  1. 从头开始（删除状态文件）
+  2. 继续执行（跳过已完成步骤）
+请输入选项 (1/2): " choice
+            
+            case $choice in
+                1)
+                    delete_state
+                    init_state
+                    log_info "已选择从头开始执行"
+                    ;;
+                2)
+                    log_info "已选择继续执行"
+                    ;;
+                *)
+                    log_error "无效的选项"
+                    exit 1
+                    ;;
+            esac
+        else
+            init_state
+            log_info "状态文件已初始化"
+        fi
+        
+        update_state "step1_init" "completed"
+        log_success "步骤1完成"
+        
+        # 验证输出
+        log_verify "验证: 状态文件已创建"
+        if [ -f "$STATE_FILE" ]; then
+            log_verify "✓ 状态文件路径: $STATE_FILE"
+            log_verify "✓ 状态文件内容:"
+            cat "$STATE_FILE" | tee -a "$LOG_FILE"
+        fi
+    else
+        log_info "步骤1: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤2: Git更新检测 ====================
+    step=2
+    if ! is_step_completed "step2_git_check"; then
+        log_info "步骤2: Git更新检测"
+        
+        if ! check_git_update; then
+            log_info "没有Git更新，跳过后续步骤"
+            exit 0
+        fi
+        
+        update_state "step2_git_check" "completed"
+        log_success "步骤2完成"
+        
+        # 验证输出
+        log_verify "验证: Git仓库检测完成"
+        cd "$LOCAL_CHAINCODE_DIR"
+        local current_commit=$(git rev-parse HEAD)
+        log_verify "✓ 当前commit: $current_commit"
+        cd ~/fabric/fabric-samples/test-network
+    else
+        log_info "步骤2: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤3: Git拉取 ====================
+    step=3
+    if ! is_step_completed "step3_git_pull"; then
+        log_info "步骤3: 从Git拉取最新代码"
+        
+        if [ ! -d "$LOCAL_CHAINCODE_DIR" ]; then
+            log_error "链码目录不存在: $LOCAL_CHAINCODE_DIR"
+            update_state "step3_git_pull" "failed" "链码目录不存在"
+            exit 1
+        fi
+        
+        cd "$LOCAL_CHAINCODE_DIR"
+        if ! git pull origin main; then
+            log_error "Git拉取失败"
+            update_state "step3_git_pull" "failed" "Git拉取失败"
+            exit 1
+        fi
+        
+        cd ~/fabric/fabric-samples/test-network
+        update_state "step3_git_pull" "completed"
+        log_success "步骤3完成"
+        
+        # 验证输出
+        log_verify "验证: Git拉取成功"
+        cd "$LOCAL_CHAINCODE_DIR"
+        local latest_commit=$(git log -1 --oneline)
+        log_verify "✓ 最新提交: $latest_commit"
+        log_verify "✓ 分支状态:"
+        git status | tee -a "$LOG_FILE"
+        cd ~/fabric/fabric-samples/test-network
+    else
+        log_info "步骤3: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤4: 链码目录检查 ====================
+    step=4
+    if ! is_step_completed "step4_check_dir"; then
+        log_info "步骤4: 检查链码目录"
+        
+        if [ ! -d "$CHAINCODE_PATH" ]; then
+            log_error "链码路径不存在: $CHAINCODE_PATH"
+            update_state "step4_check_dir" "failed" "链码路径不存在"
+            exit 1
+        fi
+        
+        ls -la "$CHAINCODE_PATH" | tee -a "$LOG_FILE"
+        update_state "step4_check_dir" "completed"
+        log_success "步骤4完成"
+        
+        # 验证输出
+        log_verify "验证: 链码目录检查完成"
+        log_verify "✓ 目录路径: $CHAINCODE_PATH"
+        log_verify "✓ 主要文件:"
+        ls -lh "$CHAINCODE_PATH"/*.go 2>/dev/null | tee -a "$LOG_FILE"
+    else
+        log_info "步骤4: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤5: 链码打包 ====================
+    step=5
+    if ! is_step_completed "step5_package"; then
+        log_info "步骤5: 打包链码"
+        
+        local current_version=$(get_chaincode_version)
+        local new_version=$(increment_version "$current_version")
+        
+        log_info "当前版本: $current_version"
+        log_info "新版本: $new_version"
+        
+        local package_file="${CHAINCODE_NAME}_v${new_version}.tar.gz"
+        
+        if ! peer lifecycle chaincode package "$package_file" \
+            --lang golang \
+            --path "$CHAINCODE_PATH" \
+            --label "${CHAINCODE_NAME}_${new_version}"; then
+            log_error "链码打包失败"
+            update_state "step5_package" "failed" "链码打包失败"
+            exit 1
+        fi
+        
+        NEW_VERSION="$new_version"
+        PACKAGE_FILE="$package_file"
+        
+        update_state "step5_package" "completed"
+        log_success "步骤5完成: $PACKAGE_FILE"
+        
+        # 验证输出
+        log_verify "验证: 链码打包成功"
+        log_verify "✓ 包文件: $PACKAGE_FILE"
+        log_verify "✓ 包文件信息:"
+        ls -lh "$PACKAGE_FILE" | tee -a "$LOG_FILE"
+        log_verify "✓ 包文件内容:"
+        tar -tzf "$PACKAGE_FILE" | head -20 | tee -a "$LOG_FILE"
+    else
+        log_info "步骤5: 已完成，跳过"
+        NEW_VERSION=$(jq -r '.new_version' "$STATE_FILE" 2>/dev/null || echo "1.0")
+        PACKAGE_FILE="${CHAINCODE_NAME}_v${NEW_VERSION}.tar.gz"
+    fi
+    
+    # ==================== 步骤6: 版本号管理 ====================
+    step=6
+    if ! is_step_completed "step6_version"; then
+        log_info "步骤6: 获取链码序列号"
+        
+        local current_sequence=$(peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json 2>/dev/null | jq -r '.sequence')
+        
+        if [ -z "$current_sequence" ] || [ "$current_sequence" = "null" ]; then
+            current_sequence=0
+        fi
+        
+        local new_sequence=$((current_sequence + 1))
+        
+        log_info "当前序列号: $current_sequence"
+        log_info "新序列号: $new_sequence"
+        
+        NEW_SEQUENCE="$new_sequence"
+        
+        update_state "step6_version" "completed"
+        log_success "步骤6完成"
+        
+        # 验证输出
+        log_verify "验证: 版本号管理完成"
+        log_verify "✓ 链码名称: $CHAINCODE_NAME"
+        log_verify "✓ 通道名称: $CHANNEL_NAME"
+        log_verify "✓ 当前版本: $NEW_VERSION"
+        log_verify "✓ 当前序列号: $NEW_SEQUENCE"
+    else
+        log_info "步骤6: 已完成，跳过"
+        NEW_SEQUENCE=$(jq -r '.new_sequence' "$STATE_FILE" 2>/dev/null || echo "1")
+    fi
+    
+    # 保存版本信息到状态文件
+    jq --arg version "$NEW_VERSION" --arg sequence "$NEW_SEQUENCE" \
+       '. + {new_version: $version, new_sequence: $sequence}' \
+       "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    
+    # ==================== 步骤7: 链码安装 ====================
+    step=7
+    if ! is_step_completed "step7_install"; then
+        log_info "步骤7: 在所有组织上安装链码"
+        
+        for org in Org1 Org2 Org3; do
+            log_info "在${org}上安装链码..."
+            
+            setup_org_env "$org"
+            
+            if ! peer lifecycle chaincode install "$PACKAGE_FILE"; then
+                log_error "${org}链码安装失败"
+                update_state "step7_install" "failed" "${org}链码安装失败"
+                exit 1
+            fi
+            
+            log_success "${org}链码安装成功"
+        done
+        
+        update_state "step7_install" "completed"
+        log_success "步骤7完成"
+        
+        # 验证输出
+        log_verify "验证: 链码安装完成"
+        log_verify "✓ 已安装的链码列表:"
+        peer lifecycle chaincode queryinstalled --output json | tee -a "$LOG_FILE"
+        log_verify "✓ 当前包ID:"
+        peer lifecycle chaincode queryinstalled | grep -o "${CHAINCODE_NAME}_${NEW_VERSION}:[a-zA-Z0-9]*" | tee -a "$LOG_FILE"
+    else
+        log_info "步骤7: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤8: 获取包ID ====================
+    step=8
+    if ! is_step_completed "step8_package_id"; then
+        log_info "步骤8: 获取链码包ID"
+        
+        local package_id=$(peer lifecycle chaincode queryinstalled | grep -o "${CHAINCODE_NAME}_${NEW_VERSION}:[a-zA-Z0-9]*")
+        
+        if [ -z "$package_id" ]; then
+            log_error "无法获取包ID"
+            update_state "step8_package_id" "failed" "无法获取包ID"
+            exit 1
+        fi
+        
+        log_info "包ID: $package_id"
+        
+        PACKAGE_ID="$package_id"
+        
+        update_state "step8_package_id" "completed"
+        log_success "步骤8完成"
+        
+        # 验证输出
+        log_verify "验证: 包ID获取成功"
+        log_verify "✓ 链码名称: $CHAINCODE_NAME"
+        log_verify "✓ 版本号: $NEW_VERSION"
+        log_verify "✓ 包ID: $PACKAGE_ID"
+    else
+        log_info "步骤8: 已完成，跳过"
+        PACKAGE_ID=$(jq -r '.package_id' "$STATE_FILE" 2>/dev/null)
+    fi
+    
+    # 保存包ID到状态文件
+    jq --arg pkg_id "$PACKAGE_ID" '. + {package_id: $pkg_id}' "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
+    
+    # ==================== 步骤9: 链码批准 ====================
+    step=9
+    if ! is_step_completed "step9_approve"; then
+        log_info "步骤9: 批准链码定义"
+        
+        for org in Org1 Org2 Org3; do
+            log_info "${org}批准链码定义..."
+            
+            setup_org_env "$org"
+            
+            if ! peer lifecycle chaincode approveformyorg \
+                -o localhost:7050 \
+                --ordererTLSHostnameOverride orderer.example.com \
+                --tls true \
+                --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
+                --channelID "$CHANNEL_NAME" \
+                --name "$CHAINCODE_NAME" \
+                --version "$NEW_VERSION" \
+                --sequence "$NEW_SEQUENCE" \
+                --init-required \
+                --package-id "$PACKAGE_ID"; then
+                log_error "${org}批准链码定义失败"
+                update_state "step9_approve" "failed" "${org}批准链码定义失败"
+                exit 1
+            fi
+            
+            log_success "${org}批准成功"
+        done
+        
+        update_state "step9_approve" "completed"
+        log_success "步骤9完成"
+        
+        # 验证输出
+        log_verify "验证: 链码批准完成"
+        log_verify "✓ 检查各组织批准状态:"
+        for org in Org1 Org2 Org3; do
+            setup_org_env "$org"
+            log_verify "  ${org} 批准状态:"
+            peer lifecycle chaincode queryapproved --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json 2>/dev/null | jq -r '.approvals' 2>/dev/null || echo "  查询失败"
+        done
+    else
+        log_info "步骤9: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤10: 检查提交准备状态 ====================
+    step=10
+    if ! is_step_completed "step10_check_commit"; then
+        log_info "步骤10: 检查链码提交准备状态"
+        
+        peer lifecycle chaincode checkcommitreadiness \
+            --channelID "$CHANNEL_NAME" \
+            --name "$CHAINCODE_NAME" \
+            --version "$NEW_VERSION" \
+            --sequence "$NEW_SEQUENCE" \
+            --output json | tee -a "$LOG_FILE"
+        
+        update_state "step10_check_commit" "completed"
+        log_success "步骤10完成"
+        
+        # 验证输出
+        log_verify "验证: 提交准备状态检查完成"
+        log_verify "✓ 各组织批准情况:"
+        peer lifecycle chaincode checkcommitreadiness \
+            --channelID "$CHANNEL_NAME" \
+            --name "$CHAINCODE_NAME" \
+            --version "$NEW_VERSION" \
+            --sequence "$NEW_SEQUENCE" \
+            --output json | jq -r '.approvals' 2>/dev/null | tee -a "$LOG_FILE"
+    else
+        log_info "步骤10: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤11: 提交链码定义 ====================
+    step=11
+    if ! is_step_completed "step11_commit"; then
+        log_info "步骤11: 提交链码定义到通道"
+        
+        setup_org_env "Org1"
+        
+        if ! peer lifecycle chaincode commit \
+            -o localhost:7050 \
+            --ordererTLSHostnameOverride orderer.example.com \
+            --tls true \
+            --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
+            --channelID "$CHANNEL_NAME" \
+            --name "$CHAINCODE_NAME" \
+            --version "$NEW_VERSION" \
+            --sequence "$NEW_SEQUENCE" \
+            --init-required \
+            --peerAddresses localhost:7051 \
+            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
+            --peerAddresses localhost:9051 \
+            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt \
+            --peerAddresses localhost:11051 \
+            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt; then
+            log_error "链码定义提交失败"
+            update_state "step11_commit" "failed" "链码定义提交失败"
+            exit 1
+        fi
+        
+        update_state "step11_commit" "completed"
+        log_success "步骤11完成"
+        
+        # 验证输出
+        log_verify "验证: 链码定义提交成功"
+        log_verify "✓ 通道中已提交的链码:"
+        peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --output json | tee -a "$LOG_FILE"
+    else
+        log_info "步骤11: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤12: 验证更新 ====================
+    step=12
+    if ! is_step_completed "step12_verify"; then
+        log_info "步骤12: 验证链码更新"
+        
+        peer lifecycle chaincode querycommitted \
+            --channelID "$CHANNEL_NAME" \
+            --name "$CHAINCODE_NAME" \
+            --output json | tee -a "$LOG_FILE"
+        
+        update_state "step12_verify" "completed"
+        log_success "步骤12完成"
+        
+        # 验证输出
+        log_verify "验证: 链码更新验证完成"
+        log_verify "✓ 链码详细信息:"
+        peer lifecycle chaincode querycommitted \
+            --channelID "$CHANNEL_NAME" \
+            --name "$CHAINCODE_NAME" \
+            --output json | jq '.' 2>/dev/null | tee -a "$LOG_FILE"
+        log_verify "✓ 版本号: $NEW_VERSION"
+        log_verify "✓ 序列号: $NEW_SEQUENCE"
+        log_verify "✓ 包ID: $PACKAGE_ID"
+    else
+        log_info "步骤12: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤13: 初始化链码 ====================
+    step=13
+    if ! is_step_completed "step13_init"; then
+        log_info "步骤13: 初始化链码"
+        
+        setup_org_env "Org1"
+        
+        if ! peer chaincode invoke \
+            -o localhost:7050 \
+            --ordererTLSHostnameOverride orderer.example.com \
+            --tls true \
+            --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
+            -C "$CHANNEL_NAME" \
+            -n "$CHAINCODE_NAME" \
+            --peerAddresses localhost:7051 \
+            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
+            --peerAddresses localhost:9051 \
+            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt \
+            --peerAddresses localhost:11051 \
+            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt \
+            --isInit \
+            -c '{"function":"initLedger","Args":[]}'; then
+            log_error "链码初始化失败"
+            update_state "step13_init" "failed" "链码初始化失败"
+            exit 1
+        fi
+        
+        update_state "step13_init" "completed"
+        log_success "步骤13完成"
+        
+        # 验证输出
+        log_verify "验证: 链码初始化完成"
+        log_verify "✓ 等待链码容器启动..."
+        sleep 5
+        log_verify "✓ 链码容器状态:"
+        docker ps --filter "name=dev-peer" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a "$LOG_FILE"
+        log_verify "✓ 测试链码调用:"
+        setup_org_env "Org1"
+        peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>/dev/null | head -20 | tee -a "$LOG_FILE" || log_verify "  查询失败（可能需要等待更长时间）"
+    else
+        log_info "步骤13: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤14: 清理 ====================
+    step=14
+    if ! is_step_completed "step14_cleanup"; then
+        log_info "步骤14: 清理状态文件"
+        
+        delete_state
+        
+        update_state "step14_cleanup" "completed"
+        log_success "步骤14完成"
+        
+        # 验证输出
+        log_verify "验证: 清理完成"
+        log_verify "✓ 状态文件已删除"
+        log_verify "✓ 日志文件路径: $LOG_FILE"
+        log_verify "✓ 日志文件大小:"
+        ls -lh "$LOG_FILE" | awk '{print "  " $5}'
+    else
+        log_info "步骤14: 已完成，跳过"
+    fi
+    
+    # ==================== 完成 ====================
+    log_info "================================"
+    log_success "链码部署完成!"
+    log_info "版本: $NEW_VERSION"
+    log_info "序列号: $NEW_SEQUENCE"
+    log_info "包ID: $PACKAGE_ID"
+    log_info "时间: $(date)"
+    log_info "日志文件: $LOG_FILE"
+    log_info "================================"
+    
+    # 最终验证
+    log_verify "================================"
+    log_verify "最终验证"
+    log_verify "================================"
+    log_verify "✓ 链码部署信息:"
+    peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json | jq '.' 2>/dev/null | tee -a "$LOG_FILE"
+    log_verify "✓ 链码容器状态:"
+    docker ps --filter "name=dev-peer" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a "$LOG_FILE"
+    log_verify "================================"
+}
 
-# 步骤5: 设置 Org1 环境变量
-echo -e "\n步骤5: 设置 Org1 环境并安装链码..."
-export PATH=~/fabric/fabric-samples/bin:$PATH
-export FABRIC_CFG_PATH=~/fabric/fabric-samples/config
-export CORE_PEER_LOCALMSPID="Org1MSP"
-export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-export CORE_PEER_ADDRESS=localhost:7051
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-# 安装到 Org1
-peer lifecycle chaincode install "$PACKAGE_FILE"
-if [ $? -ne 0 ]; then
-    echo "错误: Org1 链码安装失败!"
-    exit 1
-fi
-echo "✓ Org1 链码安装成功"
-
-# 步骤6: 设置 Org2 环境变量并安装
-echo -e "\n步骤6: 设置 Org2 环境并安装链码..."
-export CORE_PEER_LOCALMSPID="Org2MSP"
-export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
-export CORE_PEER_ADDRESS=localhost:9051
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
-# 安装到 Org2
-peer lifecycle chaincode install "$PACKAGE_FILE"
-if [ $? -ne 0 ]; then
-    echo "错误: Org2 链码安装失败!"
-    exit 1
-fi
-echo "✓ Org2 链码安装成功"
-
-# 步骤7: 获取包ID
-echo -e "\n步骤7: 获取新安装的链码包ID..."
-PACKAGE_ID=$(peer lifecycle chaincode queryinstalled | grep -o "${CHAINCODE_NAME}_${NEW_VERSION}:[a-zA-Z0-9]*")
-if [ -z "$PACKAGE_ID" ]; then
-    echo "错误: 无法获取包ID!"
-    exit 1
-fi
-echo "包ID: $PACKAGE_ID"
-
-# 步骤8: Org1 批准链码定义
-echo -e "\n步骤8: Org1 批准新链码定义..."
-export PATH=~/fabric/fabric-samples/bin:$PATH
-export FABRIC_CFG_PATH=~/fabric/fabric-samples/config
-export CORE_PEER_LOCALMSPID="Org1MSP"
-export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-export CORE_PEER_ADDRESS=localhost:7051
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-
-peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --package-id "$PACKAGE_ID" --init-required
-
-if [ $? -ne 0 ]; then
-    echo "错误: Org1 批准链码定义失败!"
-    exit 1
-fi
-echo "✓ Org1 批准成功"
-
-# 步骤9: Org2 批准链码定义
-echo -e "\n步骤9: Org2 批准新链码定义..."
-export CORE_PEER_LOCALMSPID="Org2MSP"
-export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp
-export CORE_PEER_ADDRESS=localhost:9051
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
-peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --package-id "$PACKAGE_ID" --init-required
-
-if [ $? -ne 0 ]; then
-    echo "错误: Org2 批准链码定义失败!"
-    exit 1
-fi
-echo "✓ Org2 批准成功"
-
-# 步骤10: 检查提交准备状态
-echo -e "\n步骤10: 检查链码提交准备状态..."
-peer lifecycle chaincode checkcommitreadiness --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --output json
-
-# 步骤11: 提交链码定义
-echo -e "\n步骤11: 提交链码定义到通道..."
-export PATH=~/fabric/fabric-samples/bin:$PATH
-export FABRIC_CFG_PATH=~/fabric/fabric-samples/config
-export CORE_PEER_LOCALMSPID="Org1MSP"
-export CORE_PEER_MSPCONFIGPATH=~/fabric/fabric-samples/test-network/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp
-export CORE_PEER_ADDRESS=localhost:7051
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt
-
-peer lifecycle chaincode commit -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --version "$NEW_VERSION" --sequence "$NEW_SEQUENCE" --init-required --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
-
-if [ $? -ne 0 ]; then
-    echo "错误: 链码定义提交失败!"
-    exit 1
-fi
-echo "✓ 链码定义提交成功"
-
-步骤12: 验证更新
-echo -e "\n步骤12: 验证链码更新..."
-peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json
-#peer lifecycle chaincode querycommitted --channelID "test" --name "test1" --output json
-
-# # 步骤13: 初始化链码（如果需要）
-# echo -e "\n步骤13: 初始化链码..."
-# peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls true --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" --peerAddresses localhost:7051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt --peerAddresses localhost:9051 --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt --isInit -c '{"function":"initLedger","Args":[]}'
-
-# if [ $? -ne 0 ]; then
-#     echo "警告: 链码初始化失败（可能不需要初始化）"
-# else
-#     echo "✓ 链码初始化成功"
-# fi
-
-echo -e "\n================================"
-echo "链码更新完成!"
-echo "版本: $NEW_VERSION"
-echo "序列号: $NEW_SEQUENCE"
-echo "时间: $(date)"
-echo "================================"
+# 执行主函数
+main
