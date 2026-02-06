@@ -82,10 +82,10 @@ func TestCreatePart_Unauthorized(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 构造 AutomakerMSP 身份对象
-	// AutomakerMSP 代表整车车企组织，不应该有权限创建零部件
+	// 2. 构造 Org1MSP 身份对象
+	// Org1MSP 代表整车车企组织，不应该有权限创建零部件
 	identity := &msp.SerializedIdentity{
-		Mspid:   "AutomakerMSP",
+		Mspid:   "Org1MSP",
 		IdBytes: []byte("test-user-org2"),
 	}
 	// 序列化身份对象
@@ -96,7 +96,7 @@ func TestCreatePart_Unauthorized(t *testing.T) {
 
 	// 3. 创建 MockStub 并设置 Creator
 	mockStub := shimtest.NewMockStub("realty-chaincode", cc)
-	// 设置为 AutomakerMSP 成员
+	// 设置为 Org1MSP 成员
 	mockStub.Creator = creatorBytes
 
 	// 4. 构造测试数据
@@ -132,9 +132,9 @@ func TestCreateLogisticsData(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AutomakerMSP 身份
-	// AutomakerMSP 代表整车车企组织，有权限创建物流数据
-	mockStub, err := createMockStubWithIdentity("AutomakerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表整车车企组织，有权限创建物流数据
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -178,9 +178,9 @@ func TestUpdateSupplyChainStage(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AutomakerMSP 身份
-	// AutomakerMSP 代表整车车企组织，有权限更新供应链阶段
-	mockStub, err := createMockStubWithIdentity("AutomakerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表整车车企组织，有权限更新供应链阶段
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -220,9 +220,9 @@ func TestCreateReconciliation(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AutomakerMSP 身份
-	// AutomakerMSP 代表整车车企组织，有权限创建对账记录
-	mockStub, err := createMockStubWithIdentity("AutomakerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	// Org2MSP 代表整车车企组织，有权限创建对账记录
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -250,7 +250,7 @@ func TestCreateReconciliation(t *testing.T) {
 }
 
 // TestCreateFaultReport 测试创建故障报告功能（正常流程）
-// 验证 AftersaleMSP 成员（4S店/售后中心）能够成功创建故障报告
+// 验证 Org3MSP 成员（4S店/售后中心）能够成功创建故障报告
 func TestCreateFaultReport(t *testing.T) {
 	// 0. 设置测试模式标志
 	TestMode = true
@@ -262,9 +262,9 @@ func TestCreateFaultReport(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AftersaleMSP 身份
-	// AftersaleMSP 代表4S店/售后中心组织，有权限创建故障报告
-	mockStub, err := createMockStubWithIdentity("AftersaleMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表4S店/售后中心组织，有权限创建故障报告
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -292,7 +292,7 @@ func TestCreateFaultReport(t *testing.T) {
 }
 
 // TestCreateRecallRecord 测试创建召回记录功能（正常流程）
-// 验证 AftersaleMSP 成员（4S店/售后中心）能够成功创建召回记录
+// 验证 Org3MSP 成员（4S店/售后中心）能够成功创建召回记录
 func TestCreateRecallRecord(t *testing.T) {
 	// 0. 设置测试模式标志
 	TestMode = true
@@ -304,9 +304,9 @@ func TestCreateRecallRecord(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AftersaleMSP 身份
-	// AftersaleMSP 代表4S店/售后中心组织，有权限创建召回记录
-	mockStub, err := createMockStubWithIdentity("AftersaleMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表4S店/售后中心组织，有权限创建召回记录
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -334,7 +334,7 @@ func TestCreateRecallRecord(t *testing.T) {
 }
 
 // TestCreateAftersaleRecord 测试创建售后记录功能（正常流程）
-// 验证 AftersaleMSP 成员（4S店/售后中心）能够成功创建售后记录
+// 验证 Org3MSP 成员（4S店/售后中心）能够成功创建售后记录
 func TestCreateAftersaleRecord(t *testing.T) {
 	// 0. 设置测试模式标志
 	TestMode = true
@@ -346,9 +346,9 @@ func TestCreateAftersaleRecord(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AftersaleMSP 身份
-	// AftersaleMSP 代表4S店/售后中心组织，有权限创建售后记录
-	mockStub, err := createMockStubWithIdentity("AftersaleMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表4S店/售后中心组织，有权限创建售后记录
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -396,9 +396,9 @@ func TestRegisterUser(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	// ManufacturerMSP 代表零部件生产厂商组织，有权限注册用户
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	// Org2MSP 代表零部件生产厂商组织，有权限注册用户
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -427,7 +427,7 @@ func TestRegisterUser(t *testing.T) {
 }
 
 // TestQueryUserPermissions 测试查询用户权限功能（正常流程）
-// 验证能够成功查询已注册用户的权限信息
+// 验证 Org1MSP 成员（零部件生产厂商）能够成功查询已注册用户的权限信息
 func TestQueryUserPermissions(t *testing.T) {
 	// 0. 设置测试模式标志
 	TestMode = true
@@ -439,8 +439,8 @@ func TestQueryUserPermissions(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -476,8 +476,8 @@ func TestRecordQAInteraction(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -517,8 +517,8 @@ func TestQueryQAInteraction(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -554,8 +554,8 @@ func TestQueryFaultProgress(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AftersaleMSP 身份
-	mockStub, err := createMockStubWithIdentity("AftersaleMSP", cc)
+	// 2. 创建 MockStub 并设置 Org3MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org3MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -620,9 +620,9 @@ func TestCreateBOM(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	// ManufacturerMSP 代表零部件生产厂商组织，有权限创建BOM
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	// Org1MSP 代表零部件生产厂商组织，有权限创建BOM
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -664,9 +664,9 @@ func TestCreateBOM_Unauthorized(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AutomakerMSP 身份
-	// AutomakerMSP 代表整车车企组织，不应该有权限创建BOM
-	mockStub, err := createMockStubWithIdentity("AutomakerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	// Org2MSP 代表整车车企组织，不应该有权限创建BOM
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -699,8 +699,8 @@ func TestQueryBOM(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -738,8 +738,8 @@ func TestUpdateBOM(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -783,8 +783,8 @@ func TestUpdateBOM_Unauthorized(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AutomakerMSP 身份
-	mockStub, err := createMockStubWithIdentity("AutomakerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -817,8 +817,8 @@ func TestCompareBOM(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -858,8 +858,8 @@ func TestSubmitBOMChange(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -904,8 +904,8 @@ func TestQueryPartLifecycle(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -956,8 +956,8 @@ func TestQueryPartByBatchNo(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -998,8 +998,8 @@ func TestQueryPartByVIN(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1036,8 +1036,8 @@ func TestCreateProductionData(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1081,8 +1081,8 @@ func TestCreateProductionData_Unauthorized(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AutomakerMSP 身份（整车车企，无权限）
-	mockStub, err := createMockStubWithIdentity("AutomakerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份（整车车企，无权限）
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1114,8 +1114,8 @@ func TestCreateQualityInspection(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1159,8 +1159,8 @@ func TestCreateQualityInspection_Unauthorized(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AutomakerMSP 身份（整车车企，无权限）
-	mockStub, err := createMockStubWithIdentity("AutomakerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份（整车车企，无权限）
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1192,8 +1192,8 @@ func TestUpdatePartStatus(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1233,8 +1233,8 @@ func TestUpdatePartStatus_Unauthorized(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 AftersaleMSP 身份（4S店/售后中心，无权限）
-	mockStub, err := createMockStubWithIdentity("AftersaleMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份（4S店/售后中心，无权限）
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1268,8 +1268,8 @@ func TestCreateSupplyOrder(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份（先创建零部件）
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份（先创建零部件）
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1282,9 +1282,9 @@ func TestCreateSupplyOrder(t *testing.T) {
 		t.Fatalf("CreatePart执行失败：%s", createResponse.Message)
 	}
 
-	// 4. 切换身份为 AutomakerMSP（整车车企）来创建订单
+	// 4. 切换身份为 Org2MSP（整车车企）来创建订单
 	automakerIdentity := &msp.SerializedIdentity{
-		Mspid:   "AutomakerMSP",
+		Mspid:   "Org2MSP",
 		IdBytes: []byte("test-user-automaker"),
 	}
 	automakerCreatorBytes, _ := proto.Marshal(automakerIdentity)
@@ -1324,8 +1324,8 @@ func TestCreateSupplyOrder_Unauthorized(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份（零部件生产厂商，无权限）
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org2MSP 身份（整车车企，无权限）
+	mockStub, err := createMockStubWithIdentity("Org2MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1361,8 +1361,8 @@ func TestQueryAffectedParts(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1399,8 +1399,8 @@ func TestQueryAftersaleRecord(t *testing.T) {
 		t.Fatalf("创建链码实例失败：%v", err)
 	}
 
-	// 2. 创建 MockStub 并设置 ManufacturerMSP 身份
-	mockStub, err := createMockStubWithIdentity("ManufacturerMSP", cc)
+	// 2. 创建 MockStub 并设置 Org1MSP 身份
+	mockStub, err := createMockStubWithIdentity("Org1MSP", cc)
 	if err != nil {
 		t.Fatalf("创建MockStub失败：%v", err)
 	}
@@ -1413,9 +1413,9 @@ func TestQueryAftersaleRecord(t *testing.T) {
 		t.Fatalf("CreatePart执行失败：%s", createResponse.Message)
 	}
 
-	// 4. 切换身份为 AftersaleMSP（4S店/售后中心）来创建售后记录
+	// 4. 切换身份为 Org2MSP（4S店/售后中心）来创建售后记录
 	aftersaleIdentity := &msp.SerializedIdentity{
-		Mspid:   "AftersaleMSP",
+		Mspid:   "Org2MSP",
 		IdBytes: []byte("test-user-aftersale"),
 	}
 	aftersaleCreatorBytes, _ := proto.Marshal(aftersaleIdentity)

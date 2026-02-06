@@ -286,9 +286,9 @@ type QAInteraction struct {
 
 // 组织 MSP ID 常量（重新设计为 3 个组织）
 const (
-	MANUFACTURER_ORG_MSPID = "ManufacturerMSP" // 零部件生产厂商组织 MSP ID
-	AUTOMAKER_ORG_MSPID    = "AutomakerMSP"    // 整车车企（采购方）组织 MSP ID
-	AFTERSALE_ORG_MSPID    = "AftersaleMSP"    // 4S店/售后中心组织 MSP ID
+	MANUFACTURER_ORG_MSPID = "Org1MSP" // 零部件生产厂商组织 MSP ID
+	AUTOMAKER_ORG_MSPID    = "Org2MSP" // 整车车企（采购方）组织 MSP ID
+	AFTERSALE_ORG_MSPID    = "Org3MSP" // 4S店/售后中心组织 MSP ID
 
 	// 零部件状态常量
 	PART_STATUS_NORMAL            = "NORMAL"            // 正常

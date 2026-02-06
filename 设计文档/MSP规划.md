@@ -12,7 +12,7 @@
 
 ## 权限分配
 
-### ManufacturerMSP（零部件生产厂商）
+### ManufacturerMSP（零部件生产厂商） Org1MSP
 
 **核心业务权限：**
 - 零部件信息管理
@@ -39,7 +39,7 @@
 
 ---
 
-### AutomakerMSP（整车车企/采购方）
+### AutomakerMSP（整车车企/采购方）Org1MSP
 
 **核心业务权限：**
 - 采购订单管理
@@ -68,7 +68,7 @@
 
 ---
 
-### AftersaleMSP（4S店/售后中心）
+### AftersaleMSP（4S店/售后中心）Org1MSP
 
 **核心业务权限：**
 - 故障报修记录
