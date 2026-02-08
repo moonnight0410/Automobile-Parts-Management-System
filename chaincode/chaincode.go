@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -529,6 +530,45 @@ func (s *SmartContract) QueryPartLifecycle(ctx contractapi.TransactionContextInt
 	return &lifecycle, nil
 }
 
+// getAllParts 获取所有零部件（辅助方法，用于leveldb支持）
+// 功能：获取账本中所有零部件数据
+// 参数：
+//   - ctx: 交易上下文
+//
+// 返回值：
+//   - []*Part: 零部件列表
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+func (s *SmartContract) getAllParts(ctx contractapi.TransactionContextInterface) ([]*Part, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("", "")
+	if err != nil {
+		return nil, fmt.Errorf("获取所有零部件失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var parts []*Part
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		key := string(queryResponse.Key)
+		value := queryResponse.Value
+
+		// 只处理零部件数据（键不包含前缀）
+		if len(key) > 0 && key[0] >= 'A' && key[0] <= 'Z' && !strings.Contains(key, "_") {
+			var part Part
+			err = json.Unmarshal(value, &part)
+			if err != nil {
+				return nil, fmt.Errorf("反序列化零部件失败: %v", err)
+			}
+			parts = append(parts, &part)
+		}
+	}
+
+	return parts, nil
+}
+
 // QueryPartByBatchNo 按批次号查询零部件
 // 功能：根据生产批次号查询该批次的所有零部件信息
 // 参数：
@@ -542,31 +582,45 @@ func (s *SmartContract) QueryPartLifecycle(ctx contractapi.TransactionContextInt
 // 权限要求：所有组织成员可调用
 // 注意：此方法使用富查询，需要在支持富查询的Fabric网络环境中使用
 func (s *SmartContract) QueryPartByBatchNo(ctx contractapi.TransactionContextInterface, batchNo string) ([]*Part, error) {
-	// 构造富查询字符串，按批次号筛选
+	// 尝试使用富查询（CouchDB支持）
 	queryString := fmt.Sprintf(`{"selector":{"batchNo":"%s"}}`, batchNo)
 	iterator, err := ctx.GetStub().GetQueryResult(queryString)
+	if err == nil {
+		defer iterator.Close()
+
+		var parts []*Part
+		for iterator.HasNext() {
+			queryResponse, err := iterator.Next()
+			if err != nil {
+				return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+			}
+
+			var part Part
+			err = json.Unmarshal(queryResponse.Value, &part)
+			if err != nil {
+				return nil, fmt.Errorf("反序列化零部件失败: %v", err)
+			}
+			parts = append(parts, &part)
+		}
+
+		return parts, nil
+	}
+
+	// 如果富查询失败（leveldb不支持），使用getAllParts辅助方法进行过滤
+	log.Printf("富查询失败，使用getAllParts辅助方法进行过滤：%v", err)
+	allParts, err := s.getAllParts(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("查询批次失败: %v", err)
-	}
-	defer iterator.Close()
-
-	// 遍历查询结果并反序列化
-	var parts []*Part
-	for iterator.HasNext() {
-		queryResponse, err := iterator.Next()
-		if err != nil {
-			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
-		}
-
-		var part Part
-		err = json.Unmarshal(queryResponse.Value, &part)
-		if err != nil {
-			return nil, fmt.Errorf("反序列化零部件失败: %v", err)
-		}
-		parts = append(parts, &part)
+		return nil, err
 	}
 
-	return parts, nil
+	var filteredParts []*Part
+	for _, part := range allParts {
+		if part.BatchNo == batchNo {
+			filteredParts = append(filteredParts, part)
+		}
+	}
+
+	return filteredParts, nil
 }
 
 // QueryPartByVIN 按VIN码查询零部件
@@ -582,31 +636,45 @@ func (s *SmartContract) QueryPartByBatchNo(ctx contractapi.TransactionContextInt
 // 权限要求：所有组织成员可调用
 // 注意：此方法使用富查询，需要在支持富查询的Fabric网络环境中使用
 func (s *SmartContract) QueryPartByVIN(ctx contractapi.TransactionContextInterface, vin string) ([]*Part, error) {
-	// 构造富查询字符串，按VIN码筛选
+	// 尝试使用富查询（CouchDB支持）
 	queryString := fmt.Sprintf(`{"selector":{"vin":"%s"}}`, vin)
 	iterator, err := ctx.GetStub().GetQueryResult(queryString)
+	if err == nil {
+		defer iterator.Close()
+
+		var parts []*Part
+		for iterator.HasNext() {
+			queryResponse, err := iterator.Next()
+			if err != nil {
+				return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+			}
+
+			var part Part
+			err = json.Unmarshal(queryResponse.Value, &part)
+			if err != nil {
+				return nil, fmt.Errorf("反序列化零部件失败: %v", err)
+			}
+			parts = append(parts, &part)
+		}
+
+		return parts, nil
+	}
+
+	// 如果富查询失败（leveldb不支持），使用getAllParts辅助方法进行过滤
+	log.Printf("富查询失败，使用getAllParts辅助方法进行过滤：%v", err)
+	allParts, err := s.getAllParts(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("查询VIN失败: %v", err)
-	}
-	defer iterator.Close()
-
-	// 遍历查询结果并反序列化
-	var parts []*Part
-	for iterator.HasNext() {
-		queryResponse, err := iterator.Next()
-		if err != nil {
-			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
-		}
-
-		var part Part
-		err = json.Unmarshal(queryResponse.Value, &part)
-		if err != nil {
-			return nil, fmt.Errorf("反序列化零部件失败: %v", err)
-		}
-		parts = append(parts, &part)
+		return nil, err
 	}
 
-	return parts, nil
+	var filteredParts []*Part
+	for _, part := range allParts {
+		if part.VIN == vin {
+			filteredParts = append(filteredParts, part)
+		}
+	}
+
+	return filteredParts, nil
 }
 
 // CreateBOM 创建BOM记录
