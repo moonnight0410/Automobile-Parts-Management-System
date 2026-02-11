@@ -1,0 +1,45 @@
+package controller
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"automobile-parts-backend/model"
+	"automobile-parts-backend/service"
+	"automobile-parts-backend/utils"
+)
+
+type SupplyChainController struct {
+	service *service.SupplyChainService
+}
+
+func NewSupplyChainController(service *service.SupplyChainService) *SupplyChainController {
+	return &SupplyChainController{service: service}
+}
+
+func (s *SupplyChainController) CreateSupplyOrder(c *gin.Context) {
+	var dto model.SupplyOrderDTO
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, utils.Error(http.StatusBadRequest, err.Error()))
+		return
+	}
+	if err := s.service.CreateSupplyOrder(c.Request.Context(), dto); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
+}
+
+func (s *SupplyChainController) CreateLogisticsData(c *gin.Context) {
+	var dto model.LogisticsDataDTO
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, utils.Error(http.StatusBadRequest, err.Error()))
+		return
+	}
+	if err := s.service.CreateLogisticsData(c.Request.Context(), dto); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
+}
