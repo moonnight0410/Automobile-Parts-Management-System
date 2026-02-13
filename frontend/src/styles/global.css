@@ -1,0 +1,233 @@
+/**
+ * 全局样式文件
+ * 定义全局CSS变量和基础样式
+ */
+
+/* ==================== CSS变量定义 ==================== */
+:root {
+  /* 浅色主题变量 */
+  --primary-color: #1890ff;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #f5222d;
+  --info-color: #1890ff;
+  
+  /* 背景色 */
+  --bg-color: #f0f2f5;
+  --bg-color-secondary: #ffffff;
+  --bg-color-tertiary: #fafafa;
+  
+  /* 文字颜色 */
+  --text-color: rgba(0, 0, 0, 0.85);
+  --text-color-secondary: rgba(0, 0, 0, 0.65);
+  --text-color-tertiary: rgba(0, 0, 0, 0.45);
+  
+  /* 边框颜色 */
+  --border-color: #d9d9d9;
+  --border-color-secondary: #f0f0f0;
+  
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  
+  /* 圆角 */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  
+  /* 过渡时间 */
+  --transition-duration: 0.3s;
+}
+
+/* ==================== 深色主题变量 ==================== */
+[data-theme='dark'] {
+  --bg-color: #141414;
+  --bg-color-secondary: #1f1f1f;
+  --bg-color-tertiary: #2a2a2a;
+  
+  --text-color: rgba(255, 255, 255, 0.85);
+  --text-color-secondary: rgba(255, 255, 255, 0.65);
+  --text-color-tertiary: rgba(255, 255, 255, 0.45);
+  
+  --border-color: #434343;
+  --border-color-secondary: #303030;
+  
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+
+/* ==================== 全局基础样式 ==================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: "Microsoft YaHei", "微软雅黑", -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-color);
+  background-color: var(--bg-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+/* ==================== 滚动条样式 ==================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-color-tertiary);
+  border-radius: 4px;
+  transition: background var(--transition-duration);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color-secondary);
+}
+
+/* ==================== 链接样式 ==================== */
+a {
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color var(--transition-duration);
+}
+
+a:hover {
+  color: #40a9ff;
+}
+
+/* ==================== 常用工具类 ==================== */
+
+/* 文字省略 */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 多行文字省略 */
+.text-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Flex布局 */
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 间距 */
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.ml-8 { margin-left: 8px; }
+.mr-8 { margin-right: 8px; }
+
+.p-8 { padding: 8px; }
+.p-16 { padding: 16px; }
+.p-24 { padding: 24px; }
+
+/* 卡片样式 */
+.card {
+  background: var(--bg-color-secondary);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  transition: box-shadow var(--transition-duration);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ==================== Ant Design Vue 样式覆盖 ==================== */
+
+/* 深色主题下的Ant Design样式调整 */
+[data-theme='dark'] .ant-card {
+  background: var(--bg-color-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .ant-table {
+  background: var(--bg-color-secondary);
+}
+
+[data-theme='dark'] .ant-table-thead > tr > th {
+  background: var(--bg-color-tertiary);
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .ant-table-tbody > tr > td {
+  border-color: var(--border-color);
+}
+
+[data-theme='dark'] .ant-table-tbody > tr:hover > td {
+  background: var(--bg-color-tertiary);
+}
+
+[data-theme='dark'] .ant-input,
+[data-theme='dark'] .ant-select-selector,
+[data-theme='dark'] .ant-picker {
+  background: var(--bg-color-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+[data-theme='dark'] .ant-modal-content {
+  background: var(--bg-color-secondary);
+}
+
+[data-theme='dark'] .ant-drawer-content {
+  background: var(--bg-color-secondary);
+}
+
+[data-theme='dark'] .ant-menu {
+  background: var(--bg-color-secondary);
+}
+
+[data-theme='dark'] .ant-menu-sub {
+  background: var(--bg-color-tertiary);
+}
