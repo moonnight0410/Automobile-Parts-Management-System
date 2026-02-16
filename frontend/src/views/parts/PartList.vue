@@ -845,44 +845,8 @@ onMounted(() => {
   height: 42px;
 }
 
-.filter-input :deep(.ant-input),
-.filter-select :deep(.ant-select-selector) {
-  height: 42px;
-  border-radius: 10px;
-  border: 2px solid #e8e8e8;
-  background: #fff;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  font-size: 14px;
-}
-
-.filter-input :deep(.ant-input) {
-  padding-left: 40px;
-}
-
-.filter-input :deep(.ant-input-prefix) {
-  margin-right: 8px;
-  color: #bfbfbf;
-}
-
 .input-prefix-icon {
   font-size: 14px;
-}
-
-.filter-input :deep(.ant-input:hover),
-.filter-select :deep(.ant-select-selector:hover) {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
-}
-
-.filter-input :deep(.ant-input:focus),
-.filter-select :deep(.ant-select-focused .ant-select-selector) {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.12);
-}
-
-.filter-select :deep(.ant-select-selection-item),
-.filter-select :deep(.ant-select-selection-placeholder) {
-  line-height: 38px;
 }
 
 .status-option {
@@ -1369,29 +1333,6 @@ onMounted(() => {
 
 [data-theme='dark'] .filter-label {
   color: #e8e8e8;
-}
-
-[data-theme='dark'] .filter-input :deep(.ant-input),
-[data-theme='dark'] .filter-select :deep(.ant-select-selector) {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #fff;
-}
-
-[data-theme='dark'] .filter-input :deep(.ant-input::placeholder) {
-  color: #595959;
-}
-
-[data-theme='dark'] .filter-input :deep(.ant-input:hover),
-[data-theme='dark'] .filter-select :deep(.ant-select-selector:hover) {
-  border-color: #667eea;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-}
-
-[data-theme='dark'] .filter-input :deep(.ant-input:focus),
-[data-theme='dark'] .filter-select :deep(.ant-select-focused .ant-select-selector) {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
 }
 
 [data-theme='dark'] .search-actions {

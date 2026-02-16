@@ -5,216 +5,297 @@
 
 <template>
   <div class="login-container">
-    <!-- 背景装饰 -->
     <div class="background-decoration">
       <div class="circle circle-1"></div>
       <div class="circle circle-2"></div>
       <div class="circle circle-3"></div>
+      <div class="grid-pattern"></div>
     </div>
     
-    <!-- 登录卡片 -->
-    <a-card class="login-card" :bordered="false">
-      <!-- 主题切换按钮 -->
-      <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
-        <svg v-if="isDark" class="theme-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
-          <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <svg v-else class="theme-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      
-      <div class="login-header">
-        <img src="/vite.svg" alt="Logo" class="logo" />
-        <h1 class="title">汽车零部件区块链管理系统</h1>
-        <p class="subtitle">Automobile Parts Blockchain Management System</p>
-      </div>
-      
-      <!-- 登录/注册切换按钮 -->
-      <div class="mode-switch">
-        <button 
-          class="mode-btn" 
-          :class="{ active: activeTab === 'login' }"
-          @click="activeTab = 'login'"
-        >
-          <svg class="mode-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M20.59 22C20.59 18.13 16.74 15 12 15C7.26 15 3.41 18.13 3.41 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span>登录</span>
-        </button>
-        <button 
-          class="mode-btn" 
-          :class="{ active: activeTab === 'register' }"
-          @click="activeTab = 'register'"
-        >
-          <svg class="mode-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="20" y1="8" x2="20" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="23" y1="11" x2="17" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span>注册</span>
-        </button>
-      </div>
-      
-      <!-- 登录表单 -->
-      <a-form
-        v-show="activeTab === 'login'"
-        :model="loginForm"
-        :rules="loginRules"
-        @finish="handleLogin"
-        layout="vertical"
-        class="login-form"
-      >
-        <a-form-item name="username" label="用户名">
-          <a-input
-            v-model:value="loginForm.username"
-            size="large"
-            prefix-icon="user"
-          >
-            <template #prefix>
-              <UserOutlined />
-            </template>
-          </a-input>
-        </a-form-item>
-        
-        <a-form-item name="password" label="密码">
-          <a-input-password
-            v-model:value="loginForm.password"
-            size="large"
-          >
-            <template #prefix>
-              <LockOutlined />
-            </template>
-          </a-input-password>
-        </a-form-item>
-        
-        <a-form-item>
-          <div class="form-actions">
-            <a-checkbox v-model:checked="rememberMe">记住我</a-checkbox>
-            <a href="#" class="forgot-password">忘记密码？</a>
+    <div class="login-wrapper">
+      <div class="left-panel">
+        <div class="brand-section">
+          <div class="brand-icon">
+            <CarOutlined />
           </div>
-        </a-form-item>
+          <h1 class="brand-title">汽车零部件区块链管理系统</h1>
+          <p class="brand-subtitle">Automobile Parts Blockchain Management System</p>
+        </div>
         
-        <a-form-item>
-          <a-button
-            type="primary"
-            html-type="submit"
-            size="large"
-            block
-            :loading="loading"
-            class="submit-btn"
-          >
-            登录
-          </a-button>
-        </a-form-item>
-      </a-form>
-      
-      <!-- 快速登录（演示用） -->
-      <div v-show="activeTab === 'login'" class="quick-login">
-        <a-divider>快速登录（演示）</a-divider>
-        <a-space>
-          <a-button @click="quickLogin('manufacturer')">制造商</a-button>
-          <a-button @click="quickLogin('automaker')">车企</a-button>
-          <a-button @click="quickLogin('aftersale')">售后中心</a-button>
-        </a-space>
+        <div class="features-section">
+          <div class="feature-item">
+            <div class="feature-icon">
+              <SafetyCertificateOutlined />
+            </div>
+            <div class="feature-content">
+              <h3>区块链溯源</h3>
+              <p>全程可追溯的零部件生命周期管理</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <ClusterOutlined />
+            </div>
+            <div class="feature-content">
+              <h3>多方协作</h3>
+              <p>制造商、车企、售后中心高效协同</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon">
+              <CloudSyncOutlined />
+            </div>
+            <div class="feature-content">
+              <h3>实时同步</h3>
+              <p>数据实时上链，信息透明可信</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="tech-stack">
+          <span class="tech-label">技术支持</span>
+          <div class="tech-icons">
+            <span class="tech-item">Hyperledger Fabric</span>
+            <span class="tech-item">Vue 3</span>
+            <span class="tech-item">TypeScript</span>
+          </div>
+        </div>
       </div>
       
-      <!-- 注册表单 -->
-      <a-form
-        v-show="activeTab === 'register'"
-        :model="registerForm"
-        :rules="registerRules"
-        @finish="handleRegister"
-        layout="vertical"
-        class="register-form"
-      >
-        <a-form-item name="username" label="用户名">
-          <a-input
-            v-model:value="registerForm.username"
-            size="large"
-          >
-            <template #prefix>
+      <div class="right-panel">
+        <a-card class="login-card" :bordered="false">
+          <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到浅色模式' : '切换到深色模式'">
+            <svg v-if="isDark" class="theme-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="2"/>
+              <line x1="12" y1="1" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="12" y1="21" x2="12" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="1" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="21" y1="12" x2="23" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <svg v-else class="theme-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          
+          <div class="login-header">
+            <div class="header-icon">
               <UserOutlined />
-            </template>
-          </a-input>
-          <span class="field-hint">至少3个字符</span>
-        </a-form-item>
-        
-        <a-form-item name="password" label="密码">
-          <a-input-password
-            v-model:value="registerForm.password"
-            size="large"
+            </div>
+            <h2>{{ activeTab === 'login' ? '欢迎回来' : '创建账户' }}</h2>
+            <p>{{ activeTab === 'login' ? '请登录您的账户以继续' : '填写以下信息完成注册' }}</p>
+          </div>
+          
+          <div class="mode-switch">
+            <button 
+              class="mode-btn" 
+              :class="{ active: activeTab === 'login' }"
+              @click="activeTab = 'login'"
+            >
+              <LoginOutlined />
+              <span>登录</span>
+            </button>
+            <button 
+              class="mode-btn" 
+              :class="{ active: activeTab === 'register' }"
+              @click="activeTab = 'register'"
+            >
+              <UserAddOutlined />
+              <span>注册</span>
+            </button>
+          </div>
+          
+          <a-form
+            v-show="activeTab === 'login'"
+            :model="loginForm"
+            :rules="loginRules"
+            @finish="handleLogin"
+            layout="vertical"
+            class="login-form"
           >
-            <template #prefix>
-              <LockOutlined />
-            </template>
-          </a-input-password>
-          <span class="field-hint">至少6位字符</span>
-        </a-form-item>
-        
-        <a-form-item name="confirmPassword" label="确认密码">
-          <a-input-password
-            v-model:value="registerForm.confirmPassword"
-            size="large"
+            <a-form-item name="username">
+              <div class="input-wrapper">
+                <label class="input-label">
+                  <UserOutlined class="label-icon" />
+                  <span>用户名</span>
+                </label>
+                <a-input
+                  v-model:value="loginForm.username"
+                  size="large"
+                  placeholder="请输入用户名"
+                />
+              </div>
+            </a-form-item>
+            
+            <a-form-item name="password">
+              <div class="input-wrapper">
+                <label class="input-label">
+                  <LockOutlined class="label-icon" />
+                  <span>密码</span>
+                </label>
+                <a-input-password
+                  v-model:value="loginForm.password"
+                  size="large"
+                  placeholder="请输入密码"
+                />
+              </div>
+            </a-form-item>
+            
+            <div class="form-options">
+              <a-checkbox v-model:checked="rememberMe">记住我</a-checkbox>
+              <a href="#" class="forgot-link">忘记密码？</a>
+            </div>
+            
+            <a-form-item>
+              <a-button
+                type="primary"
+                html-type="submit"
+                size="large"
+                block
+                :loading="loading"
+                class="submit-btn"
+              >
+                <template #icon><LoginOutlined /></template>
+                登录系统
+              </a-button>
+            </a-form-item>
+          </a-form>
+          
+          <div v-show="activeTab === 'login'" class="quick-login">
+            <div class="divider">
+              <span>快速登录（演示）</span>
+            </div>
+            <div class="quick-buttons">
+              <button class="quick-btn manufacturer" @click="quickLogin('manufacturer')">
+                <span class="quick-icon"><ToolOutlined /></span>
+                <span>制造商</span>
+              </button>
+              <button class="quick-btn automaker" @click="quickLogin('automaker')">
+                <span class="quick-icon"><CarOutlined /></span>
+                <span>车企</span>
+              </button>
+              <button class="quick-btn aftersale" @click="quickLogin('aftersale')">
+                <span class="quick-icon"><CustomerServiceOutlined /></span>
+                <span>售后中心</span>
+              </button>
+            </div>
+          </div>
+          
+          <a-form
+            v-show="activeTab === 'register'"
+            :model="registerForm"
+            :rules="registerRules"
+            @finish="handleRegister"
+            layout="vertical"
+            class="register-form"
           >
-            <template #prefix>
-              <LockOutlined />
-            </template>
-          </a-input-password>
-          <span class="field-hint">需与密码一致</span>
-        </a-form-item>
-        
-        <a-form-item name="org" label="组织">
-          <a-select
-            v-model:value="registerForm.org"
-            size="large"
-          >
-            <a-select-option value="Org1MSP">制造商组织</a-select-option>
-            <a-select-option value="Org2MSP">车企组织</a-select-option>
-            <a-select-option value="Org3MSP">售后组织</a-select-option>
-          </a-select>
-        </a-form-item>
-        
-        <a-form-item name="role" label="角色">
-          <a-select
-            v-model:value="registerForm.role"
-            size="large"
-          >
-            <a-select-option value="manufacturer">制造商</a-select-option>
-            <a-select-option value="automaker">车企</a-select-option>
-            <a-select-option value="aftersale">售后中心</a-select-option>
-          </a-select>
-        </a-form-item>
-        
-        <a-form-item>
-          <a-button
-            type="primary"
-            html-type="submit"
-            size="large"
-            block
-            :loading="loading"
-            class="submit-btn"
-          >
-            注册
-          </a-button>
-        </a-form-item>
-      </a-form>
-      
-      <!-- 底部信息 -->
-      <div class="login-footer">
-        <p>© 2024 汽车零部件区块链管理系统 All Rights Reserved</p>
+            <a-form-item name="username">
+              <div class="input-wrapper">
+                <label class="input-label">
+                  <UserOutlined class="label-icon" />
+                  <span>用户名</span>
+                </label>
+                <a-input
+                  v-model:value="registerForm.username"
+                  size="large"
+                  placeholder="请输入用户名"
+                />
+                <span class="field-hint">至少3个字符</span>
+              </div>
+            </a-form-item>
+            
+            <a-form-item name="password">
+              <div class="input-wrapper">
+                <label class="input-label">
+                  <LockOutlined class="label-icon" />
+                  <span>密码</span>
+                </label>
+                <a-input-password
+                  v-model:value="registerForm.password"
+                  size="large"
+                  placeholder="请输入密码"
+                />
+                <span class="field-hint">至少6位字符</span>
+              </div>
+            </a-form-item>
+            
+            <a-form-item name="confirmPassword">
+              <div class="input-wrapper">
+                <label class="input-label">
+                  <SafetyOutlined class="label-icon" />
+                  <span>确认密码</span>
+                </label>
+                <a-input-password
+                  v-model:value="registerForm.confirmPassword"
+                  size="large"
+                  placeholder="请再次输入密码"
+                />
+                <span class="field-hint">需与密码一致</span>
+              </div>
+            </a-form-item>
+            
+            <a-form-item name="org">
+              <div class="input-wrapper">
+                <label class="input-label">
+                  <ApartmentOutlined class="label-icon" />
+                  <span>组织</span>
+                </label>
+                <a-select
+                  v-model:value="registerForm.org"
+                  size="large"
+                  placeholder="请选择组织"
+                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                >
+                  <a-select-option value="Org1MSP">制造商组织</a-select-option>
+                  <a-select-option value="Org2MSP">车企组织</a-select-option>
+                  <a-select-option value="Org3MSP">售后组织</a-select-option>
+                </a-select>
+              </div>
+            </a-form-item>
+            
+            <a-form-item name="role">
+              <div class="input-wrapper">
+                <label class="input-label">
+                  <IdcardOutlined class="label-icon" />
+                  <span>角色</span>
+                </label>
+                <a-select
+                  v-model:value="registerForm.role"
+                  size="large"
+                  placeholder="请选择角色"
+                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                >
+                  <a-select-option value="manufacturer">制造商</a-select-option>
+                  <a-select-option value="automaker">车企</a-select-option>
+                  <a-select-option value="aftersale">售后中心</a-select-option>
+                </a-select>
+              </div>
+            </a-form-item>
+            
+            <a-form-item>
+              <a-button
+                type="primary"
+                html-type="submit"
+                size="large"
+                block
+                :loading="loading"
+                class="submit-btn"
+              >
+                <template #icon><UserAddOutlined /></template>
+                创建账户
+              </a-button>
+            </a-form-item>
+          </a-form>
+          
+          <div class="login-footer">
+            <p>© 2026 汽车零部件区块链管理系统</p>
+          </div>
+        </a-card>
       </div>
-    </a-card>
+    </div>
   </div>
 </template>
 
@@ -224,28 +305,31 @@ import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '../stores/auth.store'
 import { UserRole } from '../types'
-
-// ==================== 组合式API ====================
+import {
+  CarOutlined,
+  SafetyCertificateOutlined,
+  ClusterOutlined,
+  CloudSyncOutlined,
+  UserOutlined,
+  LoginOutlined,
+  UserAddOutlined,
+  LockOutlined,
+  ToolOutlined,
+  CustomerServiceOutlined,
+  SafetyOutlined,
+  ApartmentOutlined,
+  IdcardOutlined
+} from '@ant-design/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-// ==================== 响应式状态 ====================
-
-// 当前标签页
 const activeTab = ref('login')
-
-// 加载状态
 const loading = ref(false)
-
-// 记住我
 const rememberMe = ref(false)
-
-// 主题状态
 const isDark = ref(false)
 
-// 切换主题
 const toggleTheme = () => {
   isDark.value = !isDark.value
   const html = document.documentElement
@@ -254,7 +338,6 @@ const toggleTheme = () => {
   localStorage.setItem('theme', newTheme)
 }
 
-// 初始化主题
 const initTheme = () => {
   const savedTheme = localStorage.getItem('theme')
   const html = document.documentElement
@@ -270,13 +353,11 @@ const initTheme = () => {
 
 initTheme()
 
-// 登录表单
 const loginForm = reactive({
   username: '',
   password: ''
 })
 
-// 注册表单
 const registerForm = reactive({
   username: '',
   password: '',
@@ -285,7 +366,6 @@ const registerForm = reactive({
   role: '' as UserRole | ''
 })
 
-// 确认密码验证
 const validateConfirmPassword = async (_rule: any, value: string) => {
   if (value !== registerForm.password) {
     return Promise.reject('两次输入的密码不一致')
@@ -293,7 +373,6 @@ const validateConfirmPassword = async (_rule: any, value: string) => {
   return Promise.resolve()
 }
 
-// 登录表单验证规则
 const loginRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' }
@@ -304,7 +383,6 @@ const loginRules = {
   ]
 }
 
-// 注册表单验证规则
 const registerRules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
@@ -326,11 +404,6 @@ const registerRules = {
   ]
 }
 
-// ==================== 方法 ====================
-
-/**
- * 处理登录
- */
 async function handleLogin() {
   loading.value = true
   
@@ -338,7 +411,6 @@ async function handleLogin() {
     await authStore.login(loginForm.username, loginForm.password)
     message.success('登录成功')
     
-    // 跳转到之前的页面或首页
     const redirect = (route.query.redirect as string) || '/'
     router.push(redirect)
   } catch (error: any) {
@@ -348,9 +420,6 @@ async function handleLogin() {
   }
 }
 
-/**
- * 处理注册
- */
 async function handleRegister() {
   loading.value = true
   
@@ -387,9 +456,6 @@ async function handleRegister() {
   }
 }
 
-/**
- * 快速登录（演示用）
- */
 async function quickLogin(role: string) {
   const usernames: Record<string, string> = {
     manufacturer: 'manufacturer_user',
@@ -410,7 +476,7 @@ async function quickLogin(role: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   position: relative;
   overflow: hidden;
   font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
@@ -421,68 +487,193 @@ async function quickLogin(role: string) {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  pointer-events: none;
 }
 
 .circle {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .circle-1 {
-  width: 400px;
-  height: 400px;
-  top: -100px;
-  left: -100px;
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  left: -200px;
 }
 
 .circle-2 {
-  width: 300px;
-  height: 300px;
-  bottom: -50px;
-  right: -50px;
+  width: 400px;
+  height: 400px;
+  bottom: -100px;
+  right: -100px;
 }
 
 .circle-3 {
-  width: 200px;
-  height: 200px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  top: 40%;
+  left: 30%;
+}
+
+.grid-pattern {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+}
+
+.login-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  max-width: 1200px;
+  width: 100%;
+  padding: 40px;
+  z-index: 1;
+}
+
+.left-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: #fff;
+}
+
+.brand-section {
+  margin-bottom: 60px;
+}
+
+.brand-icon {
+  width: 72px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+
+.brand-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+
+.brand-subtitle {
+  font-size: 16px;
+  opacity: 0.85;
+  margin: 0;
+}
+
+.features-section {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  margin-bottom: 60px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.feature-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.feature-content h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.feature-content p {
+  font-size: 14px;
+  opacity: 0.8;
+  margin: 0;
+}
+
+.tech-stack {
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tech-label {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.tech-icons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.tech-item {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 13px;
+  backdrop-filter: blur(5px);
+}
+
+.right-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .login-card {
-  width: 450px;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  z-index: 1;
+  width: 100%;
+  max-width: 460px;
+  border-radius: 20px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
   position: relative;
+  background: #fff;
+  padding: 40px;
 }
 
 .theme-toggle {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 40px;
-  height: 40px;
-  border: 2px solid #e0e0e0;
-  border-radius: 50%;
-  background: #ffffff;
-  color: #666;
+  top: 20px;
+  right: 20px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: #f3f4f6;
+  color: #6b7280;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  font-size: 18px;
 }
 
 .theme-toggle:hover {
-  border-color: #1890ff;
-  color: #1890ff;
-  transform: rotate(15deg);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.25);
+  background: #e5e7eb;
+  color: #6366f1;
 }
 
 .theme-icon {
@@ -495,525 +686,540 @@ async function quickLogin(role: string) {
   margin-bottom: 32px;
 }
 
-.logo {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 16px;
-  display: block;
-  margin-left: auto;
-  margin-right: auto;
+.header-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  color: #fff;
+  margin: 0 auto 20px;
 }
 
-.title {
+.login-header h2 {
   font-size: 24px;
-  font-weight: bold;
-  color: var(--text-color);
-  margin-bottom: 8px;
-  text-align: center;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px;
 }
 
-.subtitle {
+.login-header p {
   font-size: 14px;
-  color: var(--text-color-secondary);
-  text-align: center;
+  color: #6b7280;
+  margin: 0;
 }
 
 .mode-switch {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 32px;
+  padding: 6px;
+  background: #f3f4f6;
+  border-radius: 14px;
 }
 
 .mode-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 12px 32px;
-  border: 2px solid #e0e0e0;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #666;
-  font-size: 16px;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 15px;
   font-weight: 500;
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .mode-btn:hover {
-  border-color: #1890ff;
-  color: #1890ff;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.25);
+  color: #6366f1;
 }
 
 .mode-btn.active {
-  border-color: #1890ff;
-  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
-  color: #ffffff;
-  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.4);
-}
-
-.mode-btn.active:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(24, 144, 255, 0.5);
-}
-
-.mode-icon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
+  background: #fff;
+  color: #6366f1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .login-form,
 .register-form {
-  margin-top: 24px;
+  margin-top: 0;
 }
 
-.login-form :deep(.ant-form-item),
-.register-form :deep(.ant-form-item) {
-  text-align: center;
-  margin-bottom: 28px;
+.input-wrapper {
+  width: 100%;
 }
 
-.login-form :deep(.ant-form-item-label),
-.register-form :deep(.ant-form-item-label) {
-  text-align: center;
-  padding-bottom: 10px;
-}
-
-.login-form :deep(.ant-form-item-label > label),
-.register-form :deep(.ant-form-item-label > label) {
-  justify-content: center;
+.input-label {
   display: flex;
-  font-weight: 500;
-  color: #333;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
   font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.label-icon {
+  color: #6366f1;
+  font-size: 14px;
+}
+
+.input-wrapper :deep(.ant-input),
+.input-wrapper :deep(.ant-input-affix-wrapper) {
+  width: 100% !important;
+  height: 48px !important;
+  line-height: 48px !important;
+  border-radius: 12px !important;
+  border: 2px solid #e5e7eb !important;
+  font-size: 15px !important;
+  padding: 0 16px !important;
+  background: #fff !important;
+  color: #374151 !important;
+  transition: all 0.3s ease !important;
+  box-sizing: border-box !important;
+}
+
+.input-wrapper :deep(.ant-input-affix-wrapper) {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.input-wrapper :deep(.ant-input-affix-wrapper .ant-input) {
+  height: 44px !important;
+  line-height: 44px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  font-size: 15px !important;
+  color: #374151 !important;
+  flex: 1 !important;
+}
+
+.input-wrapper :deep(.ant-input::placeholder),
+.input-wrapper :deep(.ant-input-affix-wrapper .ant-input::placeholder) {
+  color: #9ca3af !important;
+}
+
+.input-wrapper :deep(.ant-input:hover),
+.input-wrapper :deep(.ant-input-affix-wrapper:hover) {
+  border-color: #d1d5db !important;
+}
+
+.input-wrapper :deep(.ant-input:focus),
+.input-wrapper :deep(.ant-input-focused),
+.input-wrapper :deep(.ant-input-affix-wrapper-focused),
+.input-wrapper :deep(.ant-input-affix-wrapper:focus-within) {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+  outline: none !important;
+}
+
+.input-wrapper :deep(.ant-input-suffix),
+.input-wrapper :deep(.ant-input-password-icon) {
+  color: #9ca3af !important;
+}
+
+.input-wrapper :deep(.ant-input-password-icon:hover) {
+  color: #6366f1 !important;
+}
+
+.input-wrapper :deep(.ant-select) {
+  width: 100% !important;
+}
+
+.input-wrapper :deep(.ant-select-selector) {
+  width: 100% !important;
+  height: 48px !important;
+  line-height: 48px !important;
+  border-radius: 12px !important;
+  border: 2px solid #e5e7eb !important;
+  padding: 0 16px !important;
+  background: #fff !important;
+  transition: all 0.3s ease !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.input-wrapper :deep(.ant-select-selection-search) {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.input-wrapper :deep(.ant-select-selection-search-input) {
+  height: 44px !important;
+}
+
+.input-wrapper :deep(.ant-select-selection-item) {
+  line-height: 44px !important;
+  font-size: 15px !important;
+  color: #374151 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.input-wrapper :deep(.ant-select-selection-placeholder) {
+  line-height: 44px !important;
+  font-size: 15px !important;
+  color: #9ca3af !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.input-wrapper :deep(.ant-select:hover .ant-select-selector) {
+  border-color: #d1d5db !important;
+}
+
+.input-wrapper :deep(.ant-select-focused .ant-select-selector) {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+.input-wrapper :deep(.ant-select-arrow) {
+  color: #9ca3af !important;
+}
+
+.input-wrapper :deep(.ant-select-dropdown) {
+  border-radius: 12px !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #f0f0f0 !important;
+  padding: 8px 0 !important;
+}
+
+.input-wrapper :deep(.ant-select-item) {
+  padding: 10px 12px !important;
+  font-size: 14px !important;
+  color: #374151 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  margin: 2px 0 !important;
+}
+
+.input-wrapper :deep(.ant-select-item:hover) {
+  background: #f5f3ff !important;
+  color: #6366f1 !important;
+}
+
+.input-wrapper :deep(.ant-select-item-option-selected) {
+  background: #ede9fe !important;
+  color: #6366f1 !important;
+  font-weight: 500 !important;
 }
 
 .field-hint {
   display: block;
   font-size: 12px;
-  color: #999;
-  margin-top: 10px;
-  margin-bottom: 4px;
-  text-align: center;
-  line-height: 1.5;
-  min-height: 18px;
+  color: #9ca3af;
+  margin-top: 6px;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.forgot-link {
+  color: #6366f1;
+  font-size: 14px;
+}
+
+.forgot-link:hover {
+  text-decoration: underline;
 }
 
 .submit-btn {
-  height: 48px;
-  width: calc(60%);
-  margin: 0 auto;
-  display: block;
-  border: none;
+  height: 50px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
-  box-shadow: 0 4px 15px rgba(24, 144, 255, 0.35);
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border: none;
   font-size: 16px;
   font-weight: 600;
-  letter-spacing: 2px;
-  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
 }
 
 .submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.5);
-  background: linear-gradient(135deg, #40a9ff 0%, #69c0ff 100%);
-}
-
-.submit-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 10px rgba(24, 144, 255, 0.3);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-}
-
-.forgot-password {
-  color: #1890ff;
-  transition: color 0.3s ease;
-}
-
-.forgot-password:hover {
-  color: #40a9ff;
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
 }
 
 .quick-login {
-  margin-top: 20px;
+  margin-top: 28px;
+}
+
+.divider {
   text-align: center;
+  position: relative;
+  margin-bottom: 20px;
 }
 
-.quick-login :deep(.ant-divider) {
-  margin: 16px 0;
+.divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #e5e7eb;
 }
 
-.quick-login :deep(.ant-divider-inner-text) {
-  color: #999;
+.divider span {
+  background: #fff;
+  padding: 0 16px;
+  position: relative;
+  color: #9ca3af;
   font-size: 13px;
 }
 
-.quick-login :deep(.ant-space) {
-  justify-content: center;
-  width: 100%;
-  flex-wrap: nowrap;
+.quick-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  display: flex;
-  align-items: stretch;
 }
 
-.quick-login :deep(.ant-space-item) {
-  flex: 1;
+.quick-btn {
   display: flex;
-}
-
-.quick-login :deep(.ant-space .ant-btn) {
-  border-radius: 10px;
-  border: 2px solid #e8e8e8;
-  background: #fff;
-  color: #666;
-  font-weight: 500;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  padding: 8px 16px;
-  height: 40px;
-  width: 100%;
-  min-width: 80px;
-  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.quick-login :deep(.ant-space .ant-btn:hover) {
-  border-color: #1890ff;
-  color: #1890ff;
+.quick-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.quick-btn.manufacturer:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+.quick-btn.automaker:hover {
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.quick-btn.aftersale:hover {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.quick-icon {
+  font-size: 22px;
+  color: #6b7280;
+}
+
+.quick-btn:hover .quick-icon {
+  color: inherit;
+}
+
+.quick-btn span:last-child {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
 }
 
 .login-footer {
   text-align: center;
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border-color-secondary);
-  color: var(--text-color-secondary);
-  font-size: 12px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
 }
 
-:deep(.ant-input-affix-wrapper) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  border-radius: 10px !important;
-  border: 2px solid #e8e8e8 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
-  transition: all 0.3s ease !important;
-  padding: 10px 16px !important;
-  background: #fff !important;
-  display: flex !important;
-  align-items: center !important;
+.login-footer p {
+  font-size: 13px;
+  color: #9ca3af;
+  margin: 0;
 }
 
-:deep(.ant-input-affix-wrapper:hover) {
-  border-color: #1890ff !important;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15) !important;
+[data-theme='dark'] .login-container {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
 }
 
-:deep(.ant-input-affix-wrapper-focused) {
-  border-color: #1890ff !important;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2) !important;
-}
-
-:deep(.ant-input-affix-wrapper .ant-input) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  background: transparent !important;
-  text-align: center !important;
-  flex: 1 !important;
-}
-
-:deep(.ant-input) {
-  text-align: center !important;
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-}
-
-:deep(.ant-input-affix-wrapper .ant-input-prefix) {
-  margin-right: 8px !important;
-  color: #999 !important;
-}
-
-:deep(.ant-input-affix-wrapper .ant-input-suffix) {
-  margin-left: 8px !important;
-  color: #999 !important;
-}
-
-:deep(.ant-form-item-label) {
-  text-align: center !important;
-}
-
-:deep(.ant-form-item-label > label) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  font-weight: 500;
-  color: #333;
-}
-
-:deep(.ant-form-item-label::after) {
-  content: '' !important;
-}
-
-:deep(.ant-form-item) {
-  margin-bottom: 16px !important;
-}
-
-:deep(.ant-select-selector) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  border-radius: 10px !important;
-  border: 2px solid #e8e8e8 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
-  transition: all 0.3s ease !important;
-  padding: 10px 16px !important;
-  height: auto !important;
-  min-height: 44px !important;
-  background: #fff !important;
-}
-
-:deep(.ant-select-selection-item) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  text-align: center !important;
-  justify-content: center !important;
-  width: 100% !important;
-  font-weight: 500;
-  color: #333;
-}
-
-:deep(.ant-select-selection-placeholder) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  text-align: center !important;
-  justify-content: center !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  color: #999;
-}
-
-:deep(.ant-select .ant-select-selector .ant-select-selection-item) {
-  text-align: center !important;
-}
-
-:deep(.ant-select .ant-select-selector) {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-:deep(.ant-select-selection-search) {
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  position: absolute !important;
-}
-
-:deep(.ant-select-arrow) {
-  right: 12px !important;
-  color: #999;
-}
-
-:deep(.ant-select-selector:hover) {
-  border-color: #1890ff !important;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15) !important;
-}
-
-:deep(.ant-select-focused .ant-select-selector) {
-  border-color: #1890ff !important;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2) !important;
-}
-
-:deep(.ant-select-selection-search-input) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-}
-
-:deep(.ant-select) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  width: 100%;
-}
-
-:deep(.ant-select-selection-item) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-}
-
-:deep(.ant-select-item) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-  padding: 10px 16px;
-  text-align: center;
-  transition: all 0.2s ease;
-}
-
-:deep(.ant-select-item-option-active) {
-  background: #e6f7ff !important;
-}
-
-:deep(.ant-select-item-option-selected) {
-  background: #1890ff !important;
-  color: #fff !important;
-  font-weight: 500;
-}
-
-:deep(.ant-select-dropdown) {
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 4px 0;
-}
-
-:deep(.ant-tabs-tab) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-}
-
-:deep(.ant-btn) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-}
-
-:deep(.ant-checkbox-wrapper) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-}
-
-:deep(.ant-checkbox-inner) {
-  border-radius: 4px;
-}
-
-:deep(.ant-divider-inner-text) {
-  font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
-}
-
-/* 深色主题 */
 [data-theme='dark'] .login-card {
-  background: var(--bg-color-secondary);
+  background: #1f2937;
 }
 
 [data-theme='dark'] .theme-toggle {
-  background: #1f1f1f;
-  border-color: #434343;
-  color: #a0a0a0;
+  background: #374151;
+  color: #9ca3af;
 }
 
 [data-theme='dark'] .theme-toggle:hover {
-  border-color: #1890ff;
-  color: #40a9ff;
+  background: #4b5563;
+  color: #a78bfa;
 }
 
-[data-theme='dark'] .login-footer {
-  border-top-color: var(--border-color);
+[data-theme='dark'] .login-header h2 {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .login-header p {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .mode-switch {
+  background: #111827;
 }
 
 [data-theme='dark'] .mode-btn {
-  background: #1f1f1f;
-  border-color: #434343;
-  color: #a0a0a0;
+  color: #9ca3af;
 }
 
 [data-theme='dark'] .mode-btn:hover {
-  border-color: #1890ff;
-  color: #40a9ff;
+  color: #a78bfa;
 }
 
 [data-theme='dark'] .mode-btn.active {
-  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
-  border-color: #1890ff;
-  color: #ffffff;
+  background: #1f2937;
+  color: #a78bfa;
 }
 
-[data-theme='dark'] .login-form :deep(.ant-form-item-label > label),
-[data-theme='dark'] .register-form :deep(.ant-form-item-label > label) {
-  color: #e0e0e0;
+[data-theme='dark'] .input-label {
+  color: #e5e7eb !important;
 }
 
-[data-theme='dark'] :deep(.ant-input-affix-wrapper) {
-  background: #1f1f1f !important;
-  border-color: #434343 !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-input),
+[data-theme='dark'] .input-wrapper :deep(.ant-input-affix-wrapper) {
+  background: #111827 !important;
+  border-color: #374151 !important;
+  color: #f3f4f6 !important;
 }
 
-[data-theme='dark'] :deep(.ant-input-affix-wrapper .ant-input) {
+[data-theme='dark'] .input-wrapper :deep(.ant-input-affix-wrapper .ant-input) {
   background: transparent !important;
-  color: #e0e0e0 !important;
+  color: #f3f4f6 !important;
 }
 
-[data-theme='dark'] :deep(.ant-input-affix-wrapper:hover) {
-  border-color: #1890ff !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-input::placeholder),
+[data-theme='dark'] .input-wrapper :deep(.ant-input-affix-wrapper .ant-input::placeholder) {
+  color: #6b7280 !important;
 }
 
-[data-theme='dark'] :deep(.ant-input-affix-wrapper-focused) {
-  border-color: #1890ff !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-input:hover),
+[data-theme='dark'] .input-wrapper :deep(.ant-input-affix-wrapper:hover) {
+  border-color: #4b5563 !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-selector) {
-  background: #1f1f1f !important;
-  border-color: #434343 !important;
-  color: #e0e0e0 !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-input:focus),
+[data-theme='dark'] .input-wrapper :deep(.ant-input-focused),
+[data-theme='dark'] .input-wrapper :deep(.ant-input-affix-wrapper-focused),
+[data-theme='dark'] .input-wrapper :deep(.ant-input-affix-wrapper:focus-within) {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-selector:hover) {
-  border-color: #1890ff !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-input-suffix),
+[data-theme='dark'] .input-wrapper :deep(.ant-input-password-icon) {
+  color: #6b7280 !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-focused .ant-select-selector) {
-  border-color: #1890ff !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-input-password-icon:hover) {
+  color: #a78bfa !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-selection-item) {
-  color: #e0e0e0 !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-selector) {
+  background: #111827 !important;
+  border-color: #374151 !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-selection-placeholder) {
-  color: #666 !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-selection-item) {
+  color: #f3f4f6 !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-arrow) {
-  color: #666 !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-selection-placeholder) {
+  color: #6b7280 !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-item) {
-  color: #e0e0e0;
+[data-theme='dark'] .input-wrapper :deep(.ant-select:hover .ant-select-selector) {
+  border-color: #4b5563 !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-item-option-active) {
-  background: #2a2a2a !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-focused .ant-select-selector) {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-item-option-selected) {
-  background: #1890ff !important;
-  color: #fff !important;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-arrow) {
+  color: #6b7280 !important;
 }
 
-[data-theme='dark'] :deep(.ant-select-dropdown) {
-  background: #1f1f1f;
-  border: 1px solid #434343;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-dropdown) {
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
-[data-theme='dark'] .quick-login :deep(.ant-space .ant-btn) {
-  background: #1f1f1f;
-  border-color: #434343;
-  color: #a0a0a0;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-item) {
+  color: #e5e7eb !important;
 }
 
-[data-theme='dark'] .quick-login :deep(.ant-space .ant-btn:hover) {
-  border-color: #1890ff;
-  color: #40a9ff;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-item:hover) {
+  background: rgba(129, 140, 248, 0.15) !important;
+  color: #a5b4fc !important;
 }
 
-[data-theme='dark'] .field-hint {
-  color: #777;
+[data-theme='dark'] .input-wrapper :deep(.ant-select-item-option-selected) {
+  background: rgba(129, 140, 248, 0.2) !important;
+  color: #a5b4fc !important;
 }
 
-[data-theme='dark'] .forgot-password {
-  color: #40a9ff;
+[data-theme='dark'] .forgot-link {
+  color: #a78bfa;
 }
 
-[data-theme='dark'] .forgot-password:hover {
-  color: #69c0ff;
+[data-theme='dark'] .submit-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+[data-theme='dark'] .divider::before {
+  background: #374151;
+}
+
+[data-theme='dark'] .divider span {
+  background: #1f2937;
+  color: #6b7280;
+}
+
+[data-theme='dark'] .quick-btn {
+  background: #111827;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .quick-btn:hover {
+  background: #1f2937;
+}
+
+[data-theme='dark'] .quick-icon {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .quick-btn span:last-child {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .login-footer {
+  border-top-color: #374151;
+}
+
+[data-theme='dark'] .login-footer p {
+  color: #6b7280;
 }
 </style>

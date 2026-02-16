@@ -147,22 +147,28 @@
           </button>
           
           <!-- 用户信息 -->
-          <a-dropdown>
+          <a-dropdown
+            :trigger="['hover']"
+            placement="bottomRight"
+            :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+            :mouse-enter-delay="0.1"
+            :mouse-leave-delay="0.1"
+          >
             <div class="user-info">
-              <a-avatar :style="{ backgroundColor: '#1890ff' }">
+              <a-avatar :style="{ backgroundColor: '#6366f1' }">
                 {{ user?.username?.charAt(0).toUpperCase() }}
               </a-avatar>
               <span class="username">{{ user?.username }}</span>
-              <DownOutlined />
+              <DownOutlined class="dropdown-arrow" />
             </div>
             <template #overlay>
-              <a-menu>
-                <a-menu-item key="profile">
+              <a-menu class="user-dropdown-menu">
+                <a-menu-item key="profile" class="dropdown-item">
                   <UserOutlined />
                   <span>个人信息</span>
                 </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="logout" @click="handleLogout">
+                <a-menu-item key="logout" @click="handleLogout" class="dropdown-item logout-item">
                   <LogoutOutlined />
                   <span>退出登录</span>
                 </a-menu-item>
@@ -183,7 +189,7 @@
       
       <!-- 底部 -->
       <a-layout-footer class="footer">
-        汽车零部件区块链管理系统 ©2024 Created by Blockchain Team
+        汽车零部件区块链管理系统 ©2026 Created by JianYu Zou
       </a-layout-footer>
     </a-layout>
   </a-layout>
@@ -483,13 +489,27 @@ watch(
   gap: 8px;
   cursor: pointer;
   padding: 8px 12px;
-  border-radius: 4px;
-  transition: background 0.3s;
+  border-radius: 10px;
+  transition: all 0.3s ease;
   height: 40px;
+  background: transparent;
+  border: 1px solid transparent;
 }
 
 .user-info:hover {
-  background: rgba(0, 0, 0, 0.025);
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  color: #6b7280;
+  transition: transform 0.3s ease;
+}
+
+.user-info:hover .dropdown-arrow {
+  color: #6366f1;
+  transform: rotate(180deg);
 }
 
 .username {
@@ -497,6 +517,46 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 500;
+  color: #374151;
+}
+
+.user-info:hover .username {
+  color: #6366f1;
+}
+
+/* 下拉菜单样式 */
+.user-dropdown-menu {
+  min-width: 180px;
+  padding: 8px 0;
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  padding: 12px 16px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: #f5f3ff !important;
+  color: #6366f1 !important;
+}
+
+.dropdown-item :deep(.anticon) {
+  font-size: 14px;
+}
+
+.logout-item:hover {
+  background: #fef2f2 !important;
+  color: #ef4444 !important;
 }
 
 .content {
@@ -541,10 +601,6 @@ watch(
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-[data-theme='dark'] .user-info:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
 [data-theme='dark'] .theme-toggle {
   background: var(--bg-color-tertiary);
   border-color: rgba(255, 255, 255, 0.2);
@@ -576,5 +632,46 @@ watch(
 [data-theme='dark'] .sidebar :deep(.ant-menu-submenu-selected > .ant-menu-submenu-title) {
   background: rgba(24, 144, 255, 0.25);
   color: #40a9ff;
+}
+
+[data-theme='dark'] .user-info:hover {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.3);
+}
+
+[data-theme='dark'] .username {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .user-info:hover .username {
+  color: #a78bfa;
+}
+
+[data-theme='dark'] .dropdown-arrow {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .user-info:hover .dropdown-arrow {
+  color: #a78bfa;
+}
+
+[data-theme='dark'] .user-dropdown-menu {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .dropdown-item {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .dropdown-item:hover {
+  background: rgba(167, 139, 250, 0.15) !important;
+  color: #a78bfa !important;
+}
+
+[data-theme='dark'] .logout-item:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
 }
 </style>
