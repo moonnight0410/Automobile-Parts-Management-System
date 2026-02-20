@@ -219,8 +219,11 @@ a:hover {
 /* ==================== 统一模态框样式 ==================== */
 .ant-modal-content {
   border-radius: 16px !important;
-  overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+}
+
+.ant-modal-confirm .ant-modal-content {
+  overflow: visible !important;
 }
 
 .ant-modal-header {
@@ -233,6 +236,35 @@ a:hover {
   font-size: 18px;
   font-weight: 600;
   color: #1f2937;
+}
+
+/* 确认对话框样式 */
+.ant-modal-confirm-body-wrapper {
+  overflow: visible !important;
+}
+
+.ant-modal-confirm-btns {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.ant-modal-confirm-btns .ant-btn {
+  min-width: 80px;
+  height: 36px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.ant-modal-confirm-btns .ant-btn-primary {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
+.ant-modal-confirm-btns .ant-btn-primary:hover {
+  background: #4f46e5;
+  border-color: #4f46e5;
 }
 
 .ant-modal-body {
@@ -427,6 +459,24 @@ a:hover {
   border-top-color: #374151;
 }
 
+[data-theme='dark'] .ant-modal-confirm-title {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .ant-modal-confirm-content {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .ant-modal-confirm-btns .ant-btn-primary {
+  background: #818cf8;
+  border-color: #818cf8;
+}
+
+[data-theme='dark'] .ant-modal-confirm-btns .ant-btn-primary:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
 /* 深色主题抽屉样式 */
 [data-theme='dark'] .ant-drawer-content {
   background: #1f2937;
@@ -529,6 +579,30 @@ a:hover {
 .ant-dropdown-menu {
   animation: none !important;
   transform-origin: top right !important;
+  background: #ffffff !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12) !important;
+  padding: 8px !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.ant-dropdown-menu-item {
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  margin: 2px 0 !important;
+  transition: all 0.2s ease !important;
+  font-size: 14px !important;
+  color: #374151 !important;
+}
+
+.ant-dropdown-menu-item:hover {
+  background: #f5f3ff !important;
+  color: #6366f1 !important;
+}
+
+.ant-dropdown-menu-item-divider {
+  background: #e5e7eb !important;
+  margin: 8px 0 !important;
 }
 
 .ant-dropdown-placement-bottomRight {
@@ -556,20 +630,22 @@ a:hover {
 
 /* 深色主题下拉菜单 */
 [data-theme='dark'] .ant-dropdown-menu {
-  background: #1f2937;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  background: #1f2937 !important;
+  border-color: #374151 !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4) !important;
 }
 
 [data-theme='dark'] .ant-dropdown-menu-item {
-  color: #e5e7eb;
+  color: #e5e7eb !important;
 }
 
 [data-theme='dark'] .ant-dropdown-menu-item:hover {
-  background: rgba(167, 139, 250, 0.15);
+  background: rgba(129, 140, 248, 0.15) !important;
+  color: #a5b4fc !important;
 }
 
 [data-theme='dark'] .ant-dropdown-menu-item-divider {
-  background: #374151;
+  background: #374151 !important;
 }
 
 /* ==================== 统一筛选输入框样式 ==================== */
@@ -717,6 +793,8 @@ a:hover {
   border-radius: 10px !important;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12) !important;
   padding: 8px !important;
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
 }
 
 .ant-select-item {

@@ -1,10 +1,10 @@
 <!--
-  BOM创建页面
-  设计：与Dashboard风格统一
+  质检数据录入页面
+  设计：与BOMCreate风格统一
 -->
 
 <template>
-  <div class="bom-create">
+  <div class="quality-create">
     <!-- 顶部导航栏 -->
     <div class="top-bar">
       <div class="top-bar-left">
@@ -14,8 +14,8 @@
         </a-button>
         <a-divider type="vertical" class="divider" />
         <div class="page-info">
-          <h1 class="page-title">创建BOM</h1>
-          <span class="page-subtitle">填写物料清单信息</span>
+          <h1 class="page-title">录入质检数据</h1>
+          <span class="page-subtitle">填写质量检验信息</span>
         </div>
       </div>
       <div class="top-bar-right">
@@ -33,12 +33,12 @@
         <a-card :bordered="false" class="form-card">
           <!-- 表单头部 -->
           <div class="form-header">
-            <div class="header-icon">
-              <FileAddOutlined />
+            <div class="header-icon quality">
+              <SafetyCertificateOutlined />
             </div>
             <div class="header-text">
-              <h3>BOM信息</h3>
-              <p>请填写以下信息创建新的物料清单</p>
+              <h3>质检信息</h3>
+              <p>请填写以下信息录入质检数据</p>
             </div>
           </div>
 
@@ -53,11 +53,11 @@
             @finish="handleSubmit"
             class="create-form"
           >
-            <!-- BOM ID -->
-            <a-form-item label="BOM ID" name="bomID" class="form-item">
+            <!-- 质检ID -->
+            <a-form-item label="质检ID" name="inspectionID" class="form-item">
               <a-input
-                v-model:value="form.bomID"
-                placeholder="请输入BOM ID"
+                v-model:value="form.inspectionID"
+                placeholder="自动生成或手动输入"
                 :maxlength="50"
                 class="custom-input"
               >
@@ -67,39 +67,25 @@
               </a-input>
             </a-form-item>
 
-            <!-- BOM类型和车型 -->
+            <!-- 零部件ID和批次号 -->
             <div class="form-row">
-              <a-form-item label="BOM类型" name="bomType" class="form-item half">
-                <a-select
-                  v-model:value="form.bomType"
-                  placeholder="请选择类型"
-                  :options="bomTypeOptions"
-                  class="custom-select"
-                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
-                  :dropdown-style="{ zIndex: 1050 }"
-                />
-              </a-form-item>
-              <a-form-item label="车型" name="productModel" class="form-item half">
+              <a-form-item label="零部件ID" name="partID" class="form-item half">
                 <a-input
-                  v-model:value="form.productModel"
-                  placeholder="请输入车型"
+                  v-model:value="form.partID"
+                  placeholder="请输入零部件ID"
                   :maxlength="50"
                   class="custom-input"
                 >
                   <template #prefix>
-                    <span class="input-icon"><CarOutlined /></span>
+                    <span class="input-icon"><AppstoreOutlined /></span>
                   </template>
                 </a-input>
               </a-form-item>
-            </div>
-
-            <!-- 版本号和状态 -->
-            <div class="form-row">
-              <a-form-item label="版本号" name="version" class="form-item half">
+              <a-form-item label="批次号" name="batchNo" class="form-item half">
                 <a-input
-                  v-model:value="form.version"
-                  placeholder="例如: v1.0"
-                  :maxlength="20"
+                  v-model:value="form.batchNo"
+                  placeholder="请输入批次号"
+                  :maxlength="30"
                   class="custom-input"
                 >
                   <template #prefix>
@@ -107,17 +93,70 @@
                   </template>
                 </a-input>
               </a-form-item>
-              <a-form-item label="状态" name="status" class="form-item half">
+            </div>
+
+            <!-- 质检结果和处理人 -->
+            <div class="form-row">
+              <a-form-item label="质检结果" name="result" class="form-item half">
                 <a-select
-                  v-model:value="form.status"
-                  placeholder="请选择状态"
-                  :options="statusOptions"
+                  v-model:value="form.result"
+                  placeholder="请选择质检结果"
+                  :options="resultOptions"
                   class="custom-select"
                   :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
                   :dropdown-style="{ zIndex: 1050 }"
                 />
               </a-form-item>
+              <a-form-item label="处理人" name="handler" class="form-item half">
+                <a-input
+                  v-model:value="form.handler"
+                  placeholder="请输入处理人姓名"
+                  :maxlength="20"
+                  class="custom-input"
+                >
+                  <template #prefix>
+                    <span class="input-icon"><UserOutlined /></span>
+                  </template>
+                </a-input>
+              </a-form-item>
             </div>
+
+            <!-- 检验类型和检验项目 -->
+            <div class="form-row">
+              <a-form-item label="检验类型" name="inspectionType" class="form-item half">
+                <a-select
+                  v-model:value="form.inspectionType"
+                  placeholder="请选择检验类型"
+                  :options="inspectionTypeOptions"
+                  class="custom-select"
+                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                  :dropdown-style="{ zIndex: 1050 }"
+                />
+              </a-form-item>
+              <a-form-item label="检验项目" name="inspectionItem" class="form-item half">
+                <a-input
+                  v-model:value="form.inspectionItem"
+                  placeholder="请输入检验项目"
+                  :maxlength="50"
+                  class="custom-input"
+                >
+                  <template #prefix>
+                    <span class="input-icon"><FileSearchOutlined /></span>
+                  </template>
+                </a-input>
+              </a-form-item>
+            </div>
+
+            <!-- 不良数量 -->
+            <a-form-item label="不良数量" name="defectCount" class="form-item">
+              <a-input-number
+                v-model:value="form.defectCount"
+                placeholder="请输入不良数量"
+                :min="0"
+                :max="99999"
+                class="custom-input-number"
+              />
+            </a-form-item>
 
             <!-- 备注 -->
             <a-form-item label="备注" name="remark" class="form-item">
@@ -140,7 +179,7 @@
                 class="submit-btn"
               >
                 <template #icon><CheckOutlined /></template>
-                {{ submitting ? '提交中...' : '提交创建' }}
+                {{ submitting ? '提交中...' : '提交录入' }}
               </a-button>
               <a-button @click="handleReset" class="secondary-btn">
                 <template #icon><ReloadOutlined /></template>
@@ -157,12 +196,12 @@
         <a-card :bordered="false" class="info-card guide-card">
           <div class="card-title">
             <InfoCircleOutlined />
-            <span>创建说明</span>
+            <span>录入说明</span>
           </div>
           <ul class="guide-list">
             <li>
               <CheckCircleOutlined class="guide-icon success" />
-              <span>BOM ID需要唯一标识</span>
+              <span>质检ID可自动生成或手动输入</span>
             </li>
             <li>
               <CheckCircleOutlined class="guide-icon success" />
@@ -174,7 +213,7 @@
             </li>
             <li>
               <CheckCircleOutlined class="guide-icon warning" />
-              <span>草稿状态可继续编辑</span>
+              <span>不合格品需进行后续处理</span>
             </li>
           </ul>
         </a-card>
@@ -187,26 +226,34 @@
           </div>
           <div class="preview-content">
             <div class="preview-item">
-              <span class="preview-label">BOM ID</span>
-              <span class="preview-value">{{ form.bomID || '-' }}</span>
+              <span class="preview-label">质检ID</span>
+              <span class="preview-value">{{ form.inspectionID || '-' }}</span>
             </div>
             <div class="preview-item">
-              <span class="preview-label">类型</span>
-              <span class="preview-value">{{ form.bomType || '-' }}</span>
+              <span class="preview-label">零部件ID</span>
+              <span class="preview-value">{{ form.partID || '-' }}</span>
             </div>
             <div class="preview-item">
-              <span class="preview-label">车型</span>
-              <span class="preview-value">{{ form.productModel || '-' }}</span>
+              <span class="preview-label">批次号</span>
+              <span class="preview-value">{{ form.batchNo || '-' }}</span>
             </div>
             <div class="preview-item">
-              <span class="preview-label">版本</span>
-              <span class="preview-value">{{ form.version || '-' }}</span>
-            </div>
-            <div class="preview-item">
-              <span class="preview-label">状态</span>
-              <a-tag :color="getStatusColor(form.status)" size="small">
-                {{ getStatusText(form.status) }}
+              <span class="preview-label">质检结果</span>
+              <a-tag :color="getResultColor(form.result)" size="small">
+                {{ form.result || '-' }}
               </a-tag>
+            </div>
+            <div class="preview-item">
+              <span class="preview-label">处理人</span>
+              <span class="preview-value">{{ form.handler || '-' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-label">检验类型</span>
+              <span class="preview-value">{{ form.inspectionType || '-' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-label">不良数量</span>
+              <span class="preview-value">{{ form.defectCount || 0 }} 件</span>
             </div>
           </div>
         </a-card>
@@ -218,9 +265,9 @@
             <span>快捷操作</span>
           </div>
           <div class="quick-actions">
-            <div class="quick-action-item" @click="generateBOMID">
+            <div class="quick-action-item" @click="generateInspectionID">
               <NumberOutlined class="action-icon" />
-              <span>生成BOM ID</span>
+              <span>生成质检ID</span>
             </div>
             <div class="quick-action-item" @click="fillTestData">
               <ThunderboltOutlined class="action-icon" />
@@ -241,19 +288,26 @@
       width="420px"
     >
       <div class="success-content">
-        <div class="success-icon-wrapper">
-          <CheckCircleFilled class="success-icon" />
+        <div class="success-icon-wrapper" :class="form.result === '合格' ? 'success' : 'warning'">
+          <CheckCircleFilled v-if="form.result === '合格'" class="success-icon" />
+          <WarningFilled v-else class="warning-icon" />
         </div>
-        <h2 class="success-title">创建成功</h2>
-        <p class="success-desc">BOM数据已成功提交到区块链</p>
+        <h2 class="success-title">录入成功</h2>
+        <p class="success-desc">质检数据已成功提交到区块链</p>
         <div class="success-part-id">
-          <span class="label">BOM ID：</span>
-          <span class="value">{{ createdBOMID }}</span>
+          <span class="label">质检ID：</span>
+          <span class="value">{{ createdInspectionID }}</span>
+        </div>
+        <div class="success-result">
+          <span class="label">质检结果：</span>
+          <a-tag :color="getResultColor(form.result)" size="small">
+            {{ form.result }}
+          </a-tag>
         </div>
         <div class="success-actions">
           <a-button type="primary" @click="handleCreateAnother">
             <template #icon><PlusOutlined /></template>
-            继续创建
+            继续录入
           </a-button>
           <a-button @click="goBack">
             <template #icon><UnorderedListOutlined /></template>
@@ -277,29 +331,34 @@ import {
   InfoCircleOutlined,
   CheckCircleOutlined,
   EyeOutlined,
-  FileAddOutlined,
+  SafetyCertificateOutlined,
   NumberOutlined,
+  AppstoreOutlined,
   TagOutlined,
-  CarOutlined,
-  ClockCircleOutlined,
+  UserOutlined,
+  FileSearchOutlined,
   ThunderboltOutlined,
   PlusOutlined,
   UnorderedListOutlined,
-  CheckCircleFilled
+  CheckCircleFilled,
+  WarningFilled
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const showSuccessModal = ref(false)
-const createdBOMID = ref('')
+const createdInspectionID = ref('')
 
 const form = reactive({
-  bomID: '',
-  bomType: '',
-  productModel: '',
-  version: '',
-  status: '草稿',
+  inspectionID: '',
+  partID: '',
+  batchNo: '',
+  result: '',
+  handler: '',
+  inspectionType: '',
+  inspectionItem: '',
+  defectCount: 0,
   remark: ''
 })
 
@@ -310,66 +369,63 @@ const formStatus = computed(() => {
   if (isFormValid.value) {
     return { text: '可提交', color: 'success', icon: CheckCircleOutlined }
   }
-  return { text: '待填写', color: 'warning', icon: ClockCircleOutlined }
+  return { text: '待填写', color: 'warning', icon: SafetyCertificateOutlined }
 })
 
-const bomTypeOptions = computed<SelectProps['options']>(() => [
-  { value: '生产BOM', label: '生产BOM' },
-  { value: '研发BOM', label: '研发BOM' },
-  { value: '工程BOM', label: '工程BOM' }
+const resultOptions = computed<SelectProps['options']>(() => [
+  { value: '合格', label: '合格' },
+  { value: '不合格', label: '不合格' }
 ])
 
-const statusOptions = computed<SelectProps['options']>(() => [
-  { value: '草稿', label: '草稿' },
-  { value: '已发布', label: '已发布' }
+const inspectionTypeOptions = computed<SelectProps['options']>(() => [
+  { value: '来料检验', label: '来料检验' },
+  { value: '过程检验', label: '过程检验' },
+  { value: '成品检验', label: '成品检验' },
+  { value: '出货检验', label: '出货检验' }
 ])
 
 const isFormValid = computed(() => {
   return (
-    form.bomID.trim() !== '' &&
-    form.bomType !== '' &&
-    form.productModel.trim() !== '' &&
-    form.version.trim() !== '' &&
-    form.status !== ''
+    form.partID.trim() !== '' &&
+    form.batchNo.trim() !== '' &&
+    form.result !== '' &&
+    form.handler.trim() !== '' &&
+    form.inspectionType !== ''
   )
 })
 
 const formRules = {
-  bomID: [{ required: true, message: '请输入BOM ID', trigger: 'blur' }],
-  bomType: [{ required: true, message: '请选择BOM类型', trigger: 'change' }],
-  productModel: [{ required: true, message: '请输入车型', trigger: 'blur' }],
-  version: [{ required: true, message: '请输入版本号', trigger: 'blur' }],
-  status: [{ required: true, message: '请选择状态', trigger: 'change' }]
+  partID: [{ required: true, message: '请输入零部件ID', trigger: 'blur' }],
+  batchNo: [{ required: true, message: '请输入批次号', trigger: 'blur' }],
+  result: [{ required: true, message: '请选择质检结果', trigger: 'change' }],
+  handler: [{ required: true, message: '请输入处理人姓名', trigger: 'blur' }],
+  inspectionType: [{ required: true, message: '请选择检验类型', trigger: 'change' }]
 }
 
-function getStatusColor(status: string) {
-  const colors: Record<string, string> = {
-    '草稿': 'orange',
-    '已发布': 'green'
-  }
-  return colors[status] || 'default'
-}
-
-function getStatusText(status: string) {
-  return status || '草稿'
+function getResultColor(result: string) {
+  if (result === '合格') return 'green'
+  if (result === '不合格') return 'red'
+  return 'default'
 }
 
 function goBack() {
-  router.push('/bom/list')
+  router.push('/production/quality')
 }
 
-function generateBOMID() {
+function generateInspectionID() {
   const timestamp = Date.now().toString().slice(-8)
-  form.bomID = `BOM-${timestamp}`
-  message.success('已生成BOM ID')
+  form.inspectionID = `QC-${timestamp}`
+  message.success('已生成质检ID')
 }
 
 function fillTestData() {
-  form.bomID = `BOM-${Date.now().toString().slice(-8)}`
-  form.bomType = '生产BOM'
-  form.productModel = 'MODEL-' + Date.now().toString().slice(-6)
-  form.version = 'v1.0'
-  form.status = '草稿'
+  form.partID = 'PART-' + Date.now().toString().slice(-6)
+  form.batchNo = 'BATCH-' + Date.now().toString().slice(-6)
+  form.result = '合格'
+  form.handler = '测试质检员'
+  form.inspectionType = '成品检验'
+  form.inspectionItem = '外观检验'
+  form.defectCount = 0
   message.success('已填充测试数据')
 }
 
@@ -379,11 +435,11 @@ async function handleSubmit() {
 
   try {
     await new Promise(resolve => setTimeout(resolve, 1000))
-    createdBOMID.value = form.bomID || `BOM-${Date.now().toString().slice(-8)}`
+    createdInspectionID.value = form.inspectionID || `QC-${Date.now().toString().slice(-8)}`
     showSuccessModal.value = true
-    message.success('BOM创建成功')
+    message.success('质检数据录入成功')
   } catch (error: any) {
-    message.error(error.message || '创建失败')
+    message.error(error.message || '录入失败')
   } finally {
     submitting.value = false
   }
@@ -391,24 +447,27 @@ async function handleSubmit() {
 
 function handleReset() {
   formRef.value?.resetFields()
-  form.bomID = ''
-  form.bomType = ''
-  form.productModel = ''
-  form.version = ''
-  form.status = '草稿'
+  form.inspectionID = ''
+  form.partID = ''
+  form.batchNo = ''
+  form.result = ''
+  form.handler = ''
+  form.inspectionType = ''
+  form.inspectionItem = ''
+  form.defectCount = 0
   form.remark = ''
 }
 
 function handleCreateAnother() {
   showSuccessModal.value = false
-  createdBOMID.value = ''
+  createdInspectionID.value = ''
   handleReset()
-  generateBOMID()
+  generateInspectionID()
 }
 </script>
 
 <style scoped>
-.bom-create {
+.quality-create {
   min-height: 100vh;
   background: var(--bg-color);
   padding: 0;
@@ -416,7 +475,7 @@ function handleCreateAnother() {
   flex-direction: column;
 }
 
-.bom-create :deep(.ant-select-dropdown) {
+.quality-create :deep(.ant-select-dropdown) {
   z-index: 1050 !important;
 }
 
@@ -540,6 +599,10 @@ function handleCreateAnother() {
   justify-content: center;
   font-size: 22px;
   color: #fff;
+}
+
+.header-icon.quality {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
 }
 
 .header-text h3 {
@@ -676,6 +739,48 @@ function handleCreateAnother() {
   background: #ede9fe;
   color: #6366f1;
   font-weight: 500;
+}
+
+.custom-input-number {
+  width: 100%;
+}
+
+.custom-input-number :deep(.ant-input-number) {
+  width: 100%;
+  height: 42px;
+  border-radius: 10px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-color-secondary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-input-number :deep(.ant-input-number:hover) {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
+}
+
+.custom-input-number :deep(.ant-input-number-focused) {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(24, 144, 255, 0.12);
+}
+
+.custom-input-number :deep(.ant-input-number-input) {
+  height: 38px;
+  font-size: 14px;
+  padding: 0 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.custom-input-number :deep(.ant-input-number-input-wrap) {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.custom-input-number :deep(.ant-input-number-handler-wrap) {
+  display: none;
 }
 
 .custom-textarea :deep(textarea) {
@@ -892,7 +997,16 @@ function handleCreateAnother() {
   margin: 0 auto 20px;
 }
 
+.success-icon-wrapper.warning {
+  background: linear-gradient(135deg, #faad14 0%, #d48806 100%);
+}
+
 .success-icon {
+  font-size: 36px;
+  color: #fff;
+}
+
+.warning-icon {
   font-size: 36px;
   color: #fff;
 }
@@ -914,7 +1028,7 @@ function handleCreateAnother() {
   background: var(--bg-color);
   padding: 12px 20px;
   border-radius: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .success-part-id .label {
@@ -927,6 +1041,18 @@ function handleCreateAnother() {
   font-weight: 600;
   color: var(--primary-color);
   margin-left: 8px;
+}
+
+.success-result {
+  background: var(--bg-color);
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.success-result .label {
+  font-size: 13px;
+  color: var(--text-color-secondary);
 }
 
 .success-actions {
@@ -955,9 +1081,14 @@ function handleCreateAnother() {
   background: linear-gradient(135deg, #177ddc 0%, #642ab5 100%);
 }
 
+[data-theme='dark'] .header-icon.quality {
+  background: linear-gradient(135deg, #49aa19 0%, #237804 100%);
+}
+
 [data-theme='dark'] .custom-input :deep(.ant-input-affix-wrapper),
 [data-theme='dark'] .custom-select :deep(.ant-select-selector),
-[data-theme='dark'] .custom-textarea :deep(textarea) {
+[data-theme='dark'] .custom-textarea :deep(textarea),
+[data-theme='dark'] .custom-input-number :deep(.ant-input-number) {
   background: var(--bg-color);
   border-color: var(--border-color);
 }
@@ -988,10 +1119,7 @@ function handleCreateAnother() {
   background: linear-gradient(135deg, #3c9ae8 0%, #7a3db8 100%);
 }
 
-[data-theme='dark'] .preview-item {
-  background: var(--bg-color);
-}
-
+[data-theme='dark'] .preview-item,
 [data-theme='dark'] .quick-action-item {
   background: var(--bg-color);
 }

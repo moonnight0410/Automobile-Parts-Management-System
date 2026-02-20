@@ -16,7 +16,7 @@
             <p class="subtitle">管理供应链采购订单与交付跟踪</p>
           </div>
         </div>
-        <a-button type="primary" class="create-btn" @click="showCreateModal = true">
+        <a-button type="primary" class="create-btn" @click="handleCreate">
           <template #icon><PlusOutlined /></template>
           创建订单
         </a-button>
@@ -128,11 +128,21 @@
                 <CalendarOutlined class="label-icon" />
                 <span>创建时间</span>
               </div>
-              <a-range-picker
-                v-model:value="searchForm.dateRange"
-                class="filter-date"
-                :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
-              />
+              <div class="date-range-container">
+                <a-date-picker
+                  v-model:value="searchForm.startDate"
+                  placeholder="开始日期"
+                  class="date-input"
+                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                />
+                <span class="date-separator">至</span>
+                <a-date-picker
+                  v-model:value="searchForm.endDate"
+                  placeholder="结束日期"
+                  class="date-input"
+                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                />
+              </div>
             </div>
           </a-col>
         </a-row>
@@ -245,36 +255,15 @@
         </template>
       </a-table>
     </a-card>
-
-    <a-modal
-      v-model:open="showCreateModal"
-      title="创建采购订单"
-      :width="600"
-      @ok="handleCreate"
-      @cancel="showCreateModal = false"
-      class="create-modal"
-    >
-      <a-form :model="createForm" layout="vertical" class="create-form">
-        <a-form-item label="采购方" required>
-          <a-input v-model:value="createForm.buyer" placeholder="请输入采购方名称" />
-        </a-form-item>
-        <a-form-item label="销售方" required>
-          <a-input v-model:value="createForm.seller" placeholder="请输入销售方名称" />
-        </a-form-item>
-        <a-form-item label="零部件ID" required>
-          <a-input v-model:value="createForm.partID" placeholder="请输入零部件ID" />
-        </a-form-item>
-        <a-form-item label="数量" required>
-          <a-input-number v-model:value="createForm.quantity" :min="1" style="width: 100%" placeholder="请输入数量" />
-        </a-form-item>
-      </a-form>
-    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+
+const router = useRouter()
 
 const columns = [
   { title: '订单ID', dataIndex: 'orderID', key: 'orderID', width: 140 },
@@ -299,14 +288,8 @@ const searchForm = ref({
   orderID: '',
   buyer: '',
   status: undefined as string | undefined,
-  dateRange: null as any
-})
-
-const createForm = ref({
-  buyer: '',
-  seller: '',
-  partID: '',
-  quantity: 1
+  startDate: null as any,
+  endDate: null as any
 })
 
 const showCreateModal = ref(false)
@@ -383,22 +366,13 @@ function trackLogistics(record: any) {
 }
 
 function handleCreate() {
-  if (!createForm.value.buyer || !createForm.value.seller || !createForm.value.partID) {
-    message.error('请填写完整信息')
-    return
+  router.push('/supply/order/create')
+}
+
+function handleDateChange() {
+  if (searchForm.value.dateRange && searchForm.value.dateRange.length === 2) {
+    datePickerOpen.value = false
   }
-  mockData.value.unshift({
-    orderID: `ORDER-${String(mockData.value.length + 1).padStart(3, '0')}`,
-    buyer: createForm.value.buyer,
-    seller: createForm.value.seller,
-    partID: createForm.value.partID,
-    quantity: createForm.value.quantity,
-    status: '待处理',
-    createTime: new Date().toISOString().split('T')[0]
-  })
-  showCreateModal.value = false
-  createForm.value = { buyer: '', seller: '', partID: '', quantity: 1 }
-  message.success('订单创建成功')
 }
 </script>
 
@@ -416,12 +390,16 @@ function handleCreate() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  width: 100%;
+  gap: 16px;
 }
 
 .header-title {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
+  min-width: 0;
 }
 
 .title-icon {
@@ -458,6 +436,8 @@ function handleCreate() {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   border: none;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .create-btn:hover {
@@ -578,6 +558,24 @@ function handleCreate() {
 .filter-date {
   width: 100%;
   height: 38px;
+}
+
+.date-range-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.date-input {
+  flex: 1;
+  height: 38px;
+}
+
+.date-separator {
+  color: #9ca3af;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 .input-prefix-icon {
@@ -800,5 +798,301 @@ function handleCreate() {
 
 [data-theme='dark'] .custom-table :deep(.ant-table-tbody > tr:hover > td) {
   background: #1e293b;
+}
+</style>
+
+<style>
+.ant-picker-dropdown {
+  max-width: 600px !important;
+  max-height: 400px !important;
+  overflow: hidden !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15) !important;
+  background: #ffffff !important;
+  padding: 0 !important;
+  animation: datePickerFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes datePickerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ant-picker-range-wrapper {
+  max-width: 100% !important;
+}
+
+.ant-picker-panel-container {
+  max-width: 100% !important;
+}
+
+.ant-picker-panel {
+  max-width: 280px !important;
+  border: none !important;
+  background: #ffffff !important;
+}
+
+.ant-picker-header {
+  border-bottom: 1px solid #f0f0f0 !important;
+  padding: 12px 16px !important;
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f7fa 100%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  min-height: 60px !important;
+  box-sizing: border-box !important;
+}
+
+.ant-picker-header > button {
+  flex-shrink: 0 !important;
+  min-width: 36px !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  color: #000000 !important;
+  cursor: pointer !important;
+}
+
+.ant-picker-header > button:hover {
+  background: #e0f2fe !important;
+  color: #1890ff !important;
+}
+
+.ant-picker-header-view {
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  color: #000000 !important;
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+}
+
+.ant-picker-header-view button {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  transition: all 0.2s ease !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  min-width: auto !important;
+  width: auto !important;
+  height: auto !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ant-picker-header-view button:hover {
+  color: #1890ff !important;
+  background: #e0f2fe !important;
+}
+
+.ant-picker-body {
+  padding: 12px 16px 16px !important;
+  background: #ffffff !important;
+}
+
+.ant-picker-content {
+  border-collapse: separate !important;
+  border-spacing: 4px !important;
+}
+
+.ant-picker-content th {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #9ca3af !important;
+  padding: 8px 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+.ant-picker-cell {
+  padding: 4px 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-picker-cell-inner {
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.ant-picker-cell-inner::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(24, 144, 255, 0.1) !important;
+  transform: translate(-50%, -50%) !important;
+  transition: all 0.3s ease !important;
+}
+
+.ant-picker-cell:hover .ant-picker-cell-inner::before {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 10px !important;
+}
+
+.ant-picker-cell:hover .ant-picker-cell-inner {
+  background: #e0f2fe !important;
+  color: #1890ff !important;
+  transform: scale(1.05) !important;
+}
+
+.ant-picker-cell-selected .ant-picker-cell-inner {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+}
+
+.ant-picker-cell-selected:hover .ant-picker-cell-inner {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%) !important;
+  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4) !important;
+}
+
+.ant-picker-cell-today .ant-picker-cell-inner {
+  border: 2px solid #1890ff !important;
+  font-weight: 600 !important;
+}
+
+.ant-picker-cell-today:hover .ant-picker-cell-inner {
+  border-color: #40a9ff !important;
+}
+
+.ant-picker-cell-range-start .ant-picker-cell-inner,
+.ant-picker-cell-range-end .ant-picker-cell-inner {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
+}
+
+.ant-picker-cell-in-range .ant-picker-cell-inner {
+  background: #e0f2fe !important;
+  color: #1890ff !important;
+}
+
+.ant-picker-cell-in-range:hover .ant-picker-cell-inner {
+  background: #bae7ff !important;
+}
+
+.ant-picker-cell-disabled .ant-picker-cell-inner {
+  color: #d1d5db !important;
+  background: #f9fafb !important;
+  cursor: not-allowed !important;
+}
+
+.ant-picker-cell-disabled:hover .ant-picker-cell-inner {
+  background: #f9fafb !important;
+  transform: none !important;
+}
+
+.ant-picker-footer {
+  border-top: 1px solid #f0f0f0 !important;
+  padding: 12px 16px !important;
+  background: #fafbfc !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+}
+
+.ant-picker-footer .ant-btn {
+  border-radius: 8px !important;
+  height: 32px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-picker-footer .ant-btn-primary {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.25) !important;
+}
+
+.ant-picker-footer .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%) !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+
+.ant-picker-year-panel .ant-picker-cell-inner,
+.ant-picker-month-panel .ant-picker-cell-inner {
+  width: 60px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+}
+
+.ant-picker-decade-panel .ant-picker-cell-inner {
+  width: 80px !important;
+  height: 36px !important;
+  border-radius: 8px !important;
+}
+
+@media (max-width: 768px) {
+  .ant-picker-dropdown {
+    max-width: 320px !important;
+    max-height: 350px !important;
+  }
+  
+  .ant-picker-panel {
+    max-width: 280px !important;
+  }
+  
+  .ant-picker-cell-inner {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 13px !important;
+  }
+  
+  .ant-picker-header {
+    padding: 10px 12px !important;
+    min-height: 50px !important;
+  }
+  
+  .ant-picker-header > button {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+  }
+  
+  .ant-picker-header-view {
+    font-size: 14px !important;
+  }
+  
+  .ant-picker-header-view button {
+    font-size: 14px !important;
+    padding: 4px 8px !important;
+  }
 }
 </style>

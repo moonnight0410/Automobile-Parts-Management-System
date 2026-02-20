@@ -16,7 +16,7 @@
             <p class="subtitle">管理生产流程数据与批次记录</p>
           </div>
         </div>
-        <a-button type="primary" class="create-btn" @click="showCreateModal = true">
+        <a-button type="primary" class="create-btn" @click="goToCreate">
           <template #icon><PlusOutlined /></template>
           录入生产数据
         </a-button>
@@ -275,7 +275,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+
+const router = useRouter()
 
 const columns = [
   { title: '生产ID', dataIndex: 'productionID', key: 'productionID', width: 130 },
@@ -374,6 +377,10 @@ function viewDetail(record: any) {
 
 function viewQuality(record: any) {
   message.info(`查看生产记录 ${record.productionID} 的质检信息`)
+}
+
+function goToCreate() {
+  router.push('/production/data/create')
 }
 
 function handleCreate() {

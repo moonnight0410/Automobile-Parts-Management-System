@@ -154,12 +154,32 @@ const routes: Array<RouteRecordRaw> = [
             }
           },
           {
+            path: 'data/create',
+            name: 'ProductionDataCreate',
+            component: () => import('../views/production/ProductionDataCreate.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '录入生产数据',
+              roles: ['manufacturer']
+            }
+          },
+          {
             path: 'quality',
             name: 'QualityInspection',
             component: () => import('../views/production/QualityInspection.vue'),
             meta: {
               requiresAuth: true,
               title: '质检管理',
+              roles: ['manufacturer']
+            }
+          },
+          {
+            path: 'quality/create',
+            name: 'QualityInspectionCreate',
+            component: () => import('../views/production/QualityInspectionCreate.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '录入质检数据',
               roles: ['manufacturer']
             }
           }
@@ -184,6 +204,16 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '采购订单',
+              roles: ['manufacturer', 'automaker']
+            }
+          },
+          {
+            path: 'order/create',
+            name: 'SupplyOrderCreate',
+            component: () => import('../views/supply/SupplyOrderCreate.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '创建采购订单',
               roles: ['manufacturer', 'automaker']
             }
           },

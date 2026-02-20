@@ -16,7 +16,7 @@
             <p class="subtitle">产品质量检测与合规性管理</p>
           </div>
         </div>
-        <a-button type="primary" class="create-btn" @click="showCreateModal = true">
+        <a-button type="primary" class="create-btn" @click="goToCreate">
           <template #icon><PlusOutlined /></template>
           录入质检数据
         </a-button>
@@ -278,7 +278,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+
+const router = useRouter()
 
 const columns = [
   { title: '质检ID', dataIndex: 'inspectionID', key: 'inspectionID', width: 120 },
@@ -372,6 +375,10 @@ function viewDetail(record: any) {
 
 function viewReport(record: any) {
   message.info(`查看质检报告 ${record.inspectionID}`)
+}
+
+function goToCreate() {
+  router.push('/production/quality/create')
 }
 
 function handleCreate() {
