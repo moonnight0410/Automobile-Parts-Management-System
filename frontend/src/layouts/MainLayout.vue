@@ -28,83 +28,29 @@
         :theme="theme"
         @click="handleMenuClick"
       >
-        <!-- 仪表盘 -->
-        <a-menu-item key="/dashboard">
-          <template #icon>
-            <DashboardOutlined />
-          </template>
-          <span>仪表盘</span>
-        </a-menu-item>
-        
-        <!-- 零部件管理 -->
-        <a-sub-menu key="parts">
-          <template #icon>
-            <AppstoreOutlined />
-          </template>
-          <template #title>零部件管理</template>
-          <a-menu-item key="/parts/list">零部件列表</a-menu-item>
-          <a-menu-item key="/parts/create" v-if="canCreatePart">创建零部件</a-menu-item>
-        </a-sub-menu>
-        
-        <!-- BOM管理 -->
-        <a-sub-menu key="bom" v-if="canManageBOM">
-          <template #icon>
-            <FileTextOutlined />
-          </template>
-          <template #title>BOM管理</template>
-          <a-menu-item key="/bom/list">BOM列表</a-menu-item>
-          <a-menu-item key="/bom/create" v-if="isManufacturer">创建BOM</a-menu-item>
-          <a-menu-item key="/bom/compare">BOM比较</a-menu-item>
-        </a-sub-menu>
-        
-        <!-- 生产管理 -->
-        <a-sub-menu key="production" v-if="isManufacturer">
-          <template #icon>
-            <ToolOutlined />
-          </template>
-          <template #title>生产管理</template>
-          <a-menu-item key="/production/data">生产数据</a-menu-item>
-          <a-menu-item key="/production/quality">质检管理</a-menu-item>
-        </a-sub-menu>
-        
-        <!-- 供应链管理 -->
-        <a-sub-menu key="supply" v-if="canManageSupply">
-          <template #icon>
-            <SwapOutlined />
-          </template>
-          <template #title>供应链管理</template>
-          <a-menu-item key="/supply/orders">采购订单</a-menu-item>
-          <a-menu-item key="/supply/logistics">物流跟踪</a-menu-item>
-        </a-sub-menu>
-        
-        <!-- 售后管理 -->
-        <a-sub-menu key="aftersale" v-if="canManageAftersale">
-          <template #icon>
-            <CustomerServiceOutlined />
-          </template>
-          <template #title>售后管理</template>
-          <a-menu-item key="/aftersale/fault">故障报告</a-menu-item>
-          <a-menu-item key="/aftersale/recall">召回记录</a-menu-item>
-          <a-menu-item key="/aftersale/assistant">智能售后助手</a-menu-item>
-        </a-sub-menu>
-        
-        <!-- 区块链浏览器 -->
-        <a-menu-item key="/blockchain">
-          <template #icon>
-            <LinkOutlined />
-          </template>
-          <span>区块链浏览器</span>
-        </a-menu-item>
-        
-        <!-- 系统管理 -->
-        <a-sub-menu key="system">
-          <template #icon>
-            <SettingOutlined />
-          </template>
-          <template #title>系统管理</template>
-          <a-menu-item key="/system/users">用户管理</a-menu-item>
-          <a-menu-item key="/system/settings">系统设置</a-menu-item>
-        </a-sub-menu>
+        <template v-for="menu in accessibleMenus" :key="menu.key">
+          <!-- 单级菜单 -->
+          <a-menu-item v-if="!menu.children || menu.children.length === 0" :key="menu.key">
+            <template #icon>
+              <component :is="getIconComponent(menu.icon)" />
+            </template>
+            <span>{{ menu.title }}</span>
+          </a-menu-item>
+          
+          <!-- 多级菜单 -->
+          <a-sub-menu v-else :key="menu.key">
+            <template #icon>
+              <component :is="getIconComponent(menu.icon)" />
+            </template>
+            <template #title>{{ menu.title }}</template>
+            <a-menu-item
+              v-for="child in menu.children"
+              :key="child.key"
+            >
+              {{ child.title }}
+            </a-menu-item>
+          </a-sub-menu>
+        </template>
       </a-menu>
     </a-layout-sider>
     
@@ -159,6 +105,7 @@
                 {{ user?.username?.charAt(0).toUpperCase() }}
               </a-avatar>
               <span class="username">{{ user?.username }}</span>
+              <span class="role-tag">{{ roleName }}</span>
               <DownOutlined class="dropdown-arrow" />
             </div>
             <template #overlay>
@@ -196,66 +143,50 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
+import {
+  DashboardOutlined,
+  AppstoreOutlined,
+  FileTextOutlined,
+  ToolOutlined,
+  SwapOutlined,
+  CustomerServiceOutlined,
+  LinkOutlined,
+  SettingOutlined,
+  MenuUnfoldOutlined,
+  MenuFoldOutlined,
+  DownOutlined,
+  UserOutlined,
+  LogoutOutlined
+} from '@ant-design/icons-vue'
 import { useAuthStore, useAppStore } from '../stores'
 import { UserRole } from '../types'
-
-// ==================== 组合式API ====================
+import { getAccessibleMenus, getRoleName } from '../utils/permission'
+import { getAndClearNoPermissionMessage } from '../middleware/auth'
+import type { MenuConfig } from '../config/permissions'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const appStore = useAppStore()
 
-// ==================== 响应式状态 ====================
-
-// 选中的菜单项
 const selectedKeys = ref<string[]>([route.path])
-
-// 展开的子菜单
 const openKeys = ref<string[]>([])
 
-// ==================== 计算属性 ====================
-
-// 侧边栏折叠状态
 const sidebarCollapsed = computed({
   get: () => appStore.sidebarCollapsed,
   set: (value) => appStore.setSidebarCollapsed(value)
 })
 
-// 当前主题
 const theme = computed(() => appStore.theme)
-
-// 当前用户
 const user = computed(() => authStore.user)
-
-// 用户角色
 const userRole = computed(() => authStore.userRole)
+const roleName = computed(() => userRole.value ? getRoleName(userRole.value) : '')
 
-// 是否是制造商
-const isManufacturer = computed(() => userRole.value === UserRole.MANUFACTURER)
+const accessibleMenus = computed(() => getAccessibleMenus())
 
-// 是否是车企
-const isAutomaker = computed(() => userRole.value === UserRole.AUTOMAKER)
-
-// 是否是售后中心
-const isAftersale = computed(() => userRole.value === UserRole.AFTERSALE)
-
-// 是否可以创建零部件
-const canCreatePart = computed(() => isManufacturer.value)
-
-// 是否可以管理BOM
-const canManageBOM = computed(() => isManufacturer.value || isAutomaker.value)
-
-// 是否可以管理供应链
-const canManageSupply = computed(() => isManufacturer.value || isAutomaker.value)
-
-// 是否可以管理售后
-const canManageAftersale = computed(() => isAftersale.value || isAutomaker.value)
-
-// 面包屑导航
 const breadcrumbs = computed(() => {
   const matched = route.matched.filter(item => item.meta && item.meta.title)
   return matched.map(item => ({
@@ -264,53 +195,82 @@ const breadcrumbs = computed(() => {
   }))
 })
 
-// ==================== 方法 ====================
+const iconMap: Record<string, any> = {
+  DashboardOutlined,
+  AppstoreOutlined,
+  FileTextOutlined,
+  ToolOutlined,
+  SwapOutlined,
+  CustomerServiceOutlined,
+  LinkOutlined,
+  SettingOutlined
+}
 
-/**
- * 切换侧边栏折叠状态
- */
+function getIconComponent(iconName?: string) {
+  if (!iconName) return null
+  return iconMap[iconName] || null
+}
+
 function toggleSidebar() {
   appStore.toggleSidebar()
 }
 
-/**
- * 切换主题
- */
 function toggleTheme() {
   appStore.toggleTheme()
 }
 
-/**
- * 处理菜单点击
- */
 function handleMenuClick({ key }: { key: string }) {
   router.push(key)
 }
 
-/**
- * 处理退出登录
- */
 function handleLogout() {
   authStore.logout()
   message.success('已退出登录')
   router.push('/login')
 }
 
-// ==================== 监听路由变化 ====================
-
 watch(
   () => route.path,
   (path) => {
     selectedKeys.value = [path]
     
-    // 自动展开父菜单
     const parentPath = '/' + path.split('/')[1]
     if (parentPath && !openKeys.value.includes(parentPath)) {
       openKeys.value.push(parentPath)
     }
+    
+    const noPermMsg = getAndClearNoPermissionMessage()
+    if (noPermMsg) {
+      Modal.warning({
+        title: '权限提示',
+        content: noPermMsg,
+        okText: '确定'
+      })
+    }
+    
+    if (route.meta.noPermissionMessage) {
+      Modal.warning({
+        title: '权限提示',
+        content: route.meta.noPermissionMessage as string,
+        okText: '确定'
+      })
+    }
   },
   { immediate: true }
 )
+
+onMounted(() => {
+  const parentPath = '/' + route.path.split('/')[1]
+  if (parentPath) {
+    openKeys.value = [parentPath]
+  }
+  
+  const noPermMsg = getAndClearNoPermissionMessage()
+  if (noPermMsg) {
+    noPermissionMessage.value = noPermMsg
+    showNoPermissionModal.value = true
+  }
+})
 </script>
 
 <style scoped>
@@ -525,7 +485,14 @@ watch(
   color: #6366f1;
 }
 
-/* 下拉菜单样式 */
+.role-tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
 .user-dropdown-menu {
   min-width: 180px;
   padding: 8px 0;
@@ -575,7 +542,6 @@ watch(
   color: var(--text-color-secondary);
 }
 
-/* 过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -586,7 +552,6 @@ watch(
   opacity: 0;
 }
 
-/* 深色主题样式 */
 [data-theme='dark'] .sidebar {
   background: var(--bg-color-secondary);
 }
@@ -673,5 +638,10 @@ watch(
 [data-theme='dark'] .logout-item:hover {
   background: rgba(239, 68, 68, 0.15) !important;
   color: #f87171 !important;
+}
+
+[data-theme='dark'] .role-tag {
+  background: rgba(167, 139, 250, 0.2);
+  color: #a78bfa;
 }
 </style>

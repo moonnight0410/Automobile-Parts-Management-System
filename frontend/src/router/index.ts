@@ -5,11 +5,9 @@
 
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import AuthMiddleware from '../middleware/auth'
-
-// ==================== 路由配置 ====================
+import { UserRole } from '../types'
 
 const routes: Array<RouteRecordRaw> = [
-  // 登录页面
   {
     path: '/login',
     name: 'Login',
@@ -20,14 +18,11 @@ const routes: Array<RouteRecordRaw> = [
     }
   },
   
-  // 主布局
   {
     path: '/',
     name: 'Root',
     component: () => import('../layouts/MainLayout.vue'),
-    beforeEnter: AuthMiddleware,
     children: [
-      // 仪表盘
       {
         path: '',
         redirect: '/dashboard'
@@ -40,11 +35,11 @@ const routes: Array<RouteRecordRaw> = [
           requiresAuth: true,
           title: '仪表盘',
           icon: 'DashboardOutlined',
-          roles: ['manufacturer', 'automaker', 'aftersale']
+          permission: 'dashboard',
+          roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER, UserRole.AFTERSALE]
         }
       },
       
-      // 零部件管理
       {
         path: 'parts',
         name: 'Parts',
@@ -52,7 +47,7 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '零部件管理',
           icon: 'AppstoreOutlined',
-          roles: ['manufacturer', 'automaker', 'aftersale']
+          roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER, UserRole.AFTERSALE]
         },
         children: [
           {
@@ -62,7 +57,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '零部件列表',
-              roles: ['manufacturer', 'automaker', 'aftersale']
+              permission: 'partsList',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
             }
           },
           {
@@ -72,7 +68,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '创建零部件',
-              roles: ['manufacturer']
+              permission: 'partsCreate',
+              roles: [UserRole.MANUFACTURER]
             }
           },
           {
@@ -82,13 +79,13 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '零部件详情',
-              roles: ['manufacturer', 'automaker', 'aftersale']
+              permission: 'partsDetail',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER, UserRole.AFTERSALE]
             }
           }
         ]
       },
       
-      // BOM管理
       {
         path: 'bom',
         name: 'BOM',
@@ -96,7 +93,7 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: 'BOM管理',
           icon: 'FileTextOutlined',
-          roles: ['manufacturer', 'automaker']
+          roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
         },
         children: [
           {
@@ -106,7 +103,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: 'BOM列表',
-              roles: ['manufacturer', 'automaker']
+              permission: 'bomList',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
             }
           },
           {
@@ -116,7 +114,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '创建BOM',
-              roles: ['manufacturer']
+              permission: 'bomCreate',
+              roles: [UserRole.MANUFACTURER]
             }
           },
           {
@@ -126,13 +125,13 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: 'BOM比较',
-              roles: ['manufacturer', 'automaker']
+              permission: 'bomCompare',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
             }
           }
         ]
       },
       
-      // 生产管理
       {
         path: 'production',
         name: 'Production',
@@ -140,7 +139,7 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '生产管理',
           icon: 'ToolOutlined',
-          roles: ['manufacturer']
+          roles: [UserRole.MANUFACTURER]
         },
         children: [
           {
@@ -150,7 +149,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '生产数据',
-              roles: ['manufacturer']
+              permission: 'productionData',
+              roles: [UserRole.MANUFACTURER]
             }
           },
           {
@@ -160,7 +160,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '录入生产数据',
-              roles: ['manufacturer']
+              permission: 'productionDataCreate',
+              roles: [UserRole.MANUFACTURER]
             }
           },
           {
@@ -170,7 +171,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '质检管理',
-              roles: ['manufacturer']
+              permission: 'qualityInspection',
+              roles: [UserRole.MANUFACTURER]
             }
           },
           {
@@ -180,13 +182,13 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '录入质检数据',
-              roles: ['manufacturer']
+              permission: 'qualityInspectionCreate',
+              roles: [UserRole.MANUFACTURER]
             }
           }
         ]
       },
       
-      // 供应链管理
       {
         path: 'supply',
         name: 'Supply',
@@ -194,7 +196,7 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '供应链管理',
           icon: 'SwapOutlined',
-          roles: ['manufacturer', 'automaker']
+          roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
         },
         children: [
           {
@@ -204,7 +206,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '采购订单',
-              roles: ['manufacturer', 'automaker']
+              permission: 'supplyOrders',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
             }
           },
           {
@@ -214,7 +217,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '创建采购订单',
-              roles: ['manufacturer', 'automaker']
+              permission: 'supplyOrderCreate',
+              roles: [UserRole.AUTOMAKER]
             }
           },
           {
@@ -224,13 +228,13 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '物流跟踪',
-              roles: ['manufacturer', 'automaker']
+              permission: 'logistics',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
             }
           }
         ]
       },
       
-      // 售后管理
       {
         path: 'aftersale',
         name: 'Aftersale',
@@ -238,7 +242,7 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '售后管理',
           icon: 'CustomerServiceOutlined',
-          roles: ['aftersale', 'automaker']
+          roles: [UserRole.AUTOMAKER, UserRole.AFTERSALE]
         },
         children: [
           {
@@ -248,7 +252,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '故障报告',
-              roles: ['aftersale', 'automaker']
+              permission: 'faultReport',
+              roles: [UserRole.AUTOMAKER, UserRole.AFTERSALE]
             }
           },
           {
@@ -258,7 +263,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '召回记录',
-              roles: ['aftersale', 'automaker']
+              permission: 'recallRecord',
+              roles: [UserRole.AUTOMAKER, UserRole.AFTERSALE]
             }
           },
           {
@@ -268,13 +274,13 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '智能售后助手',
-              roles: ['aftersale', 'automaker']
+              permission: 'aiAssistant',
+              roles: [UserRole.AUTOMAKER, UserRole.AFTERSALE]
             }
           }
         ]
       },
       
-      // 区块链浏览器
       {
         path: 'blockchain',
         name: 'Blockchain',
@@ -283,11 +289,11 @@ const routes: Array<RouteRecordRaw> = [
           requiresAuth: true,
           title: '区块链浏览器',
           icon: 'LinkOutlined',
-          roles: ['manufacturer', 'automaker', 'aftersale']
+          permission: 'blockchain',
+          roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER, UserRole.AFTERSALE]
         }
       },
       
-      // 系统管理
       {
         path: 'system',
         name: 'System',
@@ -295,7 +301,7 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
           title: '系统管理',
           icon: 'SettingOutlined',
-          roles: ['manufacturer', 'automaker', 'aftersale']
+          roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER, UserRole.AFTERSALE]
         },
         children: [
           {
@@ -305,7 +311,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '用户管理',
-              roles: ['manufacturer', 'automaker', 'aftersale']
+              permission: 'userManagement',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER, UserRole.AFTERSALE]
             }
           },
           {
@@ -315,7 +322,8 @@ const routes: Array<RouteRecordRaw> = [
             meta: {
               requiresAuth: true,
               title: '系统设置',
-              roles: ['manufacturer', 'automaker', 'aftersale']
+              permission: 'systemSettings',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER, UserRole.AFTERSALE]
             }
           }
         ]
@@ -323,7 +331,6 @@ const routes: Array<RouteRecordRaw> = [
     ]
   },
   
-  // 404页面
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -334,8 +341,6 @@ const routes: Array<RouteRecordRaw> = [
     }
   }
 ]
-
-// ==================== 创建路由实例 ====================
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -349,15 +354,14 @@ const router = createRouter({
   }
 })
 
-// ==================== 全局路由守卫 ====================
-
 router.beforeEach((to, from, next) => {
-  // 设置页面标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - 汽车零部件区块链管理系统`
   }
   
   next()
 })
+
+router.beforeEach(AuthMiddleware)
 
 export default router
