@@ -78,8 +78,11 @@ update_state() {
     jq --arg step "$step" \
        --argjson completed "$completed_steps" \
        --arg status "$status" \
-       --arg error "${error_msg:-null}" \
-       '.current_step = '$step' | .completed_steps = $completed | .failed_step = (if $status == "failed" then '$step' else .failed_step end) | .error_message = (if $status == "failed" then $error else .error_message end)' \
+       --arg error "$error_msg" \
+       '.current_step = $step
+        | .completed_steps = $completed
+        | .failed_step = (if $status == "failed" then $step else .failed_step end)
+        | .error_message = (if $status == "failed" then $error else .error_message end)' \
        "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
 }
 
@@ -211,6 +214,14 @@ main() {
         exit 1
     }
     
+    if [ -n "$AUTO_MODE" ]; then
+        case "$AUTO_MODE" in
+            1|reset|RESET)
+                delete_state
+                ;;
+        esac
+    fi
+    
     # ==================== 步骤1: 初始化和状态检查 ====================
     local step=1
     if ! is_step_completed "step1_init"; then
@@ -219,25 +230,41 @@ main() {
         if [ -f "$STATE_FILE" ]; then
             show_state
             echo ""
-            read -p "请选择执行模式:
+            if [ -n "$AUTO_MODE" ]; then
+                case "$AUTO_MODE" in
+                    1|reset|RESET)
+                        delete_state
+                        init_state
+                        log_info "已选择从头开始执行(自动)"
+                        ;;
+                    2|resume|RESUME)
+                        log_info "已选择继续执行(自动)"
+                        ;;
+                    *)
+                        log_error "AUTO_MODE 无效值: $AUTO_MODE"
+                        exit 1
+                        ;;
+                esac
+            else
+                read -p "请选择执行模式:
   1. 从头开始（删除状态文件）
   2. 继续执行（跳过已完成步骤）
 请输入选项 (1/2): " choice
-            
-            case $choice in
-                1)
-                    delete_state
-                    init_state
-                    log_info "已选择从头开始执行"
-                    ;;
-                2)
-                    log_info "已选择继续执行"
-                    ;;
-                *)
-                    log_error "无效的选项"
-                    exit 1
-                    ;;
-            esac
+                case $choice in
+                    1)
+                        delete_state
+                        init_state
+                        log_info "已选择从头开始执行"
+                        ;;
+                    2)
+                        log_info "已选择继续执行"
+                        ;;
+                    *)
+                        log_error "无效的选项"
+                        exit 1
+                        ;;
+                esac
+            fi
         else
             init_state
             log_info "状态文件已初始化"
@@ -263,8 +290,7 @@ main() {
         log_info "步骤2: Git更新检测"
         
         if ! check_git_update; then
-            log_info "没有Git更新，跳过后续步骤"
-            exit 0
+            log_info "没有Git更新，继续执行部署流程"
         fi
         
         update_state "step2_git_check" "completed"
@@ -286,15 +312,23 @@ main() {
         log_info "步骤3: 从Git拉取最新代码"
         
         if [ ! -d "$LOCAL_CHAINCODE_DIR" ]; then
-            log_error "链码目录不存在: $LOCAL_CHAINCODE_DIR"
-            update_state "step3_git_pull" "failed" "链码目录不存在"
-            exit 1
+            mkdir -p "$(dirname "$LOCAL_CHAINCODE_DIR")"
+            if ! git clone "$GIT_REPO_URL" "$LOCAL_CHAINCODE_DIR"; then
+                log_error "Git克隆失败"
+                update_state "step3_git_pull" "failed" "Git克隆失败"
+                exit 1
+            fi
         fi
         
         cd "$LOCAL_CHAINCODE_DIR"
-        if ! git pull origin main; then
-            log_error "Git拉取失败"
-            update_state "step3_git_pull" "failed" "Git拉取失败"
+        if ! git fetch origin main; then
+            log_error "Git fetch失败"
+            update_state "step3_git_pull" "failed" "Git fetch失败"
+            exit 1
+        fi
+        if ! git reset --hard origin/main; then
+            log_error "Git重置到origin/main失败"
+            update_state "step3_git_pull" "failed" "Git重置失败"
             exit 1
         fi
         
@@ -343,8 +377,14 @@ main() {
     if ! is_step_completed "step5_package"; then
         log_info "步骤5: 打包链码"
         
+        setup_org_env "Org1"
         local current_version=$(get_chaincode_version)
-        local new_version=$(increment_version "$current_version")
+        local new_version
+        if [ -n "$CHAINCODE_VERSION" ]; then
+            new_version="$CHAINCODE_VERSION"
+        else
+            new_version=$(increment_version "$current_version")
+        fi
         
         log_info "当前版本: $current_version"
         log_info "新版本: $new_version"
@@ -384,13 +424,19 @@ main() {
     if ! is_step_completed "step6_version"; then
         log_info "步骤6: 获取链码序列号"
         
+        setup_org_env "Org1"
         local current_sequence=$(peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json 2>/dev/null | jq -r '.sequence')
         
         if [ -z "$current_sequence" ] || [ "$current_sequence" = "null" ]; then
             current_sequence=0
         fi
         
-        local new_sequence=$((current_sequence + 1))
+        local new_sequence
+        if [ -n "$CHAINCODE_SEQUENCE" ]; then
+            new_sequence="$CHAINCODE_SEQUENCE"
+        else
+            new_sequence=$((current_sequence + 1))
+        fi
         
         log_info "当前序列号: $current_sequence"
         log_info "新序列号: $new_sequence"
@@ -427,9 +473,13 @@ main() {
             setup_org_env "$org"
             
             if ! peer lifecycle chaincode install "$PACKAGE_FILE"; then
-                log_error "${org}链码安装失败"
-                update_state "step7_install" "failed" "${org}链码安装失败"
-                exit 1
+                if peer lifecycle chaincode queryinstalled | grep -q "${CHAINCODE_NAME}_${NEW_VERSION}:[a-zA-Z0-9]*"; then
+                    log_success "${org}链码已安装"
+                else
+                    log_error "${org}链码安装失败"
+                    update_state "step7_install" "failed" "${org}链码安装失败"
+                    exit 1
+                fi
             fi
             
             log_success "${org}链码安装成功"
@@ -626,24 +676,35 @@ main() {
         
         setup_org_env "Org1"
         
-        if ! peer chaincode invoke \
-            -o localhost:7050 \
-            --ordererTLSHostnameOverride orderer.example.com \
-            --tls true \
-            --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
-            -C "$CHANNEL_NAME" \
-            -n "$CHAINCODE_NAME" \
-            --peerAddresses localhost:7051 \
-            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
-            --peerAddresses localhost:9051 \
-            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt \
-            --peerAddresses localhost:11051 \
-            --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt \
-            --isInit \
-            -c '{"function":"initLedger","Args":[]}'; then
-            log_error "链码初始化失败"
-            update_state "step13_init" "failed" "链码初始化失败"
-            exit 1
+        log_info "检查链码是否已经初始化..."
+        local init_check=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
+        
+        if echo "$init_check" | grep -q "error"; then
+            log_info "链码尚未初始化，开始初始化..."
+            
+            if ! peer chaincode invoke \
+                -o localhost:7050 \
+                --ordererTLSHostnameOverride orderer.example.com \
+                --tls true \
+                --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
+                -C "$CHANNEL_NAME" \
+                -n "$CHAINCODE_NAME" \
+                --peerAddresses localhost:7051 \
+                --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
+                --peerAddresses localhost:9051 \
+                --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt \
+                --peerAddresses localhost:11051 \
+                --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt \
+                --isInit \
+                -c '{"function":"initLedger","Args":[]}'; then
+                log_error "链码初始化失败"
+                update_state "step13_init" "failed" "链码初始化失败"
+                exit 1
+            fi
+            
+            log_success "链码初始化成功"
+        else
+            log_info "链码已经初始化，跳过初始化步骤"
         fi
         
         update_state "step13_init" "completed"
