@@ -2133,7 +2133,7 @@ func (s *SmartContract) ListAllFaultReports(ctx contractapi.TransactionContextIn
 	}
 	defer iterator.Close()
 
-	var faults []*FaultReport
+	faults := make([]*FaultReport, 0)
 	for iterator.HasNext() {
 		queryResponse, err := iterator.Next()
 		if err != nil {
@@ -2170,7 +2170,7 @@ func (s *SmartContract) ListAllRecallRecords(ctx contractapi.TransactionContextI
 	}
 	defer iterator.Close()
 
-	var recalls []*RecallRecord
+	recalls := make([]*RecallRecord, 0)
 	for iterator.HasNext() {
 		queryResponse, err := iterator.Next()
 		if err != nil {
@@ -2211,7 +2211,7 @@ func (s *SmartContract) ListAllAftersaleRecords(ctx contractapi.TransactionConte
 	}
 	defer iterator.Close()
 
-	var records []*AftersaleRecord
+	records := make([]*AftersaleRecord, 0)
 	for iterator.HasNext() {
 		queryResponse, err := iterator.Next()
 		if err != nil {
