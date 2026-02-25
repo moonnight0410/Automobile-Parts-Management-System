@@ -45,17 +45,8 @@ func (s *SupplyChainController) CreateLogisticsData(c *gin.Context) {
 }
 
 func (s *SupplyChainController) ListSupplyOrders(c *gin.Context) {
-	userID, _ := c.Get("userID")
-	role, _ := c.Get("role")
-	
-	var buyer, seller string
-	if role == "automaker" {
-		buyer = userID.(string)
-	} else if role == "manufacturer" {
-		seller = userID.(string)
-	}
-	
-	orders, err := s.service.ListAllSupplyOrders(c.Request.Context(), buyer, seller)
+	// 暂时不过滤 buyer/seller，返回所有订单数据
+	orders, err := s.service.ListAllSupplyOrders(c.Request.Context(), "", "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
 		return

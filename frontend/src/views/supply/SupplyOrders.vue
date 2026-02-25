@@ -209,7 +209,7 @@
           <template v-else-if="column.key === 'buyer'">
             <div class="user-cell">
               <a-avatar :style="{ backgroundColor: '#6366f1' }" size="small">
-                {{ record.buyer.charAt(0) }}
+                {{ record.buyer?.charAt(0) || '?' }}
               </a-avatar>
               <span class="user-name">{{ record.buyer }}</span>
             </div>
@@ -217,7 +217,7 @@
           <template v-else-if="column.key === 'seller'">
             <div class="user-cell">
               <a-avatar :style="{ backgroundColor: '#8b5cf6' }" size="small">
-                {{ record.seller.charAt(0) }}
+                {{ record.seller?.charAt(0) || '?' }}
               </a-avatar>
               <span class="user-name">{{ record.seller }}</span>
             </div>
@@ -296,11 +296,8 @@ async function fetchData() {
   try {
     const response = await listSupplyOrders()
     if (response.code === 0 && response.data) {
-      tableData.value = response.data.map((item: SupplyOrder) => ({
-        ...item,
-        buyer: item.buyerOrg,
-        seller: item.sellerOrg
-      }))
+      // 直接使用后端返回的数据，不做额外映射
+      tableData.value = response.data
     }
   } catch (error: any) {
     message.error(error.message || '获取数据失败')

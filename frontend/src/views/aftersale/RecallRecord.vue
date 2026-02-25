@@ -196,7 +196,7 @@
           </template>
           <template v-else-if="column.key === 'batchNos'">
             <div class="batch-cell">
-              <a-tag v-for="(batch, index) in record.batchNos.split(', ')" :key="index" color="blue" class="batch-tag">
+              <a-tag v-for="(batch, index) in (record.batchNos ? record.batchNos.split(', ').filter(b => b) : [])" :key="index" color="blue" class="batch-tag">
                 {{ batch }}
               </a-tag>
             </div>
