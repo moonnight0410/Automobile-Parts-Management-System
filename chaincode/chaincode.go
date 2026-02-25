@@ -2091,7 +2091,7 @@ func (s *SmartContract) ListAllSupplyOrders(ctx contractapi.TransactionContextIn
 //   - []*LogisticsData: 物流数据列表
 //   - error: 查询失败时返回错误
 func (s *SmartContract) ListAllLogisticsData(ctx contractapi.TransactionContextInterface) ([]*LogisticsData, error) {
-	iterator, err := ctx.GetStub().GetStateByRange("LOG_", "LOG_~")
+	iterator, err := ctx.GetStub().GetStateByRange("LOGISTICS_", "LOGISTICS_~")
 	if err != nil {
 		return nil, fmt.Errorf("获取物流数据列表失败: %v", err)
 	}
