@@ -1023,6 +1023,11 @@ func (s *SmartContract) CreateProductionData(ctx contractapi.TransactionContextI
 		return fmt.Errorf("ProductionID和PartID不能为空")
 	}
 
+	// 初始化 Params 为空 map，避免返回 null
+	if production.Params == nil {
+		production.Params = make(map[string]string)
+	}
+
 	// 检查零部件是否存在
 	partBytes, err := ctx.GetStub().GetState(production.PartID)
 	if err != nil {
@@ -1972,6 +1977,11 @@ func (s *SmartContract) ListAllProductionData(ctx contractapi.TransactionContext
 		err = json.Unmarshal(queryResponse.Value, &prod)
 		if err != nil {
 			continue
+		}
+
+		// 确保 Params 不为 nil
+		if prod.Params == nil {
+			prod.Params = make(map[string]string)
 		}
 
 		if operator == "" || prod.Operator == operator {
