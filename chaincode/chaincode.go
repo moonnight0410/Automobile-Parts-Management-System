@@ -1988,7 +1988,7 @@ func (s *SmartContract) ListAllProductionData(ctx contractapi.TransactionContext
 //   - []*QualityInspection: 质检数据列表
 //   - error: 查询失败时返回错误
 func (s *SmartContract) ListAllQualityInspections(ctx contractapi.TransactionContextInterface, handler string) ([]*QualityInspection, error) {
-	iterator, err := ctx.GetStub().GetStateByRange("QC_", "QC_~")
+	iterator, err := ctx.GetStub().GetStateByRange("QUALITY_", "QUALITY_~")
 	if err != nil {
 		return nil, fmt.Errorf("获取质检数据列表失败: %v", err)
 	}
@@ -2161,6 +2161,11 @@ func (s *SmartContract) ListAllRecallRecords(ctx contractapi.TransactionContextI
 		err = json.Unmarshal(queryResponse.Value, &recall)
 		if err != nil {
 			continue
+		}
+
+		// 确保 AffectedParts 不为 nil
+		if recall.AffectedParts == nil {
+			recall.AffectedParts = []string{}
 		}
 
 		recalls = append(recalls, &recall)
