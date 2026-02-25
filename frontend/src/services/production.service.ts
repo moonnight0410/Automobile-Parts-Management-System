@@ -1,32 +1,36 @@
-/**
- * 生产管理API服务
- * 提供生产数据和质检相关的API调用方法
- */
+import { get, post } from './axios'
+import type { ApiResponse } from '../types'
 
-import { post } from './axios'
-import type { 
-  ProductionData,
-  QualityInspection,
-  ApiResponse 
-} from '../types'
-
-// API路径前缀
-const API_PREFIX = '/api/fabric'
-
-/**
- * 创建生产数据
- * @param data 生产数据
- * @returns 创建结果
- */
-export const createProductionData = (data: ProductionData): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/production`, data)
+export interface ProductionData {
+  recordID: string
+  partID: string
+  batchNo: string
+  productionLine: string
+  operator: string
+  operationType: string
+  operationTime: string
+  operationResult: string
+  qualityStatus: string
+  remarks?: string
 }
 
-/**
- * 创建质检数据
- * @param data 质检数据
- * @returns 创建结果
- */
-export const createQualityInspection = (data: QualityInspection): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/quality`, data)
+export interface ProductionDataDTO {
+  recordID: string
+  partID: string
+  batchNo: string
+  productionLine: string
+  operator: string
+  operationType: string
+  operationTime: string
+  operationResult: string
+  qualityStatus: string
+  remarks?: string
+}
+
+export const createProductionData = (data: ProductionDataDTO): Promise<ApiResponse<void>> => {
+  return post('/api/production', data)
+}
+
+export const listProductionData = (): Promise<ApiResponse<ProductionData[]>> => {
+  return get('/api/production')
 }

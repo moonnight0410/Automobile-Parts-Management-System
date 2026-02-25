@@ -324,6 +324,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance, SelectProps } from 'ant-design-vue'
+import { createQualityInspectionWithChain, type BackendQualityDTO } from '@/services/quality.service'
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -434,8 +435,19 @@ async function handleSubmit() {
   submitting.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    createdInspectionID.value = form.inspectionID || `QC-${Date.now().toString().slice(-8)}`
+    const id = form.inspectionID || `QC-${Date.now().toString().slice(-8)}`
+    const payload: BackendQualityDTO = {
+      inspectionID: id,
+      partID: form.partID.trim(),
+      batchNo: form.batchNo.trim(),
+      indicators: {},
+      result: form.result,
+      handler: form.handler.trim(),
+      handleTime: Math.floor(Date.now() / 1000).toString(),
+      disposal: form.result === '不合格' ? '' : ''
+    }
+    await createQualityInspectionWithChain(payload)
+    createdInspectionID.value = id
     showSuccessModal.value = true
     message.success('质检数据录入成功')
   } catch (error: any) {

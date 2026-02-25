@@ -1,5 +1,7 @@
 package model
 
+import "encoding/json"
+
 type FaultReport struct {
 	FaultID     string  `json:"faultID"`
 	PartID      string  `json:"partID"`
@@ -31,6 +33,26 @@ type RecallRecord struct {
 	Status        string   `json:"status"`
 	CreateTime    string   `json:"createTime"`
 	FinishTime    string   `json:"finishTime"`
+}
+
+// UnmarshalJSON 自定义反序列化，处理 affectedParts 为 null 的情况
+func (r *RecallRecord) UnmarshalJSON(data []byte) error {
+	type Alias RecallRecord
+	aux := &struct {
+		AffectedParts []string `json:"affectedParts"`
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	if aux.AffectedParts == nil {
+		r.AffectedParts = []string{}
+	} else {
+		r.AffectedParts = aux.AffectedParts
+	}
+	return nil
 }
 
 type RecallRecordDTO struct {

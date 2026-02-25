@@ -23,6 +23,13 @@ func (s *AuthService) Login(req model.LoginRequest) (model.AuthResponse, error) 
 	}
 	userID := req.Username
 	role := "user"
+	if userID == "manufacturer_user" {
+		role = "manufacturer"
+	} else if userID == "automaker_user" {
+		role = "automaker"
+	} else if userID == "aftersale_user" {
+		role = "aftersale"
+	}
 	token, err := utils.GenerateToken(userID, role, s.cfg.JWTSecret, s.cfg.JWTExpireHours)
 	if err != nil {
 		return model.AuthResponse{}, err

@@ -293,8 +293,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { listFaultReports, type FaultReport } from '../../services/aftersale.service'
 import {
   AlertOutlined,
   PlusOutlined,
@@ -316,6 +317,7 @@ import {
 
 const refreshing = ref(false)
 const showReportModal = ref(false)
+const loading = ref(false)
 
 const searchForm = ref({
   faultID: '',
@@ -343,17 +345,29 @@ const columns = [
   { title: '操作', key: 'action', width: 150, fixed: 'right' as const }
 ]
 
-const tableData = ref([
-  { faultID: 'FAULT-001', partID: 'PART-001', vin: 'VIN-001', faultType: '制动故障', riskProb: '85%', status: '待审核', reportTime: '2024-01-15 10:30' },
-  { faultID: 'FAULT-002', partID: 'PART-002', vin: 'VIN-002', faultType: '转向故障', riskProb: '45%', status: '已审核', reportTime: '2024-01-14 14:20' },
-  { faultID: 'FAULT-003', partID: 'PART-003', vin: 'VIN-003', faultType: '发动机故障', riskProb: '92%', status: '待审核', reportTime: '2024-01-13 09:15' },
-  { faultID: 'FAULT-004', partID: 'PART-004', vin: 'VIN-004', faultType: '电气故障', riskProb: '30%', status: '已审核', reportTime: '2024-01-12 16:45' },
-  { faultID: 'FAULT-005', partID: 'PART-005', vin: 'VIN-005', faultType: '制动故障', riskProb: '78%', status: '待审核', reportTime: '2024-01-11 11:00' }
-])
+const tableData = ref<any[]>([])
+
+async function fetchData() {
+  loading.value = true
+  try {
+    const response = await listFaultReports()
+    if (response.code === 0 && response.data) {
+      tableData.value = response.data.map((item: FaultReport) => ({
+        ...item,
+        riskProb: item.riskProbability ? `${item.riskProbability}%` : '0%'
+      }))
+    }
+  } catch (error: any) {
+    message.error(error.message || '获取数据失败')
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const totalCount = computed(() => tableData.value.length)
-const pendingCount = computed(() => tableData.value.filter(item => item.status === '待审核').length)
-const reviewedCount = computed(() => tableData.value.filter(item => item.status === '已审核').length)
+const pendingCount = computed(() => tableData.value.filter(item => item.status === '待审核' || item.status === 'PENDING').length)
+const reviewedCount = computed(() => tableData.value.filter(item => item.status === '已审核' || item.status === 'REVIEWED').length)
 const highRiskCount = computed(() => tableData.value.filter(item => parseInt(item.riskProb) >= 70).length)
 
 const getFaultTypeColor = (type: string) => {
@@ -375,7 +389,7 @@ const getRiskColor = (risk: string) => {
 }
 
 const getStatusDotClass = (status: string) => {
-  return status === '已审核' ? 'dot-reviewed' : 'dot-pending'
+  return status === '已审核' || status === 'REVIEWED' ? 'dot-reviewed' : 'dot-pending'
 }
 
 const handleSearch = () => {
@@ -389,14 +403,21 @@ const handleReset = () => {
     vin: '',
     status: undefined
   }
+  fetchData()
 }
 
-const handleRefresh = () => {
+const handleRefresh = async () => {
   refreshing.value = true
-  setTimeout(() => {
-    refreshing.value = false
+  try {
+    await fetchData()
     message.success('数据已刷新')
-  }, 1000)
+  } catch (error: any) {
+    message.error('刷新失败')
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 500)
+  }
 }
 
 const handleExport = () => {
@@ -408,7 +429,7 @@ const viewDetail = (record: any) => {
 }
 
 const handleReview = (record: any) => {
-  if (record.status === '已审核') return
+  if (record.status === '已审核' || record.status === 'REVIEWED') return
   record.status = '已审核'
   message.success(`故障 ${record.faultID} 已审核通过`)
 }
@@ -418,19 +439,14 @@ const handleSubmitReport = () => {
     message.warning('请填写必填项')
     return
   }
-  const newFault = {
-    faultID: `FAULT-${String(tableData.value.length + 1).padStart(3, '0')}`,
-    partID: reportForm.value.partID,
-    vin: reportForm.value.vin,
-    faultType: reportForm.value.faultType,
-    riskProb: `${reportForm.value.riskProb}%`,
-    status: '待审核',
-    reportTime: new Date().toLocaleString()
-  }
-  tableData.value.unshift(newFault)
   showReportModal.value = false
   message.success('故障上报成功')
+  fetchData()
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>

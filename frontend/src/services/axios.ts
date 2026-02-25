@@ -50,7 +50,7 @@ axiosInstance.interceptors.response.use(
     }
     
     // 检查业务状态
-    if (response.data && !response.data.success) {
+    if (response.data && response.data.code !== 0 && response.data.code !== undefined) {
       message.error(response.data.message || '请求失败')
       return Promise.reject(new Error(response.data.message || '请求失败'))
     }
@@ -97,22 +97,19 @@ axiosInstance.interceptors.response.use(
 
 // 封装GET请求
 export const get = <T = any>(url: string, config?: any): Promise<any> => {
-  return axiosInstance.get(url, config)
+  return axiosInstance.get(url, config).then(res => res.data)
 }
 
-// 封装POST请求
 export const post = <T = any>(url: string, data?: any, config?: any): Promise<any> => {
-  return axiosInstance.post(url, data, config)
+  return axiosInstance.post(url, data, config).then(res => res.data)
 }
 
-// 封装PUT请求
 export const put = <T = any>(url: string, data?: any, config?: any): Promise<any> => {
-  return axiosInstance.put(url, data, config)
+  return axiosInstance.put(url, data, config).then(res => res.data)
 }
 
-// 封装DELETE请求
 export const del = <T = any>(url: string, config?: any): Promise<any> => {
-  return axiosInstance.delete(url, config)
+  return axiosInstance.delete(url, config).then(res => res.data)
 }
 
 export default axiosInstance

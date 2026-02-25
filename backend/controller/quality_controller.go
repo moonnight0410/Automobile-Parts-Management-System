@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,8 +26,19 @@ func (q *QualityController) CreateQualityInspection(c *gin.Context) {
 		return
 	}
 	if err := q.service.CreateQualityInspection(c.Request.Context(), dto); err != nil {
+		log.Printf("[ERROR] CreateQualityInspection failed: %v", err)
 		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
 		return
 	}
 	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
+}
+
+func (q *QualityController) ListQualityInspections(c *gin.Context) {
+	// 暂时不过滤 handler，返回所有质检数据
+	inspections, err := q.service.ListAllQualityInspections(c.Request.Context(), "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(inspections, "ok"))
 }

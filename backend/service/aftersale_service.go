@@ -41,3 +41,39 @@ func (s *AftersaleService) CreateAftersaleRecord(ctx context.Context, dto model.
 	_, err = s.fabric.Submit(ctx, "CreateAftersaleRecord", string(payload))
 	return err
 }
+
+func (s *AftersaleService) ListAllFaultReports(ctx context.Context, reporter string) ([]model.FaultReport, error) {
+	resp, err := s.fabric.Query(ctx, "ListAllFaultReports", reporter)
+	if err != nil {
+		return nil, err
+	}
+	var faults []model.FaultReport
+	if err := json.Unmarshal(resp, &faults); err != nil {
+		return nil, err
+	}
+	return faults, nil
+}
+
+func (s *AftersaleService) ListAllRecallRecords(ctx context.Context) ([]model.RecallRecord, error) {
+	resp, err := s.fabric.Query(ctx, "ListAllRecallRecords")
+	if err != nil {
+		return nil, err
+	}
+	var recalls []model.RecallRecord
+	if err := json.Unmarshal(resp, &recalls); err != nil {
+		return nil, err
+	}
+	return recalls, nil
+}
+
+func (s *AftersaleService) ListAllAftersaleRecords(ctx context.Context, handlerOrgID string) ([]model.AftersaleRecord, error) {
+	resp, err := s.fabric.Query(ctx, "ListAllAftersaleRecords", handlerOrgID)
+	if err != nil {
+		return nil, err
+	}
+	var records []model.AftersaleRecord
+	if err := json.Unmarshal(resp, &records); err != nil {
+		return nil, err
+	}
+	return records, nil
+}

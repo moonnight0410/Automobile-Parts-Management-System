@@ -268,7 +268,7 @@
 
     <!-- 成功弹窗 -->
     <a-modal
-      v-model:open="showSuccessModal"
+      v-model:visible="showSuccessModal"
       :footer="null"
       :closable="false"
       centered
@@ -442,9 +442,6 @@ function regeneratePartID() {
 
 function handlePartIDChange() {
   form.partID = form.partID.toUpperCase().replace(/[^A-Z0-9-]/g, '')
-  if (form.partID && !form.partID.startsWith('PART-')) {
-    form.partID = 'PART-' + form.partID
-  }
 }
 
 function filterOption(input: string, option: any) {
@@ -905,6 +902,9 @@ window.addEventListener('beforeunload', (e) => {
   transition: all 0.2s ease;
   border-radius: 8px;
   margin: 2px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .custom-select :deep(.ant-select-item:hover) {
@@ -1139,6 +1139,29 @@ window.addEventListener('beforeunload', (e) => {
 .quick-action-item span {
   font-size: 12px;
   color: var(--text-color-secondary);
+}
+
+:global(.ant-modal-root:has(.success-modal)) {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+}
+
+:global(.ant-modal-root:has(.success-modal) .ant-modal-mask) {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+:global(.ant-modal-wrap:has(.success-modal)) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+:global(.ant-modal-wrap:has(.success-modal) .ant-modal) {
+  top: 0 !important;
+  padding-bottom: 0 !important;
+  display: inline-block;
 }
 
 .success-modal :deep(.ant-modal-content) {

@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -55,4 +56,49 @@ func (a *AftersaleController) CreateAftersaleRecord(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
+}
+
+func (a *AftersaleController) ListFaultReports(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	role, _ := c.Get("role")
+
+	var reporter string
+	if role == "aftersale" {
+		reporter = userID.(string)
+	}
+
+	faults, err := a.service.ListAllFaultReports(c.Request.Context(), reporter)
+	if err != nil {
+		log.Printf("[ERROR] ListFaultReports failed: %v", err)
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(faults, "ok"))
+}
+
+func (a *AftersaleController) ListRecallRecords(c *gin.Context) {
+	recalls, err := a.service.ListAllRecallRecords(c.Request.Context())
+	if err != nil {
+		log.Printf("[ERROR] ListRecallRecords failed: %v", err)
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(recalls, "ok"))
+}
+
+func (a *AftersaleController) ListAftersaleRecords(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	role, _ := c.Get("role")
+
+	var handlerOrgID string
+	if role == "aftersale" {
+		handlerOrgID = userID.(string)
+	}
+
+	records, err := a.service.ListAllAftersaleRecords(c.Request.Context(), handlerOrgID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(records, "ok"))
 }

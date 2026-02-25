@@ -68,3 +68,42 @@ func (p *PartController) ListParts(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, utils.Success(parts, "ok"))
 }
+
+func (p *PartController) ListMyParts(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	role, _ := c.Get("role")
+
+	var manufacturer string
+	if role == "manufacturer" {
+		userToOrg := map[string]string{
+			"manufacturer_user": "Org1MSP",
+			"automaker_user":    "Org2MSP",
+			"aftersale_user":    "Org3MSP",
+		}
+		if org, ok := userToOrg[userID.(string)]; ok {
+			manufacturer = org
+		} else {
+			manufacturer = userID.(string)
+		}
+	}
+
+	parts, err := p.service.ListAllParts(c.Request.Context(), manufacturer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(parts, "ok"))
+}
+
+func (p *PartController) DeletePart(c *gin.Context) {
+	partID := c.Param("id")
+	if partID == "" {
+		c.JSON(http.StatusBadRequest, utils.Error(http.StatusBadRequest, "missing partID"))
+		return
+	}
+	if err := p.service.DeletePart(c.Request.Context(), partID); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
+}

@@ -14,7 +14,8 @@ export interface LoginRequest {
 // 登录响应
 export interface LoginResponse {
   token: string
-  user: User
+  userID: string
+  role: string
 }
 
 // 用户信息

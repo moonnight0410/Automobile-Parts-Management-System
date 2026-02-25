@@ -308,8 +308,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { listLogisticsData, type LogisticsData } from '../../services/supply.service'
 
 const columns = [
   { title: '物流ID', dataIndex: 'logisticsID', key: 'logisticsID', width: 130 },
@@ -322,13 +323,8 @@ const columns = [
   { title: '操作', key: 'action', fixed: 'right', width: 140 }
 ]
 
-const mockData = ref([
-  { logisticsID: 'LOG-001', orderID: 'ORDER-001', carrier: '顺丰物流', startTime: '2024-01-15', endTime: '2024-01-17', receiver: '王五', status: '已送达' },
-  { logisticsID: 'LOG-002', orderID: 'ORDER-002', carrier: '京东物流', startTime: '2024-01-16', endTime: '2024-01-18', receiver: '李四', status: '运输中' },
-  { logisticsID: 'LOG-003', orderID: 'ORDER-003', carrier: '中通快递', startTime: '2024-01-17', endTime: '', receiver: '', status: '待发货' },
-  { logisticsID: 'LOG-004', orderID: 'ORDER-004', carrier: '顺丰物流', startTime: '2024-01-18', endTime: '2024-01-20', receiver: '张三', status: '已送达' },
-  { logisticsID: 'LOG-005', orderID: 'ORDER-005', carrier: '圆通速递', startTime: '2024-01-19', endTime: '', receiver: '', status: '运输中' }
-])
+const tableData = ref<any[]>([])
+const loading = ref(false)
 
 const searchForm = ref({
   logisticsID: '',
@@ -341,18 +337,37 @@ const showTrackModal = ref(false)
 const currentLogistics = ref<any>(null)
 const refreshing = ref(false)
 
-const totalCount = computed(() => mockData.value.length)
-const inTransitCount = computed(() => mockData.value.filter(item => item.status === '运输中').length)
-const deliveredCount = computed(() => mockData.value.filter(item => item.status === '已送达').length)
-const pendingCount = computed(() => mockData.value.filter(item => item.status === '待发货').length)
+async function fetchData() {
+  loading.value = true
+  try {
+    const response = await listLogisticsData()
+    if (response.code === 0 && response.data) {
+      tableData.value = response.data.map((item: LogisticsData) => ({
+        ...item,
+        startTime: item.departureTime,
+        endTime: item.arrivalTime
+      }))
+    }
+  } catch (error: any) {
+    message.error(error.message || '获取数据失败')
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const totalCount = computed(() => tableData.value.length)
+const inTransitCount = computed(() => tableData.value.filter(item => item.status === '运输中' || item.status === 'IN_TRANSIT').length)
+const deliveredCount = computed(() => tableData.value.filter(item => item.status === '已送达' || item.status === 'DELIVERED').length)
+const pendingCount = computed(() => tableData.value.filter(item => item.status === '待发货' || item.status === 'PENDING').length)
 
 const filteredData = computed(() => {
-  let result = [...mockData.value]
+  let result = [...tableData.value]
   if (searchForm.value.logisticsID) {
-    result = result.filter(item => item.logisticsID.toLowerCase().includes(searchForm.value.logisticsID.toLowerCase()))
+    result = result.filter(item => item.logisticsID?.toLowerCase().includes(searchForm.value.logisticsID.toLowerCase()))
   }
   if (searchForm.value.orderID) {
-    result = result.filter(item => item.orderID.toLowerCase().includes(searchForm.value.orderID.toLowerCase()))
+    result = result.filter(item => item.orderID?.toLowerCase().includes(searchForm.value.orderID.toLowerCase()))
   }
   if (searchForm.value.carrier) {
     result = result.filter(item => item.carrier === searchForm.value.carrier)
@@ -367,7 +382,10 @@ function getStatusColor(status: string) {
   const colors: Record<string, string> = {
     '待发货': 'orange',
     '运输中': 'blue',
-    '已送达': 'green'
+    '已送达': 'green',
+    'PENDING': 'orange',
+    'IN_TRANSIT': 'blue',
+    'DELIVERED': 'green'
   }
   return colors[status] || 'default'
 }
@@ -392,14 +410,21 @@ function handleReset() {
     carrier: undefined,
     status: undefined
   }
+  fetchData()
 }
 
-function handleRefresh() {
+async function handleRefresh() {
   refreshing.value = true
-  setTimeout(() => {
-    refreshing.value = false
+  try {
+    await fetchData()
     message.success('物流状态已刷新')
-  }, 1000)
+  } catch (error: any) {
+    message.error('刷新失败')
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 500)
+  }
 }
 
 function handleExport() {
@@ -414,6 +439,10 @@ function viewTrack(record: any) {
 function viewDetail(record: any) {
   message.info(`查看物流 ${record.logisticsID} 详情`)
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>

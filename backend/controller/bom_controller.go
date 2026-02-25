@@ -44,3 +44,20 @@ func (b *BOMController) GetBOM(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, utils.Success(bom, "ok"))
 }
+
+func (b *BOMController) ListBOMs(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	role, _ := c.Get("role")
+	
+	var creator string
+	if role == "manufacturer" {
+		creator = userID.(string)
+	}
+	
+	boms, err := b.service.ListAllBOMs(c.Request.Context(), creator)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(boms, "ok"))
+}

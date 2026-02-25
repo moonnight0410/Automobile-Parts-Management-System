@@ -35,3 +35,15 @@ func (s *BOMService) QueryBOM(ctx context.Context, bomID string) (*model.BOM, er
 	}
 	return &bom, nil
 }
+
+func (s *BOMService) ListAllBOMs(ctx context.Context, creator string) ([]model.BOM, error) {
+	resp, err := s.fabric.Query(ctx, "ListAllBOMs", creator)
+	if err != nil {
+		return nil, err
+	}
+	var boms []model.BOM
+	if err := json.Unmarshal(resp, &boms); err != nil {
+		return nil, err
+	}
+	return boms, nil
+}

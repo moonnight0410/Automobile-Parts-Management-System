@@ -1,73 +1,102 @@
-/**
- * 售后管理API服务
- * 提供售后相关的API调用方法
- */
-
 import { get, post } from './axios'
-import type { 
-  FaultReport,
-  RecallRecord,
-  AftersaleRecord,
-  CreateFaultReportRequest,
-  CreateRecallRecordRequest,
-  CreateAftersaleRecordRequest,
-  Part,
-  ApiResponse 
-} from '../types'
+import type { ApiResponse } from '../types'
 
-// API路径前缀
-const API_PREFIX = '/api/fabric'
-
-/**
- * 创建故障报告
- * @param data 故障报告创建请求数据
- * @returns 创建结果
- */
-export const createFaultReport = (data: CreateFaultReportRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/faults`, data)
+export interface FaultReport {
+  faultID: string
+  vin: string
+  partID: string
+  faultType: string
+  faultDescription: string
+  reportTime: string
+  reporter: string
+  reporterOrg: string
+  status: string
+  handlingResult?: string
+  handlingTime?: string
 }
 
-/**
- * 查询故障处理进度
- * @param faultID 故障ID
- * @returns 故障报告详情
- */
-export const queryFaultProgress = (faultID: string): Promise<ApiResponse<FaultReport>> => {
-  return get(`${API_PREFIX}/faults/${faultID}`)
+export interface FaultReportDTO {
+  faultID: string
+  vin: string
+  partID: string
+  faultType: string
+  faultDescription: string
+  reportTime: string
+  reporter: string
+  reporterOrg: string
+  status: string
 }
 
-/**
- * 创建召回记录
- * @param data 召回记录创建请求数据
- * @returns 创建结果
- */
-export const createRecallRecord = (data: CreateRecallRecordRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/recalls`, data)
+export interface RecallRecord {
+  recallID: string
+  recallType: string
+  affectedParts: string[]
+  affectedVins: string[]
+  recallReason: string
+  recallDate: string
+  initiator: string
+  status: string
+  handlingMeasures?: string
 }
 
-/**
- * 查询受影响零部件
- * @param batchNo 批次号
- * @returns 受影响零部件列表
- */
-export const queryAffectedParts = (batchNo: string): Promise<ApiResponse<Part[]>> => {
-  return get(`${API_PREFIX}/recalls/affected/${batchNo}`)
+export interface RecallRecordDTO {
+  recallID: string
+  recallType: string
+  affectedParts: string[]
+  affectedVins: string[]
+  recallReason: string
+  recallDate: string
+  initiator: string
+  status: string
+  handlingMeasures?: string
 }
 
-/**
- * 创建售后记录
- * @param data 售后记录创建请求数据
- * @returns 创建结果
- */
-export const createAftersaleRecord = (data: CreateAftersaleRecordRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/aftersales`, data)
+export interface AftersaleRecord {
+  recordID: string
+  vin: string
+  partID: string
+  serviceType: string
+  serviceDescription: string
+  serviceTime: string
+  handlerOrgID: string
+  handlerName: string
+  cost: number
+  status: string
 }
 
-/**
- * 查询售后记录
- * @param aftersaleID 售后记录ID
- * @returns 售后记录详情
- */
-export const queryAftersaleRecord = (aftersaleID: string): Promise<ApiResponse<AftersaleRecord>> => {
-  return get(`${API_PREFIX}/aftersales/${aftersaleID}`)
+export interface AftersaleRecordDTO {
+  recordID: string
+  vin: string
+  partID: string
+  serviceType: string
+  serviceDescription: string
+  serviceTime: string
+  handlerOrgID: string
+  handlerName: string
+  cost: number
+  status: string
+}
+
+export const createFaultReport = (data: FaultReportDTO): Promise<ApiResponse<void>> => {
+  return post('/api/faults', data)
+}
+
+export const listFaultReports = (): Promise<ApiResponse<FaultReport[]>> => {
+  return get('/api/faults')
+}
+
+export const createRecallRecord = (data: RecallRecordDTO): Promise<ApiResponse<void>> => {
+  return post('/api/recalls', data)
+}
+
+export const listRecallRecords = (): Promise<ApiResponse<RecallRecord[]>> => {
+  return get('/api/recalls')
+}
+
+export const createAftersaleRecord = (data: AftersaleRecordDTO): Promise<ApiResponse<void>> => {
+  return post('/api/aftersale-records', data)
+}
+
+export const listAftersaleRecords = (): Promise<ApiResponse<AftersaleRecord[]>> => {
+  return get('/api/aftersale-records')
 }

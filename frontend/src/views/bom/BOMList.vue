@@ -254,9 +254,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { listBOMs, type BOM } from '../../services/bom.service'
 import {
   FileTextOutlined,
   PlusOutlined,
@@ -279,6 +280,7 @@ import {
 
 const router = useRouter()
 const refreshing = ref(false)
+const loading = ref(false)
 
 const searchForm = reactive({
   bomID: '',
@@ -287,12 +289,7 @@ const searchForm = reactive({
   status: ''
 })
 
-const tableData = ref([
-  { bomID: 'BOM-001', bomType: '生产BOM', productModel: 'Model-A', version: 'v1.0', status: '已发布', createTime: '2024-01-15 10:30:00' },
-  { bomID: 'BOM-002', bomType: '研发BOM', productModel: 'Model-B', version: 'v2.0', status: '草稿', createTime: '2024-01-16 14:20:00' },
-  { bomID: 'BOM-003', bomType: '工程BOM', productModel: 'Model-C', version: 'v1.5', status: '已发布', createTime: '2024-01-17 09:15:00' },
-  { bomID: 'BOM-004', bomType: '生产BOM', productModel: 'Model-A', version: 'v2.0', status: '已归档', createTime: '2024-01-18 16:45:00' }
-])
+const tableData = ref<any[]>([])
 
 const columns = [
   { title: 'BOM ID', dataIndex: 'bomID', key: 'bomID', width: 120 },
@@ -326,8 +323,37 @@ function getStatusDotClass(status: string) {
   return classes[status] || ''
 }
 
-function handleSearch() {
-  message.success('搜索完成')
+async function handleSearch() {
+  loading.value = true
+  try {
+    const response = await listBOMs()
+    if (response.code === 0 && response.data) {
+      let boms = response.data
+      
+      if (searchForm.bomID) {
+        boms = boms.filter(b => b.bomID.includes(searchForm.bomID))
+      }
+      if (searchForm.bomType) {
+        boms = boms.filter(b => b.bomType === searchForm.bomType)
+      }
+      if (searchForm.productModel) {
+        boms = boms.filter(b => b.productModel.includes(searchForm.productModel))
+      }
+      if (searchForm.status) {
+        boms = boms.filter(b => b.status === searchForm.status)
+      }
+      
+      tableData.value = boms.map(b => ({
+        ...b,
+        createTime: b.createTime
+      }))
+    }
+  } catch (error: any) {
+    message.error(error.message || '查询失败')
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 function handleReset() {
@@ -335,15 +361,21 @@ function handleReset() {
   searchForm.bomType = ''
   searchForm.productModel = ''
   searchForm.status = ''
-  message.success('已重置筛选条件')
+  handleSearch()
 }
 
 async function handleRefresh() {
   refreshing.value = true
-  setTimeout(() => {
-    refreshing.value = false
+  try {
+    await handleSearch()
     message.success('数据刷新成功')
-  }, 500)
+  } catch (error: any) {
+    message.error('刷新失败')
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 500)
+  }
 }
 
 function goCreate() {
@@ -361,6 +393,10 @@ function viewDetail(record: any) {
 function editBOM(record: any) {
   message.info(`编辑BOM: ${record.bomID}`)
 }
+
+onMounted(() => {
+  handleSearch()
+})
 </script>
 
 <style scoped>

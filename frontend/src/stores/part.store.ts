@@ -46,7 +46,7 @@ export const usePartStore = defineStore('part', () => {
     try {
       const response = await createPart(data)
       
-      if (!response.success) {
+      if (response.code !== 0) {
         throw new Error(response.message || '创建零部件失败')
       }
       
@@ -70,7 +70,7 @@ export const usePartStore = defineStore('part', () => {
     try {
       const response = await queryPart(partID)
       
-      if (response.success && response.data) {
+      if (response.code === 0 && response.data) {
         currentPart.value = response.data
         return response.data
       } else {
@@ -95,7 +95,7 @@ export const usePartStore = defineStore('part', () => {
     try {
       const response = await queryPartLifecycle(partID)
       
-      if (response.success && response.data) {
+      if (response.code === 0 && response.data) {
         currentLifecycle.value = response.data
         return response.data
       } else {
@@ -120,7 +120,7 @@ export const usePartStore = defineStore('part', () => {
     try {
       const response = await queryPartByBatchNo(batchNo)
       
-      if (response.success && response.data) {
+      if (response.code === 0 && response.data) {
         partList.value = response.data
         return response.data
       } else {
@@ -145,7 +145,7 @@ export const usePartStore = defineStore('part', () => {
     try {
       const response = await queryPartByVIN(vin)
       
-      if (response.success && response.data) {
+      if (response.code === 0 && response.data) {
         partList.value = response.data
         return response.data
       } else {
@@ -170,7 +170,7 @@ export const usePartStore = defineStore('part', () => {
     try {
       const response = await updatePartStatus(data)
       
-      if (!response.success) {
+      if (response.code !== 0) {
         throw new Error(response.message || '更新状态失败')
       }
       

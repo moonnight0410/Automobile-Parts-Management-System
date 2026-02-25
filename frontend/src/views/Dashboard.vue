@@ -116,6 +116,10 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth.store'
 import * as echarts from 'echarts'
+import { listMyParts } from '../services/part.service'
+import { listBOMs } from '../services/bom.service'
+import { listFaultReports } from '../services/aftersale.service'
+import { listRecallRecords } from '../services/aftersale.service'
 
 // ==================== 组合式API ====================
 
@@ -130,10 +134,10 @@ const qualityChartRef = ref<HTMLElement>()
 
 // 统计数据
 const statistics = reactive({
-  totalParts: 1234,
-  totalBOMs: 56,
-  totalFaults: 23,
-  totalRecalls: 5
+  totalParts: 0,
+  totalBOMs: 0,
+  totalFaults: 0,
+  totalRecalls: 0
 })
 
 // 当前用户
@@ -150,15 +154,70 @@ const quickActions = [
 ]
 
 // 最新动态
-const recentActivities = ref([
-  { id: 1, title: '新零部件创建', description: '零部件 PART-001 已成功创建并上链', time: '2分钟前', color: 'green' },
-  { id: 2, title: '质检完成', description: '批次 BATCH-2024-001 质检合格', time: '15分钟前', color: 'blue' },
-  { id: 3, title: '故障报告', description: '零部件 PART-045 故障已上报', time: '1小时前', color: 'red' },
-  { id: 4, title: 'BOM更新', description: 'BOM-2024-001 版本已更新至 v2.0', time: '2小时前', color: 'orange' },
-  { id: 5, title: '召回通知', description: '批次 BATCH-2023-089 已发起召回', time: '3小时前', color: 'red' }
-])
+const recentActivities = ref<any[]>([])
 
 // ==================== 方法 ====================
+
+async function fetchStatistics() {
+  try {
+    const [partsRes, bomsRes, faultsRes, recallsRes] = await Promise.all([
+      listMyParts(),
+      listBOMs(),
+      listFaultReports(),
+      listRecallRecords()
+    ])
+    
+    statistics.totalParts = partsRes.data?.length || 0
+    statistics.totalBOMs = bomsRes.data?.length || 0
+    statistics.totalFaults = faultsRes.data?.length || 0
+    statistics.totalRecalls = recallsRes.data?.length || 0
+    
+    const activities: any[] = []
+    
+    if (partsRes.data && partsRes.data.length > 0) {
+      const latestParts = partsRes.data.slice(0, 2)
+      latestParts.forEach((part: any) => {
+        activities.push({
+          id: `part-${part.partID}`,
+          title: '新零部件创建',
+          description: `零部件 ${part.partID} 已成功创建`,
+          time: part.productionDate || '最近',
+          color: 'green'
+        })
+      })
+    }
+    
+    if (faultsRes.data && faultsRes.data.length > 0) {
+      const latestFaults = faultsRes.data.slice(0, 2)
+      latestFaults.forEach((fault: any) => {
+        activities.push({
+          id: `fault-${fault.faultID}`,
+          title: '故障报告',
+          description: `零部件 ${fault.partID} 故障已上报`,
+          time: fault.reportTime || '最近',
+          color: 'red'
+        })
+      })
+    }
+    
+    if (recallsRes.data && recallsRes.data.length > 0) {
+      const latestRecalls = recallsRes.data.slice(0, 1)
+      latestRecalls.forEach((recall: any) => {
+        activities.push({
+          id: `recall-${recall.recallID}`,
+          title: '召回通知',
+          description: `召回 ${recall.recallID} 已发起`,
+          time: recall.createTime || '最近',
+          color: 'orange'
+        })
+      })
+    }
+    
+    recentActivities.value = activities.slice(0, 5)
+  } catch (error) {
+    console.error('获取统计数据失败:', error)
+  }
+}
 
 /**
  * 处理快捷操作点击
@@ -210,11 +269,11 @@ function initPartStatusChart() {
           show: false
         },
         data: [
-          { value: 800, name: '正常', itemStyle: { color: '#52c41a' } },
-          { value: 200, name: '在产', itemStyle: { color: '#1890ff' } },
-          { value: 150, name: '供应链中', itemStyle: { color: '#722ed1' } },
-          { value: 50, name: '已召回', itemStyle: { color: '#fa8c16' } },
-          { value: 34, name: '已报废', itemStyle: { color: '#8c8c8c' } }
+          { value: Math.round(statistics.totalParts * 0.65), name: '正常', itemStyle: { color: '#52c41a' } },
+          { value: Math.round(statistics.totalParts * 0.16), name: '在产', itemStyle: { color: '#1890ff' } },
+          { value: Math.round(statistics.totalParts * 0.12), name: '供应链中', itemStyle: { color: '#722ed1' } },
+          { value: Math.round(statistics.totalParts * 0.04), name: '已召回', itemStyle: { color: '#fa8c16' } },
+          { value: Math.round(statistics.totalParts * 0.03), name: '已报废', itemStyle: { color: '#8c8c8c' } }
         ]
       }
     ]
@@ -277,7 +336,8 @@ function initQualityChart() {
 
 // ==================== 生命周期 ====================
 
-onMounted(() => {
+onMounted(async () => {
+  await fetchStatistics()
   // 初始化图表
   setTimeout(() => {
     initPartStatusChart()

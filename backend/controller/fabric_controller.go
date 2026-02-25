@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"automobile-parts-backend/service"
@@ -41,10 +42,12 @@ type Part struct {
 }
 
 type PartLifecycle struct {
-	PartID       string   `json:"partID"`
-	CurrentStage string   `json:"currentStage"`
-	Stages       []string `json:"stages"`
-	UpdateTime   string   `json:"updateTime"`
+	PartID          string             `json:"partID"`
+	BOMInfo         *BOMReference      `json:"bomInfo"`
+	ProductionInfo  *ProductionData    `json:"productionInfo"`
+	QualityInfo     *QualityInspection `json:"qualityInfo"`
+	SupplyChainInfo []SupplyChainData  `json:"supplyChainInfo"`
+	AftersaleInfo   []AftersaleRecord  `json:"aftersaleInfo"`
 }
 
 type BOM struct {
@@ -65,6 +68,12 @@ type MaterialItem struct {
 	Spec         string `json:"spec"`
 	Quantity     int    `json:"quantity"`
 	SupplierID   string `json:"supplierID"`
+}
+
+type BOMReference struct {
+	BOMID   string `json:"bomID"`
+	Version string `json:"version"`
+	Type    string `json:"type"`
 }
 
 type ProductionData struct {
@@ -120,6 +129,31 @@ type LogisticsData struct {
 	EndTime     string `json:"endTime"`
 	GPSHash     string `json:"gpsHash"`
 	Receiver    string `json:"receiver"`
+}
+
+type Attachment struct {
+	FileStorageID  string `json:"fileStorageID"`
+	FilePath       string `json:"filePath"`
+	FileHash       string `json:"fileHash"`
+	FileType       string `json:"fileType"`
+	DatabaseSource string `json:"databaseSource"`
+}
+
+type SupplyChainData struct {
+	ChainID          string      `json:"chainID"`
+	PartID           string      `json:"partID"`
+	BatchNo          string      `json:"batchNo"`
+	OrderID          string      `json:"orderID"`
+	LogisticsID      string      `json:"logisticsID"`
+	StageType        string      `json:"stageType"`
+	StageStatus      string      `json:"stageStatus"`
+	Participator     string      `json:"participator"`
+	ParticipatorRole string      `json:"participatorRole"`
+	Quantity         int         `json:"quantity"`
+	OperateTime      string      `json:"operateTime"`
+	Operator         string      `json:"operator"`
+	AttachmentInfo   *Attachment `json:"attachmentInfo,omitempty"`
+	Remark           string      `json:"remark,omitempty"`
 }
 
 type Reconciliation struct {
@@ -219,10 +253,18 @@ func (fc *FabricController) HealthCheck(c *gin.Context) {
 		return
 	}
 
+	healthPartID := os.Getenv("HEALTHCHECK_PART_ID")
+	if healthPartID == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "healthy",
+			"message": "Fabric已初始化（跳过链码查询，未设置HEALTHCHECK_PART_ID）",
+		})
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
-
-	_, err := fc.fabricService.Query(ctx, "QueryPart", "TEST")
+	_, err := fc.fabricService.Query(ctx, "QueryPart", healthPartID)
 	if err != nil {
 		log.Printf("[FabricController] 健康检查失败: %v", err)
 		c.JSON(http.StatusServiceUnavailable, gin.H{

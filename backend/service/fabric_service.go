@@ -206,7 +206,6 @@ func (fs *FabricService) Submit(ctx context.Context, functionName string, args .
 	if fs.contract == nil {
 		return nil, errors.New("fabric not initialized")
 	}
-	// 使用SubmitTransaction执行读写操作
 	return fs.contract.SubmitTransaction(functionName, args...)
 }
 

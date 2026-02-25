@@ -259,9 +259,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { listSupplyOrders, type SupplyOrder } from '../../services/supply.service'
 
 const router = useRouter()
 
@@ -276,13 +277,8 @@ const columns = [
   { title: '操作', key: 'action', fixed: 'right', width: 140 }
 ]
 
-const mockData = ref([
-  { orderID: 'ORDER-001', buyer: '车企A', seller: '制造商B', partID: 'PART-001', quantity: 100, status: '已签收', createTime: '2024-01-15' },
-  { orderID: 'ORDER-002', buyer: '车企A', seller: '制造商C', partID: 'PART-002', quantity: 50, status: '运输中', createTime: '2024-01-16' },
-  { orderID: 'ORDER-003', buyer: '车企B', seller: '制造商B', partID: 'PART-003', quantity: 200, status: '待处理', createTime: '2024-01-17' },
-  { orderID: 'ORDER-004', buyer: '车企A', seller: '制造商D', partID: 'PART-004', quantity: 75, status: '已签收', createTime: '2024-01-18' },
-  { orderID: 'ORDER-005', buyer: '车企C', seller: '制造商B', partID: 'PART-005', quantity: 150, status: '运输中', createTime: '2024-01-19' }
-])
+const tableData = ref<any[]>([])
+const loading = ref(false)
 
 const searchForm = ref({
   orderID: '',
@@ -295,18 +291,37 @@ const searchForm = ref({
 const showCreateModal = ref(false)
 const refreshing = ref(false)
 
-const totalCount = computed(() => mockData.value.length)
-const pendingCount = computed(() => mockData.value.filter(item => item.status === '待处理').length)
-const shippingCount = computed(() => mockData.value.filter(item => item.status === '运输中').length)
-const completedCount = computed(() => mockData.value.filter(item => item.status === '已签收').length)
+async function fetchData() {
+  loading.value = true
+  try {
+    const response = await listSupplyOrders()
+    if (response.code === 0 && response.data) {
+      tableData.value = response.data.map((item: SupplyOrder) => ({
+        ...item,
+        buyer: item.buyerOrg,
+        seller: item.sellerOrg
+      }))
+    }
+  } catch (error: any) {
+    message.error(error.message || '获取数据失败')
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const totalCount = computed(() => tableData.value.length)
+const pendingCount = computed(() => tableData.value.filter(item => item.status === '待处理' || item.status === 'PENDING').length)
+const shippingCount = computed(() => tableData.value.filter(item => item.status === '运输中' || item.status === 'SHIPPING').length)
+const completedCount = computed(() => tableData.value.filter(item => item.status === '已签收' || item.status === 'COMPLETED').length)
 
 const filteredData = computed(() => {
-  let result = [...mockData.value]
+  let result = [...tableData.value]
   if (searchForm.value.orderID) {
-    result = result.filter(item => item.orderID.toLowerCase().includes(searchForm.value.orderID.toLowerCase()))
+    result = result.filter(item => item.orderID?.toLowerCase().includes(searchForm.value.orderID.toLowerCase()))
   }
   if (searchForm.value.buyer) {
-    result = result.filter(item => item.buyer.toLowerCase().includes(searchForm.value.buyer.toLowerCase()))
+    result = result.filter(item => item.buyer?.toLowerCase().includes(searchForm.value.buyer.toLowerCase()))
   }
   if (searchForm.value.status) {
     result = result.filter(item => item.status === searchForm.value.status)
@@ -318,7 +333,10 @@ function getStatusColor(status: string) {
   const colors: Record<string, string> = {
     '待处理': 'orange',
     '运输中': 'blue',
-    '已签收': 'green'
+    '已签收': 'green',
+    'PENDING': 'orange',
+    'SHIPPING': 'blue',
+    'COMPLETED': 'green'
   }
   return colors[status] || 'default'
 }
@@ -341,16 +359,24 @@ function handleReset() {
     orderID: '',
     buyer: '',
     status: undefined,
-    dateRange: null
+    startDate: null,
+    endDate: null
   }
+  fetchData()
 }
 
-function handleRefresh() {
+async function handleRefresh() {
   refreshing.value = true
-  setTimeout(() => {
-    refreshing.value = false
+  try {
+    await fetchData()
     message.success('数据已刷新')
-  }, 1000)
+  } catch (error: any) {
+    message.error('刷新失败')
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 500)
+  }
 }
 
 function handleExport() {
@@ -370,10 +396,13 @@ function handleCreate() {
 }
 
 function handleDateChange() {
-  if (searchForm.value.dateRange && searchForm.value.dateRange.length === 2) {
-    datePickerOpen.value = false
+  if (searchForm.value.startDate && searchForm.value.endDate) {
   }
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>

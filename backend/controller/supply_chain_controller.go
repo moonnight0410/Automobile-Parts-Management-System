@@ -43,3 +43,31 @@ func (s *SupplyChainController) CreateLogisticsData(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
 }
+
+func (s *SupplyChainController) ListSupplyOrders(c *gin.Context) {
+	userID, _ := c.Get("userID")
+	role, _ := c.Get("role")
+	
+	var buyer, seller string
+	if role == "automaker" {
+		buyer = userID.(string)
+	} else if role == "manufacturer" {
+		seller = userID.(string)
+	}
+	
+	orders, err := s.service.ListAllSupplyOrders(c.Request.Context(), buyer, seller)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(orders, "ok"))
+}
+
+func (s *SupplyChainController) ListLogisticsData(c *gin.Context) {
+	logisticsList, err := s.service.ListAllLogisticsData(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(logisticsList, "ok"))
+}

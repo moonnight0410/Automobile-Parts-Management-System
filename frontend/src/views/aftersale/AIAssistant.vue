@@ -325,7 +325,7 @@ async function handleSend() {
       userID: user.value?.id || 'anonymous'
     })
 
-    if (response.success && response.data) {
+    if (response.code === 0 && response.data) {
       messages.value.push({
         id: generateId(),
         type: 'bot',

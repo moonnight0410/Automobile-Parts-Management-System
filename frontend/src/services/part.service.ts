@@ -1,86 +1,67 @@
-/**
- * 零部件管理API服务
- * 提供零部件相关的API调用方法
- */
+import { get, post } from './axios'
+import type { ApiResponse } from '../types'
 
-import { get, post, put } from './axios'
-import type { 
-  Part, 
-  PartLifecycle, 
-  CreatePartRequest, 
-  UpdatePartStatusRequest,
-  ApiResponse 
-} from '../types'
-
-// API路径前缀
-const API_PREFIX = '/api/fabric'
-
-/**
- * 创建零部件
- * @param data 零部件创建请求数据
- * @returns 创建结果
- */
-export const createPart = (data: CreatePartRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/parts`, data)
+export interface Part {
+  partID: string
+  name: string
+  type: string
+  manufacturer: string
+  batchNo: string
+  productionDate: string
+  vin?: string
+  status: string
+  qualityGrade?: string
+  specifications?: string
+  materialInfo?: string
+  supplierInfo?: string
+  createTime?: string
 }
 
-/**
- * 查询零部件详情
- * @param partID 零部件ID
- * @returns 零部件详情
- */
-export const queryPart = (partID: string): Promise<ApiResponse<Part>> => {
-  return get(`${API_PREFIX}/parts/${partID}`)
+export interface PartDTO {
+  partID: string
+  name: string
+  type: string
+  manufacturer: string
+  batchNo: string
+  productionDate: string
+  vin?: string
+  status: string
+  qualityGrade?: string
+  specifications?: string
+  materialInfo?: string
+  supplierInfo?: string
 }
 
-/**
- * 查询零部件生命周期
- * @param partID 零部件ID
- * @returns 零部件生命周期信息
- */
-export const queryPartLifecycle = (partID: string): Promise<ApiResponse<PartLifecycle>> => {
-  return get(`${API_PREFIX}/parts/${partID}/lifecycle`)
+export const createPart = (data: PartDTO): Promise<ApiResponse<void>> => {
+  return post('/api/parts', data)
 }
 
-/**
- * 按批次号查询零部件
- * @param batchNo 批次号
- * @returns 零部件列表
- */
+export const getPart = (partID: string): Promise<ApiResponse<Part>> => {
+  return get(`/api/parts/${partID}`)
+}
+
+export const listParts = (params: { batchNo?: string; vin?: string }): Promise<ApiResponse<Part[]>> => {
+  return get('/api/parts', { params })
+}
+
+export const listMyParts = (): Promise<ApiResponse<Part[]>> => {
+  return get('/api/parts/my')
+}
+
+export const queryPart = getPart
+
 export const queryPartByBatchNo = (batchNo: string): Promise<ApiResponse<Part[]>> => {
-  return get(`${API_PREFIX}/parts/batch/${batchNo}`)
+  return listParts({ batchNo })
 }
 
-/**
- * 按VIN码查询零部件
- * @param vin VIN码
- * @returns 零部件列表
- */
 export const queryPartByVIN = (vin: string): Promise<ApiResponse<Part[]>> => {
-  return get(`${API_PREFIX}/parts/vin/${vin}`)
+  return listParts({ vin })
 }
 
-/**
- * 更新零部件状态
- * @param data 状态更新请求数据
- * @returns 更新结果
- */
-export const updatePartStatus = (data: UpdatePartStatusRequest): Promise<ApiResponse<void>> => {
-  return put(`${API_PREFIX}/parts/${data.partID}/status`, { status: data.status })
+export const queryPartLifecycle = (partID: string): Promise<ApiResponse<any>> => {
+  return get(`/api/parts/${partID}/lifecycle`)
 }
 
-/**
- * 初始化账本
- * @returns 初始化结果
- */
-export const initLedger = (): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/init`)
-}
-
-/**
- * 健康检查
- * @returns 健康状态
- */
-export const healthCheck = (): Promise<ApiResponse<{ status: string }>> => {
-  return get(`${API_PREFIX}/health`)
+export const updatePartStatus = (data: { partID: string; status: string }): Promise<ApiResponse<void>> => {
+  return post(`/api/parts/${data.partID}/status`, data)
 }

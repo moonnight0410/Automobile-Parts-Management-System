@@ -1,54 +1,77 @@
-/**
- * 供应链管理API服务
- * 提供供应链相关的API调用方法
- */
+import { get, post } from './axios'
+import type { ApiResponse } from '../types'
 
-import { get, post, put } from './axios'
-import type { 
-  SupplyOrder,
-  LogisticsData,
-  Reconciliation,
-  SupplyChainStage,
-  CreateSupplyOrderRequest,
-  CreateLogisticsDataRequest,
-  ApiResponse 
-} from '../types'
-
-// API路径前缀
-const API_PREFIX = '/api/fabric'
-
-/**
- * 创建供应链订单
- * @param data 订单创建请求数据
- * @returns 创建结果
- */
-export const createSupplyOrder = (data: CreateSupplyOrderRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/supply/orders`, data)
+export interface SupplyOrderItem {
+  partID: string
+  partName: string
+  quantity: number
+  unitPrice: number
 }
 
-/**
- * 创建物流数据
- * @param data 物流数据创建请求数据
- * @returns 创建结果
- */
-export const createLogisticsData = (data: CreateLogisticsDataRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/supply/logistics`, data)
+export interface SupplyOrder {
+  orderID: string
+  buyer: string
+  seller: string
+  orderDate: string
+  deliveryDate: string
+  status: string
+  totalAmount: number
+  items: SupplyOrderItem[]
+  remarks?: string
 }
 
-/**
- * 更新供应链阶段
- * @param data 阶段更新请求数据
- * @returns 更新结果
- */
-export const updateSupplyChainStage = (data: SupplyChainStage): Promise<ApiResponse<void>> => {
-  return put(`${API_PREFIX}/supply/stage`, data)
+export interface SupplyOrderDTO {
+  orderID: string
+  buyer: string
+  seller: string
+  orderDate: string
+  deliveryDate: string
+  status: string
+  totalAmount: number
+  items: SupplyOrderItem[]
+  remarks?: string
 }
 
-/**
- * 创建对账记录
- * @param data 对账创建请求数据
- * @returns 创建结果
- */
-export const createReconciliation = (data: Reconciliation): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/supply/reconciliation`, data)
+export interface LogisticsData {
+  logisticsID: string
+  orderID: string
+  carrier: string
+  trackingNo: string
+  departureLocation: string
+  arrivalLocation: string
+  departureTime: string
+  estimatedArrivalTime: string
+  actualArrivalTime?: string
+  status: string
+  currentLocation?: string
+}
+
+export interface LogisticsDataDTO {
+  logisticsID: string
+  orderID: string
+  carrier: string
+  trackingNo: string
+  departureLocation: string
+  arrivalLocation: string
+  departureTime: string
+  estimatedArrivalTime: string
+  actualArrivalTime?: string
+  status: string
+  currentLocation?: string
+}
+
+export const createSupplyOrder = (data: SupplyOrderDTO): Promise<ApiResponse<void>> => {
+  return post('/api/orders', data)
+}
+
+export const listSupplyOrders = (): Promise<ApiResponse<SupplyOrder[]>> => {
+  return get('/api/orders')
+}
+
+export const createLogisticsData = (data: LogisticsDataDTO): Promise<ApiResponse<void>> => {
+  return post('/api/logistics', data)
+}
+
+export const listLogisticsData = (): Promise<ApiResponse<LogisticsData[]>> => {
+  return get('/api/logistics')
 }

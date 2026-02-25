@@ -59,3 +59,23 @@ func (s *PartService) QueryPartByVIN(ctx context.Context, vin string) ([]model.P
 	}
 	return parts, nil
 }
+
+func (s *PartService) ListAllParts(ctx context.Context, manufacturer string) ([]model.Part, error) {
+	resp, err := s.fabric.Query(ctx, "ListAllParts", manufacturer)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp) == 0 {
+		return []model.Part{}, nil
+	}
+	var parts []model.Part
+	if err := json.Unmarshal(resp, &parts); err != nil {
+		return nil, err
+	}
+	return parts, nil
+}
+
+func (s *PartService) DeletePart(ctx context.Context, partID string) error {
+	_, err := s.fabric.Submit(ctx, "DeletePart", partID)
+	return err
+}

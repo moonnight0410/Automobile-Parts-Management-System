@@ -1,62 +1,72 @@
-/**
- * BOM管理API服务
- * 提供BOM相关的API调用方法
- */
+import { get, post } from './axios'
+import type { ApiResponse } from '../types'
 
-import { get, post, put } from './axios'
-import type { 
-  BOM, 
-  CreateBOMRequest, 
-  UpdateBOMRequest,
-  BOMCompareRequest,
-  BOMChangeRequest,
-  ApiResponse 
-} from '../types'
-
-// API路径前缀
-const API_PREFIX = '/api/fabric'
-
-/**
- * 创建BOM
- * @param data BOM创建请求数据
- * @returns 创建结果
- */
-export const createBOM = (data: CreateBOMRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/bom`, data)
+export interface BOMMaterial {
+  materialID: string
+  materialName: string
+  quantity: number
+  unit: string
+  specifications?: string
 }
 
-/**
- * 查询BOM详情
- * @param bomID BOM ID
- * @returns BOM详情
- */
-export const queryBOM = (bomID: string): Promise<ApiResponse<BOM>> => {
-  return get(`${API_PREFIX}/bom/${bomID}`)
+export interface BOM {
+  bomID: string
+  bomType: string
+  productModel: string
+  partBatchNo: string
+  version: string
+  creator: string
+  createTime: string
+  status: string
+  materialList: BOMMaterial[]
+  rdBOMFileInfo?: {
+    fileName: string
+    fileURL: string
+    uploadTime: string
+  }
+  productionBOMInfo?: {
+    productionLine: string
+    processFlow: string
+    qualityStandard: string
+  }
+  changeRecords?: {
+    changeID: string
+    changeTime: string
+    changeContent: string
+    changer: string
+  }[]
 }
 
-/**
- * 更新BOM
- * @param data BOM更新请求数据
- * @returns 更新结果
- */
-export const updateBOM = (data: UpdateBOMRequest): Promise<ApiResponse<void>> => {
-  return put(`${API_PREFIX}/bom/${data.bomID}`, data)
+export interface BOMDTO {
+  bomID: string
+  bomType: string
+  productModel: string
+  partBatchNo: string
+  version: string
+  creator: string
+  createTime: string
+  status: string
+  materialList: BOMMaterial[]
+  rdBOMFileInfo?: {
+    fileName: string
+    fileURL: string
+    uploadTime: string
+  }
+  productionBOMInfo?: {
+    productionLine: string
+    processFlow: string
+    qualityStandard: string
+  }
 }
 
-/**
- * BOM比较
- * @param data BOM比较请求数据
- * @returns 比较结果
- */
-export const compareBOM = (data: BOMCompareRequest): Promise<ApiResponse<string>> => {
-  return post(`${API_PREFIX}/bom/compare`, data)
+export const createBOM = (data: BOMDTO): Promise<ApiResponse<void>> => {
+  return post('/api/boms', data)
 }
 
-/**
- * 提交BOM变更
- * @param data BOM变更请求数据
- * @returns 变更结果
- */
-export const submitBOMChange = (data: BOMChangeRequest): Promise<ApiResponse<void>> => {
-  return post(`${API_PREFIX}/bom/change`, data)
+export const getBOM = (bomID: string): Promise<ApiResponse<BOM>> => {
+  return get(`/api/boms/${bomID}`)
+}
+
+export const listBOMs = (): Promise<ApiResponse<BOM[]>> => {
+  return get('/api/boms')
 }

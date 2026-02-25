@@ -211,7 +211,7 @@
         @change="handleTableChange"
         row-key="partID"
         class="custom-table"
-        :scroll="{ x: 1200 }"
+        :scroll="{ x: 1300 }"
       >
         <!-- 状态列 -->
         <template #bodyCell="{ column, record }">
@@ -296,9 +296,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { useAuthStore, usePartStore } from '../../stores'
+import { useAuthStore } from '../../stores'
 import { UserRole } from '../../types'
-import type { Part, PartLifecycle } from '../../types'
+import { listMyParts, listParts, type Part } from '../../services/part.service'
+import type { PartLifecycle } from '../../types'
 import {
   AppstoreOutlined,
   PlusOutlined,
@@ -328,7 +329,6 @@ import {
 
 const router = useRouter()
 const authStore = useAuthStore()
-const partStore = usePartStore()
 
 const loading = ref(false)
 const refreshing = ref(false)
@@ -486,19 +486,40 @@ async function handleSearch() {
   loading.value = true
   
   try {
-    if (searchForm.batchNo) {
-      await partStore.fetchByBatchNo(searchForm.batchNo)
-      tableData.value = partStore.partList
-    } else if (searchForm.vin) {
-      await partStore.fetchByVIN(searchForm.vin)
-      tableData.value = partStore.partList
+    let parts: Part[] = []
+    
+    if (searchForm.batchNo || searchForm.vin) {
+      const response = await listParts({
+        batchNo: searchForm.batchNo || undefined,
+        vin: searchForm.vin || undefined
+      })
+      if (response.code === 0 && response.data) {
+        parts = response.data
+      }
     } else {
-      tableData.value = generateMockData()
+      const response = await listMyParts()
+      if (response.code === 0 && response.data) {
+        parts = response.data
+      }
     }
     
+    if (searchForm.status) {
+      parts = parts.filter(p => p.status === searchForm.status)
+    }
+    if (searchForm.partID) {
+      parts = parts.filter(p => p.partID.includes(searchForm.partID))
+    }
+    
+    tableData.value = parts.map(p => ({
+      ...p,
+      name: p.name || '',
+      type: p.type || '',
+      createTime: p.createTime || p.productionDate || ''
+    }))
     pagination.total = tableData.value.length
   } catch (error: any) {
     message.error(error.message || '查询失败')
+    tableData.value = []
   } finally {
     loading.value = false
   }
@@ -583,48 +604,16 @@ function viewDetail(partID: string) {
 }
 
 async function viewLifecycle(partID: string) {
-  try {
-    await partStore.fetchLifecycle(partID)
-    lifecycleData.value = partStore.currentLifecycle
-    lifecycleVisible.value = true
-  } catch (error: any) {
-    message.error(error.message || '查询生命周期失败')
+  lifecycleVisible.value = true
+  lifecycleData.value = {
+    partID: partID,
+    bomInfo: null,
+    productionInfo: null,
+    qualityInfo: null,
+    supplyChainInfo: [],
+    aftersaleInfo: []
   }
-}
-
-function generateMockData(): Part[] {
-  return [
-    {
-      partID: 'PART-001',
-      vin: 'LSVNV2182E2100001',
-      batchNo: 'BATCH-2024-001',
-      name: '发动机活塞',
-      type: '发动机部件',
-      manufacturer: 'Org1MSP',
-      createTime: '2024-01-15 10:30:00',
-      status: 'NORMAL'
-    },
-    {
-      partID: 'PART-002',
-      vin: 'LSVNV2182E2100002',
-      batchNo: 'BATCH-2024-001',
-      name: '制动盘',
-      type: '制动系统',
-      manufacturer: 'Org1MSP',
-      createTime: '2024-01-16 14:20:00',
-      status: 'IN_SUPPLY_CHAIN'
-    },
-    {
-      partID: 'PART-003',
-      vin: 'LSVNV2182E2100003',
-      batchNo: 'BATCH-2024-002',
-      name: '变速箱齿轮',
-      type: '传动系统',
-      manufacturer: 'Org1MSP',
-      createTime: '2024-01-17 09:15:00',
-      status: 'RECALLED'
-    }
-  ]
+  message.info('生命周期数据加载中...')
 }
 
 onMounted(() => {
@@ -1085,6 +1074,21 @@ onMounted(() => {
 .custom-table :deep(.ant-table-tbody > tr:hover) {
   transform: scale(1.002);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.custom-table :deep(.ant-table-cell-fix-left),
+.custom-table :deep(.ant-table-cell-fix-right) {
+  background: inherit;
+}
+
+.custom-table :deep(.ant-table-tbody > tr > td.ant-table-cell-fix-left),
+.custom-table :deep(.ant-table-tbody > tr > td.ant-table-cell-fix-right) {
+  background: #fff;
+}
+
+.custom-table :deep(.ant-table-tbody > tr:hover > td.ant-table-cell-fix-left),
+.custom-table :deep(.ant-table-tbody > tr:hover > td.ant-table-cell-fix-right) {
+  background: #fafafa;
 }
 
 .part-id-cell {

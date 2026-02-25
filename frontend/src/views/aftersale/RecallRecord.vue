@@ -295,8 +295,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { listRecallRecords, type RecallRecord } from '../../services/aftersale.service'
 import {
   WarningOutlined,
   PlusOutlined,
@@ -317,6 +318,7 @@ import {
 
 const refreshing = ref(false)
 const showRecallModal = ref(false)
+const loading = ref(false)
 
 const searchForm = ref({
   recallID: '',
@@ -351,21 +353,35 @@ const columns = [
   { title: '操作', key: 'action', width: 150, fixed: 'right' as const }
 ]
 
-const tableData = ref([
-  { recallID: 'RECALL-001', batchNos: 'BATCH-001, BATCH-002', reason: '制动系统潜在隐患，可能导致制动效能下降', affectedCount: 150, progress: 75, status: '进行中', createTime: '2024-01-15 10:30' },
-  { recallID: 'RECALL-002', batchNos: 'BATCH-003', reason: '转向系统存在异响问题', affectedCount: 80, progress: 100, status: '已完成', createTime: '2024-01-10 14:20' },
-  { recallID: 'RECALL-003', batchNos: 'BATCH-004, BATCH-005', reason: '安全气囊传感器故障风险', affectedCount: 200, progress: 45, status: '进行中', createTime: '2024-01-08 09:15' },
-  { recallID: 'RECALL-004', batchNos: 'BATCH-006', reason: '发动机舱线束磨损隐患', affectedCount: 60, progress: 100, status: '已完成', createTime: '2024-01-05 16:45' },
-  { recallID: 'RECALL-005', batchNos: 'BATCH-007, BATCH-008', reason: '燃油泵工作异常问题', affectedCount: 120, progress: 30, status: '进行中', createTime: '2024-01-02 11:00' }
-])
+const tableData = ref<any[]>([])
+
+async function fetchData() {
+  loading.value = true
+  try {
+    const response = await listRecallRecords()
+    if (response.code === 0 && response.data) {
+      tableData.value = response.data.map((item: RecallRecord) => ({
+        ...item,
+        batchNos: Array.isArray(item.affectedBatchNos) ? item.affectedBatchNos.join(', ') : item.affectedBatchNos,
+        affectedCount: item.affectedPartsCount || 0,
+        progress: item.progress || 0
+      }))
+    }
+  } catch (error: any) {
+    message.error(error.message || '获取数据失败')
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const totalCount = computed(() => tableData.value.length)
-const inProgressCount = computed(() => tableData.value.filter(item => item.status === '进行中').length)
-const completedCount = computed(() => tableData.value.filter(item => item.status === '已完成').length)
-const totalAffectedCount = computed(() => tableData.value.reduce((sum, item) => sum + item.affectedCount, 0))
+const inProgressCount = computed(() => tableData.value.filter(item => item.status === '进行中' || item.status === 'IN_PROGRESS').length)
+const completedCount = computed(() => tableData.value.filter(item => item.status === '已完成' || item.status === 'COMPLETED').length)
+const totalAffectedCount = computed(() => tableData.value.reduce((sum, item) => sum + (item.affectedCount || 0), 0))
 
 const getStatusDotClass = (status: string) => {
-  return status === '已完成' ? 'dot-completed' : 'dot-progress'
+  return status === '已完成' || status === 'COMPLETED' ? 'dot-completed' : 'dot-progress'
 }
 
 const handleSearch = () => {
@@ -379,14 +395,21 @@ const handleReset = () => {
     status: undefined,
     dateRange: null
   }
+  fetchData()
 }
 
-const handleRefresh = () => {
+const handleRefresh = async () => {
   refreshing.value = true
-  setTimeout(() => {
-    refreshing.value = false
+  try {
+    await fetchData()
     message.success('数据已刷新')
-  }, 1000)
+  } catch (error: any) {
+    message.error('刷新失败')
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 500)
+  }
 }
 
 const handleExport = () => {
@@ -398,7 +421,7 @@ const viewDetail = (record: any) => {
 }
 
 const handleComplete = (record: any) => {
-  if (record.status === '已完成') return
+  if (record.status === '已完成' || record.status === 'COMPLETED') return
   record.status = '已完成'
   record.progress = 100
   message.success(`召回 ${record.recallID} 已标记为完成`)
@@ -409,19 +432,14 @@ const handleSubmitRecall = () => {
     message.warning('请填写必填项')
     return
   }
-  const newRecall = {
-    recallID: `RECALL-${String(tableData.value.length + 1).padStart(3, '0')}`,
-    batchNos: recallForm.value.batchNos.join(', '),
-    reason: recallForm.value.reason,
-    affectedCount: recallForm.value.affectedCount,
-    progress: 0,
-    status: '进行中',
-    createTime: new Date().toLocaleString()
-  }
-  tableData.value.unshift(newRecall)
   showRecallModal.value = false
   message.success('召回发起成功')
+  fetchData()
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>

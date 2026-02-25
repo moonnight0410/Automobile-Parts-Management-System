@@ -5,20 +5,16 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { mockLogin, registerUser } from '../services/auth.service'
+import { login as loginApi, register as registerApi } from '../services/auth.service'
 import { STORAGE_KEYS } from '../constants'
 import type { User, LoginRequest, RegisterRequest, UserRole } from '../types'
 import { hasPermission as checkPermission } from '../utils/permission'
 
 export const useAuthStore = defineStore('auth', () => {
-  // ==================== 状态定义 ====================
-  
   const token = ref<string | null>(localStorage.getItem(STORAGE_KEYS.TOKEN))
   const user = ref<User | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
-  
-  // ==================== 计算属性 ====================
   
   const isAuthenticated = computed(() => !!token.value)
   const userRole = computed(() => user.value?.role || null)
@@ -28,25 +24,25 @@ export const useAuthStore = defineStore('auth', () => {
   const isAutomaker = computed(() => userRole.value === 'automaker')
   const isAftersale = computed(() => userRole.value === 'aftersale')
   
-  // ==================== Actions ====================
-  
-  /**
-   * 用户登录
-   */
   async function login(username: string, password: string) {
     loading.value = true
     error.value = null
     
     try {
       const request: LoginRequest = { username, password }
-      const response = await mockLogin(request)
+      const response = await loginApi(request)
       
-      if (response.success && response.data) {
+      if (response.code === 0 && response.data) {
         token.value = response.data.token
-        user.value = response.data.user
+        user.value = {
+          id: response.data.userID,
+          username: response.data.userID,
+          role: response.data.role as UserRole,
+          org: ''
+        }
         
         localStorage.setItem(STORAGE_KEYS.TOKEN, response.data.token)
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.data.user))
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user.value))
         
         return response
       } else {
@@ -60,17 +56,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * 用户注册
-   */
   async function register(data: RegisterRequest) {
     loading.value = true
     error.value = null
     
     try {
-      const response = await registerUser(data)
+      const response = await registerApi(data)
       
-      if (!response.success) {
+      if (response.code !== 0) {
         throw new Error(response.message || '注册失败')
       }
       
@@ -83,9 +76,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * 用户登出
-   */
   function logout() {
     token.value = null
     user.value = null
@@ -94,9 +84,6 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem(STORAGE_KEYS.USER)
   }
   
-  /**
-   * 从localStorage恢复用户信息
-   */
   function restoreUser() {
     const savedUser = localStorage.getItem(STORAGE_KEYS.USER)
     if (savedUser) {
@@ -109,9 +96,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
   
-  /**
-   * 检查用户是否有指定角色
-   */
   function hasRole(role: UserRole | UserRole[]): boolean {
     if (!user.value) return false
     
@@ -119,16 +103,11 @@ export const useAuthStore = defineStore('auth', () => {
     return roles.includes(user.value.role)
   }
   
-  /**
-   * 检查用户是否有指定权限
-   */
   function hasPermission(permission: string): boolean {
     return checkPermission(permission)
   }
   
   restoreUser()
-  
-  // ==================== 导出 ====================
   
   return {
     token,

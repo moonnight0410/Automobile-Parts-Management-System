@@ -274,29 +274,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { listProductionData, type ProductionData } from '../../services/production.service'
 
 const router = useRouter()
 
 const columns = [
-  { title: '生产ID', dataIndex: 'productionID', key: 'productionID', width: 130 },
+  { title: '生产ID', dataIndex: 'recordID', key: 'recordID', width: 130 },
   { title: '零部件ID', dataIndex: 'partID', key: 'partID', width: 130 },
   { title: '批次号', dataIndex: 'batchNo', key: 'batchNo', width: 130 },
   { title: '生产线', dataIndex: 'productionLine', key: 'productionLine', width: 100 },
   { title: '操作员', dataIndex: 'operator', key: 'operator', width: 100 },
-  { title: '完成时间', dataIndex: 'finishTime', key: 'finishTime', width: 140 },
+  { title: '完成时间', dataIndex: 'operationTime', key: 'operationTime', width: 140 },
   { title: '操作', key: 'action', fixed: 'right', width: 140 }
 ]
 
-const mockData = ref([
-  { productionID: 'PROD-001', partID: 'PART-001', batchNo: 'BATCH-001', productionLine: 'A线', operator: '张三', finishTime: '2024-01-15' },
-  { productionID: 'PROD-002', partID: 'PART-002', batchNo: 'BATCH-001', productionLine: 'A线', operator: '李四', finishTime: '2024-01-15' },
-  { productionID: 'PROD-003', partID: 'PART-003', batchNo: 'BATCH-002', productionLine: 'B线', operator: '王五', finishTime: '2024-01-16' },
-  { productionID: 'PROD-004', partID: 'PART-001', batchNo: 'BATCH-003', productionLine: 'C线', operator: '赵六', finishTime: '2024-01-17' },
-  { productionID: 'PROD-005', partID: 'PART-004', batchNo: 'BATCH-004', productionLine: 'A线', operator: '张三', finishTime: '2024-01-18' }
-])
+const tableData = ref<any[]>([])
+const loading = ref(false)
 
 const searchForm = ref({
   productionID: '',
@@ -315,21 +311,46 @@ const createForm = ref({
 const showCreateModal = ref(false)
 const refreshing = ref(false)
 
-const totalCount = computed(() => mockData.value.length)
-const todayCount = computed(() => 3)
-const activeLines = computed(() => 3)
-const totalOutput = computed(() => mockData.value.length * 100)
+const totalCount = computed(() => tableData.value.length)
+const todayCount = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return tableData.value.filter(item => item.operationTime?.startsWith(today)).length
+})
+const activeLines = computed(() => {
+  const lines = new Set(tableData.value.map(item => item.productionLine))
+  return lines.size
+})
+const totalOutput = computed(() => tableData.value.length * 100)
+
+async function fetchData() {
+  loading.value = true
+  try {
+    const response = await listProductionData()
+    if (response.code === 0 && response.data) {
+      tableData.value = response.data.map((item: ProductionData) => ({
+        ...item,
+        productionID: item.recordID,
+        finishTime: item.operationTime
+      }))
+    }
+  } catch (error: any) {
+    message.error(error.message || '获取数据失败')
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
+}
 
 const filteredData = computed(() => {
-  let result = [...mockData.value]
+  let result = [...tableData.value]
   if (searchForm.value.productionID) {
-    result = result.filter(item => item.productionID.toLowerCase().includes(searchForm.value.productionID.toLowerCase()))
+    result = result.filter(item => item.recordID?.toLowerCase().includes(searchForm.value.productionID.toLowerCase()))
   }
   if (searchForm.value.partID) {
-    result = result.filter(item => item.partID.toLowerCase().includes(searchForm.value.partID.toLowerCase()))
+    result = result.filter(item => item.partID?.toLowerCase().includes(searchForm.value.partID.toLowerCase()))
   }
   if (searchForm.value.batchNo) {
-    result = result.filter(item => item.batchNo.toLowerCase().includes(searchForm.value.batchNo.toLowerCase()))
+    result = result.filter(item => item.batchNo?.toLowerCase().includes(searchForm.value.batchNo.toLowerCase()))
   }
   if (searchForm.value.productionLine) {
     result = result.filter(item => item.productionLine === searchForm.value.productionLine)
@@ -357,14 +378,21 @@ function handleReset() {
     batchNo: '',
     productionLine: undefined
   }
+  fetchData()
 }
 
-function handleRefresh() {
+async function handleRefresh() {
   refreshing.value = true
-  setTimeout(() => {
-    refreshing.value = false
+  try {
+    await fetchData()
     message.success('数据已刷新')
-  }, 1000)
+  } catch (error: any) {
+    message.error('刷新失败')
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 500)
+  }
 }
 
 function handleExport() {
@@ -372,11 +400,11 @@ function handleExport() {
 }
 
 function viewDetail(record: any) {
-  message.info(`查看生产记录 ${record.productionID} 详情`)
+  message.info(`查看生产记录 ${record.recordID} 详情`)
 }
 
 function viewQuality(record: any) {
-  message.info(`查看生产记录 ${record.productionID} 的质检信息`)
+  message.info(`查看生产记录 ${record.recordID} 的质检信息`)
 }
 
 function goToCreate() {
@@ -388,18 +416,15 @@ function handleCreate() {
     message.error('请填写完整信息')
     return
   }
-  mockData.value.unshift({
-    productionID: `PROD-${String(mockData.value.length + 1).padStart(3, '0')}`,
-    partID: createForm.value.partID,
-    batchNo: createForm.value.batchNo,
-    productionLine: createForm.value.productionLine,
-    operator: createForm.value.operator,
-    finishTime: new Date().toISOString().split('T')[0]
-  })
   showCreateModal.value = false
   createForm.value = { partID: '', batchNo: '', productionLine: undefined, operator: '' }
   message.success('生产数据录入成功')
+  fetchData()
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>

@@ -30,3 +30,13 @@ func (p *ProductionController) CreateProductionData(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
 }
+
+func (p *ProductionController) ListProductionData(c *gin.Context) {
+	// 暂时不过滤 operator，返回所有生产数据
+	productionList, err := p.service.ListAllProductionData(c.Request.Context(), "")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(productionList, "ok"))
+}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 
 	"automobile-parts-backend/config"
 	"automobile-parts-backend/controller"
@@ -17,6 +18,15 @@ import (
 	"automobile-parts-backend/service"
 	"automobile-parts-backend/utils"
 )
+
+func init() {
+	// 加载 .env 文件
+	if err := godotenv.Load(); err != nil {
+		log.Println("[INFO] 未找到 .env 文件，将使用环境变量或默认值")
+	} else {
+		log.Println("[INFO] 已加载 .env 文件")
+	}
+}
 
 // setupRouter 配置所有API路由和中间件
 // 参数：
@@ -61,9 +71,76 @@ func setupRouter(
 	parts := router.Group("/api/parts")
 	parts.Use(middleware.Auth(cfg)) // 应用JWT认证中间件
 	{
-		parts.POST("", partController.CreatePart) // 创建零部件
-		parts.GET("", partController.ListParts)   // 列出零部件
-		parts.GET("/:id", partController.GetPart) // 获取单个零部件
+		parts.POST("", partController.CreatePart)    // 创建零部件
+		parts.GET("", partController.ListParts)      // 列出零部件（按批次号或VIN）
+		parts.GET("/my", partController.ListMyParts) // 列出我的零部件
+		parts.GET("/:id", partController.GetPart)    // 获取单个零部件
+		parts.DELETE("/:id", partController.DeletePart) // 删除零部件
+	}
+
+	// BOM API组：需要身份验证
+	boms := router.Group("/api/boms")
+	boms.Use(middleware.Auth(cfg))
+	{
+		boms.POST("", bomController.CreateBOM)    // 创建BOM
+		boms.GET("", bomController.ListBOMs)      // 列出BOM列表
+		boms.GET("/:id", bomController.GetBOM)    // 获取单个BOM
+	}
+
+	// 生产数据API组：需要身份验证
+	production := router.Group("/api/production")
+	production.Use(middleware.Auth(cfg))
+	{
+		production.POST("", productionController.CreateProductionData)    // 创建生产数据
+		production.GET("", productionController.ListProductionData)       // 列出生产数据
+	}
+
+	// 质检数据API组：需要身份验证
+	quality := router.Group("/api/quality")
+	quality.Use(middleware.Auth(cfg))
+	{
+		quality.POST("", qualityController.CreateQualityInspection)    // 创建质检数据
+		quality.GET("", qualityController.ListQualityInspections)      // 列出质检数据
+	}
+
+	// 采购订单API组：需要身份验证
+	orders := router.Group("/api/orders")
+	orders.Use(middleware.Auth(cfg))
+	{
+		orders.POST("", supplyChainController.CreateSupplyOrder)    // 创建采购订单
+		orders.GET("", supplyChainController.ListSupplyOrders)      // 列出采购订单
+	}
+
+	// 物流数据API组：需要身份验证
+	logistics := router.Group("/api/logistics")
+	logistics.Use(middleware.Auth(cfg))
+	{
+		logistics.POST("", supplyChainController.CreateLogisticsData)    // 创建物流数据
+		logistics.GET("", supplyChainController.ListLogisticsData)       // 列出物流数据
+	}
+
+	// 故障报告API组：需要身份验证
+	faults := router.Group("/api/faults")
+	faults.Use(middleware.Auth(cfg))
+	{
+		faults.POST("", aftersaleController.CreateFaultReport)    // 创建故障报告
+		faults.GET("", aftersaleController.ListFaultReports)      // 列出故障报告
+	}
+
+	// 召回记录API组：需要身份验证
+	recalls := router.Group("/api/recalls")
+	recalls.Use(middleware.Auth(cfg))
+	{
+		recalls.POST("", aftersaleController.CreateRecallRecord)    // 创建召回记录
+		recalls.GET("", aftersaleController.ListRecallRecords)      // 列出召回记录
+	}
+
+	// 售后记录API组：需要身份验证
+	aftersaleRecords := router.Group("/api/aftersale-records")
+	aftersaleRecords.Use(middleware.Auth(cfg))
+	{
+		aftersaleRecords.POST("", aftersaleController.CreateAftersaleRecord)    // 创建售后记录
+		aftersaleRecords.GET("", aftersaleController.ListAftersaleRecords)      // 列出售后记录
 	}
 
 	// 制造商API组：需要身份验证和制造商角色权限

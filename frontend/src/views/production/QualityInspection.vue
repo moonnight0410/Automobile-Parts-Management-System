@@ -277,9 +277,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { listQualityInspections, type QualityInspection } from '../../services/quality.service'
 
 const router = useRouter()
 
@@ -289,18 +290,12 @@ const columns = [
   { title: '批次号', dataIndex: 'batchNo', key: 'batchNo', width: 130 },
   { title: '质检结果', dataIndex: 'result', key: 'result', width: 100 },
   { title: '处理人', dataIndex: 'handler', key: 'handler', width: 100 },
-  { title: '处理时间', dataIndex: 'handleTime', key: 'handleTime', width: 140 },
+  { title: '处理时间', dataIndex: 'inspectionTime', key: 'inspectionTime', width: 140 },
   { title: '操作', key: 'action', fixed: 'right', width: 140 }
 ]
 
-const mockData = ref([
-  { inspectionID: 'QC-001', partID: 'PART-001', batchNo: 'BATCH-001', result: '合格', handler: '李四', handleTime: '2024-01-15' },
-  { inspectionID: 'QC-002', partID: 'PART-002', batchNo: 'BATCH-001', result: '不合格', handler: '李四', handleTime: '2024-01-15' },
-  { inspectionID: 'QC-003', partID: 'PART-003', batchNo: 'BATCH-002', result: '合格', handler: '王五', handleTime: '2024-01-16' },
-  { inspectionID: 'QC-004', partID: 'PART-001', batchNo: 'BATCH-003', result: '合格', handler: '赵六', handleTime: '2024-01-17' },
-  { inspectionID: 'QC-005', partID: 'PART-004', batchNo: 'BATCH-004', result: '不合格', handler: '李四', handleTime: '2024-01-18' },
-  { inspectionID: 'QC-006', partID: 'PART-005', batchNo: 'BATCH-005', result: '合格', handler: '王五', handleTime: '2024-01-19' }
-])
+const tableData = ref<any[]>([])
+const loading = ref(false)
 
 const searchForm = ref({
   inspectionID: '',
@@ -319,24 +314,47 @@ const createForm = ref({
 const showCreateModal = ref(false)
 const refreshing = ref(false)
 
-const totalCount = computed(() => mockData.value.length)
-const passedCount = computed(() => mockData.value.filter(item => item.result === '合格').length)
-const failedCount = computed(() => mockData.value.filter(item => item.result === '不合格').length)
+async function fetchData() {
+  loading.value = true
+  try {
+    const response = await listQualityInspections()
+    if (response.code === 0 && response.data) {
+      tableData.value = response.data.map((item: any) => {
+        const result = item.inspectionResult ?? item.result
+        const handleTime = item.inspectionTime ?? item.handleTime
+        return {
+          ...item,
+          result,
+          handleTime
+        }
+      })
+    }
+  } catch (error: any) {
+    message.error(error.message || '获取数据失败')
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const totalCount = computed(() => tableData.value.length)
+const passedCount = computed(() => tableData.value.filter(item => item.result === '合格').length)
+const failedCount = computed(() => tableData.value.filter(item => item.result === '不合格').length)
 const passRate = computed(() => {
   if (totalCount.value === 0) return 0
   return Math.round((passedCount.value / totalCount.value) * 100)
 })
 
 const filteredData = computed(() => {
-  let result = [...mockData.value]
+  let result = [...tableData.value]
   if (searchForm.value.inspectionID) {
-    result = result.filter(item => item.inspectionID.toLowerCase().includes(searchForm.value.inspectionID.toLowerCase()))
+    result = result.filter(item => item.inspectionID?.toLowerCase().includes(searchForm.value.inspectionID.toLowerCase()))
   }
   if (searchForm.value.partID) {
-    result = result.filter(item => item.partID.toLowerCase().includes(searchForm.value.partID.toLowerCase()))
+    result = result.filter(item => item.partID?.toLowerCase().includes(searchForm.value.partID.toLowerCase()))
   }
   if (searchForm.value.batchNo) {
-    result = result.filter(item => item.batchNo.toLowerCase().includes(searchForm.value.batchNo.toLowerCase()))
+    result = result.filter(item => item.batchNo?.toLowerCase().includes(searchForm.value.batchNo.toLowerCase()))
   }
   if (searchForm.value.result) {
     result = result.filter(item => item.result === searchForm.value.result)
@@ -355,14 +373,21 @@ function handleReset() {
     batchNo: '',
     result: undefined
   }
+  fetchData()
 }
 
-function handleRefresh() {
+async function handleRefresh() {
   refreshing.value = true
-  setTimeout(() => {
-    refreshing.value = false
+  try {
+    await fetchData()
     message.success('数据已刷新')
-  }, 1000)
+  } catch (error: any) {
+    message.error('刷新失败')
+  } finally {
+    setTimeout(() => {
+      refreshing.value = false
+    }, 500)
+  }
 }
 
 function handleExport() {
@@ -386,18 +411,15 @@ function handleCreate() {
     message.error('请填写完整信息')
     return
   }
-  mockData.value.unshift({
-    inspectionID: `QC-${String(mockData.value.length + 1).padStart(3, '0')}`,
-    partID: createForm.value.partID,
-    batchNo: createForm.value.batchNo,
-    result: createForm.value.result,
-    handler: createForm.value.handler,
-    handleTime: new Date().toISOString().split('T')[0]
-  })
   showCreateModal.value = false
   createForm.value = { partID: '', batchNo: '', result: undefined, handler: '' }
   message.success('质检数据录入成功')
+  fetchData()
 }
+
+onMounted(() => {
+  fetchData()
+})
 </script>
 
 <style scoped>
