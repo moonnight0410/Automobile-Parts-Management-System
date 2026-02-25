@@ -460,18 +460,42 @@ func (s *SmartContract) CreatePart(ctx contractapi.TransactionContextInterface, 
 	return ctx.GetStub().PutState(part.PartID, partBytes)
 }
 
-// QueryPart 查询零部件信息
-// 功能：根据零部件ID查询零部件的详细信息
-// 参数：
-//   - ctx: 交易上下文
-//   - partID: 零部件唯一标识
-//
-// 返回值：
-//   - *Part: 零部件信息指针
-//   - error: 操作成功返回 nil，失败返回具体错误信息
-//
-// 权限要求：所有组织成员可调用
+func (s *SmartContract) DeletePart(ctx contractapi.TransactionContextInterface, partID string) error {
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
+	}
+
+	partBytes, err := ctx.GetStub().GetState(partID)
+	if err != nil {
+		return fmt.Errorf("查询零部件失败: %v", err)
+	}
+	if partBytes == nil {
+		return fmt.Errorf("零部件不存在: %s", partID)
+	}
+
+	if err := ctx.GetStub().DelState(partID); err != nil {
+		return fmt.Errorf("删除零部件失败: %v", err)
+	}
+
+	if err := ctx.GetStub().SetEvent("DeletePart", []byte(fmt.Sprintf("删除零部件: %s", partID))); err != nil {
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
+	return nil
+}
+
 func (s *SmartContract) QueryPart(ctx contractapi.TransactionContextInterface, partID string) (*Part, error) {
+	// 功能：根据零部件ID查询零部件的详细信息
+	// 参数：
+	//   - ctx: 交易上下文
+	//   - partID: 零部件唯一标识
+	//
+	// 返回值：
+	//   - *Part: 零部件信息指针
+	//   - error: 操作成功返回 nil，失败返回具体错误信息
+	//
+	// 权限要求：所有组织成员可调用
+
 	// 从账本获取核心part数据
 	partBytes, err := ctx.GetStub().GetState(partID)
 	if err != nil {
@@ -1844,6 +1868,343 @@ func (s *SmartContract) QueryFaultProgress(ctx contractapi.TransactionContextInt
 	}
 
 	return &fault, nil
+}
+
+// ==================== 列表查询方法 ====================
+
+// ListAllParts 获取所有零部件列表
+// 权限要求：所有组织可查询
+// 功能：获取所有零部件数据，支持按制造商过滤
+// 参数：
+//   - ctx: 交易上下文
+//   - manufacturer: 制造商ID（可选，为空则返回所有）
+//
+// 返回：
+//   - []*Part: 零部件列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllParts(ctx contractapi.TransactionContextInterface, manufacturer string) ([]*Part, error) {
+	parts, err := s.getAllParts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if manufacturer == "" {
+		return parts, nil
+	}
+
+	var filtered []*Part
+	for _, part := range parts {
+		if part.Manufacturer == manufacturer {
+			filtered = append(filtered, part)
+		}
+	}
+	return filtered, nil
+}
+
+// ListAllBOMs 获取所有BOM列表
+// 权限要求：所有组织可查询
+// 功能：获取所有BOM数据，支持按创建者过滤
+// 参数：
+//   - ctx: 交易上下文
+//   - creator: 创建者ID（可选，为空则返回所有）
+//
+// 返回：
+//   - []*BOM: BOM列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllBOMs(ctx contractapi.TransactionContextInterface, creator string) ([]*BOM, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("BOM_", "BOM_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取BOM列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var boms []*BOM
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var bom BOM
+		err = json.Unmarshal(queryResponse.Value, &bom)
+		if err != nil {
+			continue
+		}
+
+		if creator == "" || bom.Creator == creator {
+			boms = append(boms, &bom)
+		}
+	}
+
+	return boms, nil
+}
+
+// ListAllProductionData 获取所有生产数据列表
+// 权限要求：所有组织可查询
+// 功能：获取所有生产数据，支持按操作员过滤
+// 参数：
+//   - ctx: 交易上下文
+//   - operator: 操作员ID（可选，为空则返回所有）
+//
+// 返回：
+//   - []*ProductionData: 生产数据列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllProductionData(ctx contractapi.TransactionContextInterface, operator string) ([]*ProductionData, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("PROD_", "PROD_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取生产数据列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var productionList []*ProductionData
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var prod ProductionData
+		err = json.Unmarshal(queryResponse.Value, &prod)
+		if err != nil {
+			continue
+		}
+
+		if operator == "" || prod.Operator == operator {
+			productionList = append(productionList, &prod)
+		}
+	}
+
+	return productionList, nil
+}
+
+// ListAllQualityInspections 获取所有质检数据列表
+// 权限要求：所有组织可查询
+// 功能：获取所有质检数据，支持按处理人过滤
+// 参数：
+//   - ctx: 交易上下文
+//   - handler: 处理人ID（可选，为空则返回所有）
+//
+// 返回：
+//   - []*QualityInspection: 质检数据列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllQualityInspections(ctx contractapi.TransactionContextInterface, handler string) ([]*QualityInspection, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("QC_", "QC_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取质检数据列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var inspections []*QualityInspection
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var inspection QualityInspection
+		err = json.Unmarshal(queryResponse.Value, &inspection)
+		if err != nil {
+			continue
+		}
+
+		if handler == "" || inspection.Handler == handler {
+			inspections = append(inspections, &inspection)
+		}
+	}
+
+	return inspections, nil
+}
+
+// ListAllSupplyOrders 获取所有采购订单列表
+// 权限要求：所有组织可查询
+// 功能：获取所有采购订单，支持按买家/卖家过滤
+// 参数：
+//   - ctx: 交易上下文
+//   - buyer: 买家ID（可选，为空则返回所有）
+//   - seller: 卖家ID（可选，为空则返回所有）
+//
+// 返回：
+//   - []*SupplyOrder: 采购订单列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllSupplyOrders(ctx contractapi.TransactionContextInterface, buyer string, seller string) ([]*SupplyOrder, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("ORDER_", "ORDER_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取订单列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var orders []*SupplyOrder
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var order SupplyOrder
+		err = json.Unmarshal(queryResponse.Value, &order)
+		if err != nil {
+			continue
+		}
+
+		match := true
+		if buyer != "" && order.Buyer != buyer {
+			match = false
+		}
+		if seller != "" && order.Seller != seller {
+			match = false
+		}
+		if match {
+			orders = append(orders, &order)
+		}
+	}
+
+	return orders, nil
+}
+
+// ListAllLogisticsData 获取所有物流数据列表
+// 权限要求：所有组织可查询
+// 功能：获取所有物流数据
+// 参数：
+//   - ctx: 交易上下文
+//
+// 返回：
+//   - []*LogisticsData: 物流数据列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllLogisticsData(ctx contractapi.TransactionContextInterface) ([]*LogisticsData, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("LOG_", "LOG_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取物流数据列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var logisticsList []*LogisticsData
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var logistics LogisticsData
+		err = json.Unmarshal(queryResponse.Value, &logistics)
+		if err != nil {
+			continue
+		}
+
+		logisticsList = append(logisticsList, &logistics)
+	}
+
+	return logisticsList, nil
+}
+
+// ListAllFaultReports 获取所有故障报告列表
+// 权限要求：所有组织可查询
+// 功能：获取所有故障报告，支持按上报者过滤
+// 参数：
+//   - ctx: 交易上下文
+//   - reporter: 上报者ID（可选，为空则返回所有）
+//
+// 返回：
+//   - []*FaultReport: 故障报告列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllFaultReports(ctx contractapi.TransactionContextInterface, reporter string) ([]*FaultReport, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("FAULT_", "FAULT_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取故障报告列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var faults []*FaultReport
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var fault FaultReport
+		err = json.Unmarshal(queryResponse.Value, &fault)
+		if err != nil {
+			continue
+		}
+
+		if reporter == "" || fault.Reporter == reporter {
+			faults = append(faults, &fault)
+		}
+	}
+
+	return faults, nil
+}
+
+// ListAllRecallRecords 获取所有召回记录列表
+// 权限要求：所有组织可查询
+// 功能：获取所有召回记录
+// 参数：
+//   - ctx: 交易上下文
+//
+// 返回：
+//   - []*RecallRecord: 召回记录列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllRecallRecords(ctx contractapi.TransactionContextInterface) ([]*RecallRecord, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("RECALL_", "RECALL_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取召回记录列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var recalls []*RecallRecord
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var recall RecallRecord
+		err = json.Unmarshal(queryResponse.Value, &recall)
+		if err != nil {
+			continue
+		}
+
+		recalls = append(recalls, &recall)
+	}
+
+	return recalls, nil
+}
+
+// ListAllAftersaleRecords 获取所有售后记录列表
+// 权限要求：所有组织可查询
+// 功能：获取所有售后记录，支持按处理机构过滤
+// 参数：
+//   - ctx: 交易上下文
+//   - handlerOrgID: 处理机构ID（可选，为空则返回所有）
+//
+// 返回：
+//   - []*AftersaleRecord: 售后记录列表
+//   - error: 查询失败时返回错误
+func (s *SmartContract) ListAllAftersaleRecords(ctx contractapi.TransactionContextInterface, handlerOrgID string) ([]*AftersaleRecord, error) {
+	iterator, err := ctx.GetStub().GetStateByRange("AFTERSALE_", "AFTERSALE_~")
+	if err != nil {
+		return nil, fmt.Errorf("获取售后记录列表失败: %v", err)
+	}
+	defer iterator.Close()
+
+	var records []*AftersaleRecord
+	for iterator.HasNext() {
+		queryResponse, err := iterator.Next()
+		if err != nil {
+			return nil, fmt.Errorf("迭代查询结果失败: %v", err)
+		}
+
+		var record AftersaleRecord
+		err = json.Unmarshal(queryResponse.Value, &record)
+		if err != nil {
+			continue
+		}
+
+		if handlerOrgID == "" || record.HandlerOrgID == handlerOrgID {
+			records = append(records, &record)
+		}
+	}
+
+	return records, nil
 }
 
 // main 主函数
