@@ -1098,6 +1098,11 @@ func (s *SmartContract) CreateQualityInspection(ctx contractapi.TransactionConte
 		return fmt.Errorf("质检结果必须是：合格或不合格")
 	}
 
+	// 初始化 Indicators 为空 map，避免返回 null
+	if inspection.Indicators == nil {
+		inspection.Indicators = make(map[string]string)
+	}
+
 	// 检查零部件是否存在
 	partBytes, err := ctx.GetStub().GetState(inspection.PartID)
 	if err != nil {
@@ -2005,6 +2010,11 @@ func (s *SmartContract) ListAllQualityInspections(ctx contractapi.TransactionCon
 		err = json.Unmarshal(queryResponse.Value, &inspection)
 		if err != nil {
 			continue
+		}
+
+		// 确保 Indicators 不为 nil
+		if inspection.Indicators == nil {
+			inspection.Indicators = make(map[string]string)
 		}
 
 		if handler == "" || inspection.Handler == handler {
