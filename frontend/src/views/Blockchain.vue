@@ -231,8 +231,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { getBlockchainInfo, getRecentBlocks, type BlockchainInfo, type BlockInfo } from '../services/blockchain.service'
 
 const columns = [
   { title: '区块高度', dataIndex: 'blockNumber', key: 'blockNumber', width: 120 },
@@ -242,35 +243,51 @@ const columns = [
   { title: '操作', key: 'action', fixed: 'right', width: 140 }
 ]
 
-const mockData = ref([
-  { blockNumber: 1234, txCount: 5, blockHash: '0x1234567890abcdef1234567890abcdef12345678', timestamp: '2024-01-15 10:30:00' },
-  { blockNumber: 1233, txCount: 3, blockHash: '0xabcdef1234567890abcdef1234567890abcdef12', timestamp: '2024-01-15 10:25:00' },
-  { blockNumber: 1232, txCount: 8, blockHash: '0x567890abcdef1234567890abcdef1234567890ab', timestamp: '2024-01-15 10:20:00' },
-  { blockNumber: 1231, txCount: 2, blockHash: '0x90abcdef1234567890abcdef1234567890abcdef', timestamp: '2024-01-15 10:15:00' },
-  { blockNumber: 1230, txCount: 6, blockHash: '0xcdef1234567890abcdef1234567890abcdef1234', timestamp: '2024-01-15 10:10:00' }
-])
-
+const mockData = ref<BlockInfo[]>([])
 const organizations = ref([
-  { name: '制造商组织 (Org1MSP)', color: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', status: 'online', statusText: '在线', nodes: 2, txs: 1234 },
-  { name: '车企组织 (Org2MSP)', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 856 },
-  { name: '售后组织 (Org3MSP)', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 432 }
+  { name: '制造商组织 (Org1MSP)', color: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', status: 'online', statusText: '在线', nodes: 2, txs: 18234 },
+  { name: '车企组织 (Org2MSP)', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 14567 },
+  { name: '售后组织 (Org3MSP)', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 12877 }
 ])
 
-const quickTags = ref(['1234', '1233', '0x1234...'])
+const quickTags = ref(['15234', '15233', '0x0000...'])
 
-const blockHeight = ref(1234)
-const txCount = ref(5678)
-const nodeCount = ref(4)
-const channelCount = ref(1)
+const blockHeight = ref(0)
+const txCount = ref(0)
+const nodeCount = ref(0)
+const channelCount = ref(0)
 const searchQuery = ref('')
 const refreshing = ref(false)
+let refreshInterval: number | null = null
+
+async function fetchData() {
+  try {
+    const [infoRes, blocksRes] = await Promise.all([
+      getBlockchainInfo(),
+      getRecentBlocks(10)
+    ])
+
+    if (infoRes.success && infoRes.data) {
+      blockHeight.value = infoRes.data.blockHeight
+      txCount.value = infoRes.data.txCount
+      nodeCount.value = infoRes.data.nodeCount
+      channelCount.value = infoRes.data.channelCount
+    }
+
+    if (blocksRes.success && blocksRes.data) {
+      mockData.value = blocksRes.data
+    }
+  } catch (error: any) {
+    console.error('获取区块链数据失败:', error)
+    message.error('获取区块链数据失败')
+  }
+}
 
 function handleRefresh() {
   refreshing.value = true
-  setTimeout(() => {
+  fetchData().finally(() => {
     refreshing.value = false
-    message.success('区块链状态已刷新')
-  }, 1000)
+  })
 }
 
 function handleSearch(value: string) {
@@ -297,6 +314,17 @@ function viewBlock(record: any) {
 function viewTransactions(record: any) {
   message.info(`查看区块 ${record.blockNumber} 的交易列表`)
 }
+
+onMounted(() => {
+  fetchData()
+  refreshInterval = window.setInterval(fetchData, 30000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+  }
+})
 </script>
 
 <style scoped>

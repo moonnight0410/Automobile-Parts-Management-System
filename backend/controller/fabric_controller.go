@@ -993,6 +993,9 @@ func (fc *FabricController) RegisterRoutes(router *gin.Engine) {
 
 		api.POST("/qa", fc.RecordQAInteraction)
 		api.GET("/qa/:id", fc.QueryQAInteraction)
+
+		api.GET("/blockchain/info", fc.GetBlockchainInfo)
+		api.GET("/blockchain/blocks", fc.GetRecentBlocks)
 	}
 	log.Println("[FabricController] Fabric路由已注册")
 }
@@ -1736,5 +1739,78 @@ func (fc *FabricController) QueryQAInteraction(c *gin.Context) {
 		Success: true,
 		Message: "查询QA交互成功",
 		Data:    qaInteraction,
+	})
+}
+
+func (fc *FabricController) GetBlockchainInfo(c *gin.Context) {
+	log.Println("[FabricController] 收到获取区块链信息的请求")
+
+	if fc.fabricService == nil {
+		c.JSON(http.StatusServiceUnavailable, Response{
+			Success: false,
+			Message: "Fabric服务未初始化",
+		})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	info, err := fc.fabricService.GetBlockchainInfo(ctx)
+	if err != nil {
+		log.Printf("[FabricController] 获取区块链信息失败: %v", err)
+		c.JSON(http.StatusInternalServerError, Response{
+			Success: false,
+			Message: "获取区块链信息失败: " + err.Error(),
+		})
+		return
+	}
+
+	log.Println("[FabricController] 获取区块链信息成功")
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Message: "获取区块链信息成功",
+		Data:    info,
+	})
+}
+
+func (fc *FabricController) GetRecentBlocks(c *gin.Context) {
+	log.Println("[FabricController] 收到获取最近区块的请求")
+
+	if fc.fabricService == nil {
+		c.JSON(http.StatusServiceUnavailable, Response{
+			Success: false,
+			Message: "Fabric服务未初始化",
+		})
+		return
+	}
+
+	limit := 10
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := fmt.Sscanf(limitStr, "%d", &limit); l == 1 && err == nil {
+			if limit > 50 {
+				limit = 50
+			}
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	blocks, err := fc.fabricService.GetRecentBlocks(ctx, limit)
+	if err != nil {
+		log.Printf("[FabricController] 获取最近区块失败: %v", err)
+		c.JSON(http.StatusInternalServerError, Response{
+			Success: false,
+			Message: "获取最近区块失败: " + err.Error(),
+		})
+		return
+	}
+
+	log.Printf("[FabricController] 获取最近区块成功，数量: %d", len(blocks))
+	c.JSON(http.StatusOK, Response{
+		Success: true,
+		Message: "获取最近区块成功",
+		Data:    blocks,
 	})
 }

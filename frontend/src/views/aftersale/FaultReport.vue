@@ -15,7 +15,7 @@
             <p class="subtitle">管理零部件故障信息与风险预警</p>
           </div>
         </div>
-        <a-button type="primary" class="create-btn" @click="showReportModal = true">
+        <a-button type="primary" class="create-btn" @click="router.push('/aftersale/fault/create')">
           <template #icon><PlusOutlined /></template>
           上报故障
         </a-button>
@@ -256,44 +256,12 @@
         </template>
       </a-table>
     </a-card>
-
-    <a-modal
-      v-model:open="showReportModal"
-      title="上报故障"
-      :width="600"
-      @ok="handleSubmitReport"
-      @cancel="showReportModal = false"
-      class="report-modal"
-    >
-      <a-form :model="reportForm" layout="vertical" class="create-form">
-        <a-form-item label="零部件ID" required>
-          <a-input v-model:value="reportForm.partID" placeholder="请输入零部件ID" />
-        </a-form-item>
-        <a-form-item label="VIN码" required>
-          <a-input v-model:value="reportForm.vin" placeholder="请输入VIN码" />
-        </a-form-item>
-        <a-form-item label="故障类型" required>
-          <a-select v-model:value="reportForm.faultType" placeholder="请选择故障类型">
-            <a-select-option value="制动故障">制动故障</a-select-option>
-            <a-select-option value="转向故障">转向故障</a-select-option>
-            <a-select-option value="发动机故障">发动机故障</a-select-option>
-            <a-select-option value="电气故障">电气故障</a-select-option>
-            <a-select-option value="其他">其他</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="风险概率">
-          <a-input-number v-model:value="reportForm.riskProb" :min="0" :max="100" addon-after="%" style="width: 100%" />
-        </a-form-item>
-        <a-form-item label="故障描述">
-          <a-textarea v-model:value="reportForm.description" placeholder="请详细描述故障情况" :rows="4" />
-        </a-form-item>
-      </a-form>
-    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { listFaultReports, type FaultReport } from '../../services/aftersale.service'
 import {
@@ -315,8 +283,8 @@ import {
   EyeOutlined
 } from '@ant-design/icons-vue'
 
+const router = useRouter()
 const refreshing = ref(false)
-const showReportModal = ref(false)
 const loading = ref(false)
 
 const searchForm = ref({
@@ -324,14 +292,6 @@ const searchForm = ref({
   partID: '',
   vin: '',
   status: undefined as string | undefined
-})
-
-const reportForm = ref({
-  partID: '',
-  vin: '',
-  faultType: '',
-  riskProb: 50,
-  description: ''
 })
 
 const columns = [
@@ -432,16 +392,6 @@ const handleReview = (record: any) => {
   if (record.status === '已审核' || record.status === 'REVIEWED') return
   record.status = '已审核'
   message.success(`故障 ${record.faultID} 已审核通过`)
-}
-
-const handleSubmitReport = () => {
-  if (!reportForm.value.partID || !reportForm.value.vin || !reportForm.value.faultType) {
-    message.warning('请填写必填项')
-    return
-  }
-  showReportModal.value = false
-  message.success('故障上报成功')
-  fetchData()
 }
 
 onMounted(() => {

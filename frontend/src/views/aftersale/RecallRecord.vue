@@ -15,7 +15,7 @@
             <p class="subtitle">管理产品召回与安全事件处理</p>
           </div>
         </div>
-        <a-button type="primary" class="create-btn" @click="showRecallModal = true">
+        <a-button type="primary" class="create-btn" @click="router.push('/aftersale/recall/create')">
           <template #icon><PlusOutlined /></template>
           发起召回
         </a-button>
@@ -255,47 +255,12 @@
         </template>
       </a-table>
     </a-card>
-
-    <a-modal
-      v-model:open="showRecallModal"
-      title="发起召回"
-      :width="650"
-      @ok="handleSubmitRecall"
-      @cancel="showRecallModal = false"
-      class="recall-modal"
-    >
-      <a-form :model="recallForm" layout="vertical" class="create-form">
-        <a-form-item label="涉及批次" required>
-          <a-select
-            v-model:value="recallForm.batchNos"
-            mode="multiple"
-            placeholder="请选择涉及批次"
-            :options="batchOptions"
-          />
-        </a-form-item>
-        <a-form-item label="召回原因" required>
-          <a-textarea v-model:value="recallForm.reason" placeholder="请详细说明召回原因" :rows="3" />
-        </a-form-item>
-        <a-form-item label="受影响零部件数量" required>
-          <a-input-number v-model:value="recallForm.affectedCount" :min="1" style="width: 100%" addon-after="件" />
-        </a-form-item>
-        <a-form-item label="召回级别">
-          <a-select v-model:value="recallForm.level" placeholder="请选择召回级别">
-            <a-select-option value="一级">一级（紧急）</a-select-option>
-            <a-select-option value="二级">二级（重要）</a-select-option>
-            <a-select-option value="三级">三级（一般）</a-select-option>
-          </a-select>
-        </a-form-item>
-        <a-form-item label="处理措施">
-          <a-textarea v-model:value="recallForm.measures" placeholder="请描述处理措施" :rows="3" />
-        </a-form-item>
-      </a-form>
-    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { listRecallRecords, type RecallRecord } from '../../services/aftersale.service'
 import {
@@ -316,8 +281,8 @@ import {
   EyeOutlined
 } from '@ant-design/icons-vue'
 
+const router = useRouter()
 const refreshing = ref(false)
-const showRecallModal = ref(false)
 const loading = ref(false)
 
 const searchForm = ref({
@@ -326,21 +291,6 @@ const searchForm = ref({
   status: undefined as string | undefined,
   dateRange: null as any
 })
-
-const recallForm = ref({
-  batchNos: [] as string[],
-  reason: '',
-  affectedCount: 100,
-  level: '二级',
-  measures: ''
-})
-
-const batchOptions = ref([
-  { value: 'BATCH-001', label: 'BATCH-001' },
-  { value: 'BATCH-002', label: 'BATCH-002' },
-  { value: 'BATCH-003', label: 'BATCH-003' },
-  { value: 'BATCH-004', label: 'BATCH-004' }
-])
 
 const columns = [
   { title: '召回ID', key: 'recallID', width: 140 },
@@ -425,16 +375,6 @@ const handleComplete = (record: any) => {
   record.status = '已完成'
   record.progress = 100
   message.success(`召回 ${record.recallID} 已标记为完成`)
-}
-
-const handleSubmitRecall = () => {
-  if (!recallForm.value.batchNos.length || !recallForm.value.reason || !recallForm.value.affectedCount) {
-    message.warning('请填写必填项')
-    return
-  }
-  showRecallModal.value = false
-  message.success('召回发起成功')
-  fetchData()
 }
 
 onMounted(() => {
