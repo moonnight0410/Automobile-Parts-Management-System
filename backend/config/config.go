@@ -35,6 +35,9 @@ type Config struct {
 	FabricRetryCount     int    // Fabric连接重试次数
 	FabricRetryDelay     int    // Fabric连接重试延迟（秒）
 	FabricConnectTimeout int    // Fabric连接超时时间（秒）
+
+	// AI服务配置
+	AIServiceURL string // AI服务URL
 }
 
 // Load 加载应用配置
@@ -68,6 +71,9 @@ func Load() Config {
 		FabricRetryCount:     getEnvInt("FABRIC_RETRY_COUNT", 3),
 		FabricRetryDelay:     getEnvInt("FABRIC_RETRY_DELAY", 5),
 		FabricConnectTimeout: getEnvInt("FABRIC_CONNECT_TIMEOUT", 30),
+
+		// AI服务配置
+		AIServiceURL: getEnv("AI_SERVICE_URL", "http://localhost:5000"),
 	}
 }
 
