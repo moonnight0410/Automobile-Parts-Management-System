@@ -130,17 +130,21 @@
               </div>
               <div class="date-range-container">
                 <a-date-picker
+                  key="start-date-picker"
                   v-model:value="searchForm.startDate"
                   placeholder="开始日期"
                   class="date-input"
-                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
                 />
                 <span class="date-separator">至</span>
                 <a-date-picker
+                  key="end-date-picker"
                   v-model:value="searchForm.endDate"
                   placeholder="结束日期"
                   class="date-input"
-                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                  format="YYYY-MM-DD"
+                  value-format="YYYY-MM-DD"
                 />
               </div>
             </div>
@@ -581,9 +585,27 @@ onMounted(() => {
 
 .filter-input,
 .filter-select,
-.filter-date {
+.date-input {
   width: 100%;
   height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  transition: all 0.3s ease;
+  background: #fff;
+}
+
+.filter-input:hover,
+.filter-select:hover,
+.date-input:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.filter-input:focus,
+.filter-select:focus,
+.date-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 .date-range-container {
@@ -631,6 +653,173 @@ onMounted(() => {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
+}
+
+/* 统一日期选择器样式 - 使用全局样式 */
+.date-input :deep(.ant-picker) {
+  width: 100%;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fff;
+  padding: 4px 11px;
+}
+
+.date-input :deep(.ant-picker:hover) {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.date-input :deep(.ant-picker-focused) {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+/* 日期选择器弹出面板样式 */
+.date-input :deep(.ant-picker-dropdown) {
+  z-index: 1050 !important;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 8px;
+}
+
+.date-input :deep(.ant-picker-panel) {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.date-input :deep(.ant-picker-header) {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.date-input :deep(.ant-picker-header button) {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  height: 32px;
+  padding: 0 12px;
+}
+
+.date-input :deep(.ant-picker-header button:hover) {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f8fafc;
+}
+
+.date-input :deep(.ant-picker-body) {
+  padding: 12px;
+  border-radius: 0 0 12px 12px;
+}
+
+.date-input :deep(.ant-picker-cell) {
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.date-input :deep(.ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled)) {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
+  color: #6366f1;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+}
+
+.date-input :deep(.ant-picker-cell-selected .ant-picker-cell-inner) {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.date-input :deep(.ant-picker-cell-today .ant-picker-cell-inner) {
+  border: 2px solid #6366f1;
+  color: #6366f1;
+  font-weight: 600;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.date-input :deep(.ant-picker-footer) {
+  border-top: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 0 0 12px 12px;
+}
+
+.date-input :deep(.ant-picker-btn) {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  height: 32px;
+  padding: 0 16px;
+  transition: all 0.2s ease;
+}
+
+.date-input :deep(.ant-picker-btn:hover) {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f8fafc;
+}
+
+.date-input :deep(.ant-picker-btn-primary) {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.date-input :deep(.ant-picker-btn-primary:hover) {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* 下拉菜单样式 */
+:deep(.ant-select-dropdown) {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e2e8f0;
+}
+
+:deep(.ant-select-item-option-selected) {
+  background: #6366f1;
+  color: #fff;
+  border-radius: 4px;
+}
+
+:deep(.ant-select-item-option:hover:not(.ant-select-item-option-selected)) {
+  background: #f1f5f9;
+}
+
+:deep(.ant-select-item-option-active) {
+  background: #f1f5f9;
+}
+
+:deep(.ant-select-item-option-selected) {
+  background: #6366f1;
+  color: #fff;
+  border-radius: 4px;
+}
+
+:deep(.ant-select-item-option:hover:not(.ant-select-item-option-selected)) {
+  background: #f1f5f9;
+}
+
+:deep(.ant-select-item-option-active) {
+  background: #f1f5f9;
 }
 
 .action-hint {

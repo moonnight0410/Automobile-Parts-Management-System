@@ -305,14 +305,45 @@ onMounted(() => {
 .sidebar :deep(.ant-menu-item) {
   margin: 4px 8px;
   border-radius: 8px;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar :deep(.ant-menu-item::before) {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.1) 0%, rgba(64, 169, 255, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
 }
 
 .sidebar :deep(.ant-menu-item:hover) {
-  border-color: rgba(0, 0, 0, 0.12);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.1) 0%, rgba(64, 169, 255, 0.1) 100%);
+  border-color: rgba(24, 144, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+  color: #1890ff;
+  transform: translateX(4px);
+}
+
+.sidebar :deep(.ant-menu-item:hover::before) {
+  opacity: 1;
+}
+
+.sidebar :deep(.ant-menu-item:hover .anticon) {
+  color: #1890ff;
+  transform: scale(1.1);
+}
+
+.sidebar :deep(.ant-menu-item .anticon) {
+  transition: all 0.3s ease;
 }
 
 .sidebar :deep(.ant-menu-item-selected) {
@@ -334,13 +365,34 @@ onMounted(() => {
 .sidebar :deep(.ant-menu-submenu-title) {
   margin: 4px 8px;
   border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar :deep(.ant-menu-submenu-title:hover) {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.1) 0%, rgba(64, 169, 255, 0.1) 100%);
+  border-color: rgba(24, 144, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+  color: #1890ff;
+  transform: translateX(4px);
+}
+
+.sidebar :deep(.ant-menu-submenu-title:hover .anticon) {
+  color: #1890ff;
+  transform: scale(1.1);
+}
+
+.sidebar :deep(.ant-menu-submenu-title .anticon) {
   transition: all 0.3s ease;
 }
 
 .sidebar :deep(.ant-menu-submenu-selected > .ant-menu-submenu-title) {
-  background: rgba(24, 144, 255, 0.15);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.15) 0%, rgba(64, 169, 255, 0.15) 100%);
   color: #1890ff;
   font-weight: 600;
+  border-color: rgba(24, 144, 255, 0.2);
 }
 
 .sidebar :deep(.ant-menu-sub) {
@@ -349,6 +401,26 @@ onMounted(() => {
 
 .sidebar :deep(.ant-menu-sub .ant-menu-item) {
   padding-left: 48px !important;
+  margin: 2px 8px;
+  border-radius: 6px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid transparent;
+}
+
+.sidebar :deep(.ant-menu-sub .ant-menu-item:hover) {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.08) 0%, rgba(64, 169, 255, 0.08) 100%);
+  border-color: rgba(24, 144, 255, 0.25);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+  color: #1890ff;
+  transform: translateX(2px);
+}
+
+.sidebar :deep(.ant-menu-sub .ant-menu-item-selected) {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.15) 0%, rgba(64, 169, 255, 0.15) 100%) !important;
+  color: #1890ff !important;
+  font-weight: 600;
+  border-color: rgba(24, 144, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
 }
 
 .logo {
@@ -590,13 +662,58 @@ onMounted(() => {
 }
 
 [data-theme='dark'] .sidebar :deep(.ant-menu-item:hover) {
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.2) 0%, rgba(64, 169, 255, 0.2) 100%);
+  border-color: rgba(24, 144, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.25);
+  color: #40a9ff;
+  transform: translateX(4px);
+}
+
+[data-theme='dark'] .sidebar :deep(.ant-menu-item:hover .anticon) {
+  color: #40a9ff;
+  transform: scale(1.1);
+}
+
+[data-theme='dark'] .sidebar :deep(.ant-menu-submenu-title) {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .sidebar :deep(.ant-menu-submenu-title:hover) {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.2) 0%, rgba(64, 169, 255, 0.2) 100%);
+  border-color: rgba(24, 144, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.25);
+  color: #40a9ff;
+  transform: translateX(4px);
+}
+
+[data-theme='dark'] .sidebar :deep(.ant-menu-submenu-title:hover .anticon) {
+  color: #40a9ff;
+  transform: scale(1.1);
 }
 
 [data-theme='dark'] .sidebar :deep(.ant-menu-submenu-selected > .ant-menu-submenu-title) {
-  background: rgba(24, 144, 255, 0.25);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.25) 0%, rgba(64, 169, 255, 0.25) 100%);
   color: #40a9ff;
+  border-color: rgba(24, 144, 255, 0.3);
+}
+
+[data-theme='dark'] .sidebar :deep(.ant-menu-sub .ant-menu-item) {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme='dark'] .sidebar :deep(.ant-menu-sub .ant-menu-item:hover) {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.15) 0%, rgba(64, 169, 255, 0.15) 100%);
+  border-color: rgba(24, 144, 255, 0.35);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+  color: #40a9ff;
+  transform: translateX(2px);
+}
+
+[data-theme='dark'] .sidebar :deep(.ant-menu-sub .ant-menu-item-selected) {
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.25) 0%, rgba(64, 169, 255, 0.25) 100%) !important;
+  color: #40a9ff !important;
+  border-color: rgba(24, 144, 255, 0.4);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.25);
 }
 
 [data-theme='dark'] .user-info:hover {

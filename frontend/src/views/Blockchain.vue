@@ -38,7 +38,7 @@
             </div>
           </div>
           <div class="stat-footer">
-            <span class="trend up"><ArrowUpOutlined />+12 今日</span>
+            <span class="trend up"><ArrowUpOutlined />+{{ todayBlocks }} 今日</span>
           </div>
         </a-card>
       </a-col>
@@ -54,7 +54,7 @@
             </div>
           </div>
           <div class="stat-footer">
-            <span class="trend up"><ArrowUpOutlined />+56 今日</span>
+            <span class="trend up"><ArrowUpOutlined />+{{ todayTxs }} 今日</span>
           </div>
         </a-card>
       </a-col>
@@ -245,9 +245,9 @@ const columns = [
 
 const mockData = ref<BlockInfo[]>([])
 const organizations = ref([
-  { name: '制造商组织 (Org1MSP)', color: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', status: 'online', statusText: '在线', nodes: 2, txs: 18234 },
-  { name: '车企组织 (Org2MSP)', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 14567 },
-  { name: '售后组织 (Org3MSP)', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 12877 }
+  { name: '制造商组织 (Org1MSP)', color: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', status: 'online', statusText: '在线', nodes: 2, txs: 0 },
+  { name: '车企组织 (Org2MSP)', color: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 0 },
+  { name: '售后组织 (Org3MSP)', color: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', status: 'online', statusText: '在线', nodes: 1, txs: 0 }
 ])
 
 const quickTags = ref(['15234', '15233', '0x0000...'])
@@ -256,6 +256,8 @@ const blockHeight = ref(0)
 const txCount = ref(0)
 const nodeCount = ref(0)
 const channelCount = ref(0)
+const todayBlocks = ref(0)
+const todayTxs = ref(0)
 const searchQuery = ref('')
 const refreshing = ref(false)
 let refreshInterval: number | null = null
@@ -272,10 +274,42 @@ async function fetchData() {
       txCount.value = infoRes.data.txCount
       nodeCount.value = infoRes.data.nodeCount
       channelCount.value = infoRes.data.channelCount
+
+      // 更新组织统计数据
+      if (organizations.value[0]) {
+        organizations.value[0].txs = infoRes.data.productionCount || 0
+      }
+      if (organizations.value[1]) {
+        organizations.value[1].txs = infoRes.data.qualityCount || 0
+      }
+      if (organizations.value[2]) {
+        organizations.value[2].txs = infoRes.data.aftersaleCount || 0
+      }
     }
 
     if (blocksRes.success && blocksRes.data) {
       mockData.value = blocksRes.data
+
+      // 计算今日的区块和交易数量
+      const today = new Date().toDateString()
+      let todayBlockCount = 0
+      let todayTxCount = 0
+
+      blocksRes.data.forEach((block: any) => {
+        const blockDate = new Date(block.timestamp).toDateString()
+        if (blockDate === today) {
+          todayBlockCount++
+          todayTxCount += block.txCount
+        }
+      })
+
+      todayBlocks.value = todayBlockCount
+      todayTxs.value = todayTxCount
+
+      // 更新快速查询标签
+      if (blocksRes.data.length > 0) {
+        quickTags.value = blocksRes.data.slice(0, 3).map((block: any) => block.blockNumber.toString())
+      }
     }
   } catch (error: any) {
     console.error('获取区块链数据失败:', error)

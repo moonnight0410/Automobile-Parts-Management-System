@@ -7,6 +7,15 @@ export interface BlockchainInfo {
   txCount: number
   nodeCount: number
   channelCount: number
+  partCount: number
+  bomCount: number
+  productionCount: number
+  qualityCount: number
+  orderCount: number
+  logisticsCount: number
+  faultCount: number
+  recallCount: number
+  aftersaleCount: number
 }
 
 export interface BlockInfo {
@@ -16,12 +25,12 @@ export interface BlockInfo {
   timestamp: string
 }
 
-export async function getBlockchainInfo(): Promise<{ code: number; data: BlockchainInfo; message: string }> {
+export async function getBlockchainInfo(): Promise<{ success: boolean; data: BlockchainInfo; message: string }> {
   const response = await axios.get('/api/fabric/blockchain/info')
   return response.data
 }
 
-export async function getRecentBlocks(limit: number = 10): Promise<{ code: number; data: BlockInfo[]; message: string }> {
+export async function getRecentBlocks(limit: number = 10): Promise<{ success: boolean; data: BlockInfo[]; message: string }> {
   const response = await axios.get('/api/fabric/blockchain/blocks', { params: { limit } })
   return response.data
 }

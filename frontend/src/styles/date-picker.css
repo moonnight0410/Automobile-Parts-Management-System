@@ -1,0 +1,379 @@
+/**
+ * 全局统一日期选择器样式
+ * 适用于项目中所有日期选择组件
+ * 主题色：紫色 (#6366f1)
+ */
+
+/* ==================== 基础输入框样式 ==================== */
+.ant-picker {
+  width: 100%;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fff;
+  padding: 4px 11px;
+  font-size: 14px;
+  color: #374151;
+}
+
+.ant-picker:hover {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.ant-picker-focused {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+.ant-picker-input > input::placeholder {
+  color: #9ca3af;
+}
+
+/* ==================== 弹出面板样式 ==================== */
+.ant-picker-dropdown {
+  z-index: 1050 !important;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 8px;
+}
+
+.ant-picker-panel-container {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.ant-picker-panel {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ==================== 头部样式 ==================== */
+.ant-picker-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.ant-picker-header-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ant-picker-header button {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  height: 32px;
+  padding: 0 12px;
+}
+
+.ant-picker-header button:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f8fafc;
+}
+
+/* ==================== 日期单元格样式 ==================== */
+.ant-picker-body {
+  padding: 12px;
+  border-radius: 0 0 12px 12px;
+}
+
+.ant-picker-content {
+  width: 100%;
+}
+
+.ant-picker-cell {
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled) {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
+  color: #6366f1;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+}
+
+.ant-picker-cell-selected .ant-picker-cell-inner {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.ant-picker-cell-disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.ant-picker-cell-today .ant-picker-cell-inner {
+  border: 2px solid #6366f1;
+  color: #6366f1;
+  font-weight: 600;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+/* ==================== 底部样式 ==================== */
+.ant-picker-footer {
+  border-top: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 0 0 12px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ant-picker-btn {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  height: 32px;
+  padding: 0 16px;
+  transition: all 0.2s ease;
+}
+
+.ant-picker-btn:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f8fafc;
+}
+
+.ant-picker-btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.ant-picker-btn-primary:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* ==================== 日期范围选择器特定样式 ==================== */
+.ant-picker-range-wrapper {
+  display: flex;
+  gap: 8px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.ant-picker-panels {
+  display: flex;
+  gap: 8px;
+}
+
+/* ==================== 响应式优化 ==================== */
+@media (max-width: 768px) {
+  .ant-picker-dropdown {
+    max-width: 280px;
+  }
+  
+  .ant-picker-cell {
+    font-size: 12px;
+  }
+  
+  .ant-picker-header button {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ant-picker-dropdown {
+    max-width: 260px;
+  }
+  
+  .ant-picker-cell {
+    font-size: 11px;
+    padding: 2px;
+  }
+  
+  .ant-picker-header {
+    padding: 8px 12px;
+  }
+  
+  .ant-picker-body {
+    padding: 8px;
+  }
+}
+
+/* ==================== 深色模式适配 ==================== */
+[data-theme='dark'] .ant-picker {
+  background: #1f2937;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .ant-picker:hover {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+}
+
+[data-theme='dark'] .ant-picker-header {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border-bottom-color: #374151;
+}
+
+[data-theme='dark'] .ant-picker-header button {
+  background: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .ant-picker-header button:hover {
+  border-color: #818cf8;
+  color: #818cf8;
+  background: #1f2937;
+}
+
+[data-theme='dark'] .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled) {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(79, 70, 229, 0.2) 100%);
+  color: #818cf8;
+}
+
+[data-theme='dark'] .ant-picker-footer {
+  background: #1f2937;
+  border-top-color: #374151;
+}
+
+[data-theme='dark'] .ant-picker-btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .ant-picker-btn:hover {
+  border-color: #818cf8;
+  color: #818cf8;
+  background: #1f2937;
+}
+
+/* ==================== 页面特定样式覆盖 ==================== */
+/* RecallRecord.vue - 红色主题 */
+.filter-date.recall-theme :deep(.ant-picker:hover),
+.filter-date.recall-theme :deep(.ant-picker-focused) {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.filter-date.recall-theme :deep(.ant-picker-header) {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
+
+.filter-date.recall-theme :deep(.ant-picker-header button:hover) {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.filter-date.recall-theme :deep(.ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled)) {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #ef4444;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+}
+
+.filter-date.recall-theme :deep(.ant-picker-cell-selected .ant-picker-cell-inner) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.filter-date.recall-theme :deep(.ant-picker-cell-today .ant-picker-cell-inner) {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.filter-date.recall-theme :deep(.ant-picker-footer) {
+  background: #fef2f2;
+}
+
+.filter-date.recall-theme :deep(.ant-picker-btn:hover) {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.filter-date.recall-theme :deep(.ant-picker-btn-primary) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-color: #ef4444;
+}
+
+.filter-date.recall-theme :deep(.ant-picker-btn-primary:hover) {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* SupplyOrderCreate.vue - 橙色主题 */
+.custom-date-picker.orange-theme :deep(.ant-picker:hover),
+.custom-date-picker.orange-theme :deep(.ant-picker-focused) {
+  border-color: #fa8c16;
+  box-shadow: 0 0 0 3px rgba(250, 140, 22, 0.1);
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-header) {
+  background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-header button:hover) {
+  border-color: #fa8c16;
+  color: #fa8c16;
+  background: #fff7e6;
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled)) {
+  background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
+  color: #fa8c16;
+  box-shadow: 0 2px 8px rgba(250, 140, 22, 0.15);
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-cell-selected .ant-picker-cell-inner) {
+  background: linear-gradient(135deg, #fa8c16 0%, #d46b08 100%);
+  box-shadow: 0 4px 12px rgba(250, 140, 22, 0.3);
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-cell-today .ant-picker-cell-inner) {
+  border-color: #fa8c16;
+  color: #fa8c16;
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-footer) {
+  background: #fff7e6;
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-btn:hover) {
+  border-color: #fa8c16;
+  color: #fa8c16;
+  background: #fff7e6;
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-btn-primary) {
+  background: linear-gradient(135deg, #fa8c16 0%, #d46b08 100%);
+  border-color: #fa8c16;
+}
+
+.custom-date-picker.orange-theme :deep(.ant-picker-btn-primary:hover) {
+  background: linear-gradient(135deg, #d46b08 0%, #ad4e00 100%);
+  box-shadow: 0 4px 12px rgba(250, 140, 22, 0.4);
+}

@@ -12,6 +12,7 @@ import { ConfigProvider } from 'ant-design-vue'
 
 // 导入样式
 import './styles/global.css'
+import './styles/date-picker.css'
 
 // 导入Ant Design Vue图标
 import * as Icons from '@ant-design/icons-vue'

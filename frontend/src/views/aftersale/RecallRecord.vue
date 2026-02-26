@@ -945,4 +945,205 @@ onMounted(() => {
 [data-theme='dark'] .action-btn.detail-btn:hover {
   color: #f87171;
 }
+
+/* 日期选择器样式优化 */
+.filter-date :deep(.ant-picker) {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fff;
+  padding: 4px 11px;
+  height: 38px;
+}
+
+.filter-date :deep(.ant-picker:hover) {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.filter-date :deep(.ant-picker-focused) {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+.filter-date :deep(.ant-picker-input) {
+  font-size: 14px;
+  color: #374151;
+}
+
+.filter-date :deep(.ant-picker-input > input::placeholder) {
+  color: #9ca3af;
+}
+
+/* 日期范围选择器特定样式 */
+.filter-date :deep(.ant-picker-dropdown) {
+  z-index: 1050 !important;
+}
+
+.filter-date :deep(.ant-picker-range-wrapper) {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e2e8f0;
+}
+
+.filter-date :deep(.ant-picker-panel) {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.filter-date :deep(.ant-picker-panels) {
+  display: flex;
+  gap: 8px;
+}
+
+.filter-date :deep(.ant-picker-header) {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.filter-date :deep(.ant-picker-header-view) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.filter-date :deep(.ant-picker-header button) {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  height: 32px;
+  padding: 0 12px;
+}
+
+.filter-date :deep(.ant-picker-header button:hover) {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.filter-date :deep(.ant-picker-body) {
+  padding: 12px;
+  border-radius: 0 0 12px 12px;
+}
+
+.filter-date :deep(.ant-picker-content) {
+  width: 100%;
+}
+
+.filter-date :deep(.ant-picker-cell) {
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.filter-date :deep(.ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled)) {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #ef4444;
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+}
+
+.filter-date :deep(.ant-picker-cell-selected .ant-picker-cell-inner) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.filter-date :deep(.ant-picker-cell-disabled) {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.filter-date :deep(.ant-picker-cell-today .ant-picker-cell-inner) {
+  border: 2px solid #ef4444;
+  color: #ef4444;
+  font-weight: 600;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.filter-date :deep(.ant-picker-footer) {
+  border-top: 1px solid #f1f5f9;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border-radius: 0 0 12px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filter-date :deep(.ant-picker-btn) {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  height: 32px;
+  padding: 0 16px;
+  transition: all 0.2s ease;
+}
+
+.filter-date :deep(.ant-picker-btn:hover) {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+.filter-date :deep(.ant-picker-btn-primary) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-color: #ef4444;
+  color: #fff;
+}
+
+.filter-date :deep(.ant-picker-btn-primary:hover) {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* 下拉选择框样式 */
+:deep(.ant-select-dropdown) {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  z-index: 1050;
+}
+
+:deep(.ant-select-item-option) {
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  margin: 2px 4px;
+}
+
+:deep(.ant-select-item-option-selected) {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+:deep(.ant-select-item-option:hover:not(.ant-select-item-option-selected)) {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #ef4444;
+}
 </style>
