@@ -11,30 +11,6 @@
             <p class="subtitle">AI驱动的智能问答与售后服务支持</p>
           </div>
         </div>
-        <div class="header-actions">
-          <a-tag color="cyan" class="ai-tag">
-            <template #icon><ThunderboltOutlined /></template>
-            AI Powered
-          </a-tag>
-        </div>
-      </div>
-      <div class="stats-overview">
-        <div class="stat-item">
-          <div class="stat-value">{{ totalConversations }}</div>
-          <div class="stat-label">对话总数</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value status-today">{{ todayConversations }}</div>
-          <div class="stat-label">今日对话</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value status-resolved">{{ resolvedCount }}</div>
-          <div class="stat-label">已解决问题</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-value status-rate">{{ satisfactionRate }}%</div>
-          <div class="stat-label">满意度</div>
-        </div>
       </div>
     </div>
 
@@ -220,10 +196,13 @@ import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAuthStore } from '../../stores'
-import { sendAIQuestion, queryFaultProgressAI, queryRecallInfoAI } from '../../services/ai.service'
+import {
+  sendAIQuestion,
+  getConversationHistory,
+  clearConversationHistory
+} from '../../services/ai.service'
 import {
   RobotOutlined,
-  ThunderboltOutlined,
   ClearOutlined,
   SendOutlined,
   QuestionCircleOutlined,
@@ -232,7 +211,8 @@ import {
   AlertOutlined,
   SearchOutlined,
   WarningOutlined,
-  SafetyCertificateOutlined
+  SafetyCertificateOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons-vue'
 
 interface Message {
@@ -253,11 +233,6 @@ const authStore = useAuthStore()
 const messageListRef = ref<HTMLElement>()
 const inputMessage = ref('')
 const sending = ref(false)
-
-const totalConversations = ref(156)
-const todayConversations = ref(12)
-const resolvedCount = ref(142)
-const satisfactionRate = ref(96)
 
 const messages = ref<Message[]>([
   {
@@ -373,15 +348,26 @@ function handleAction(action: any) {
   }
 }
 
-function handleClear() {
-  messages.value = [
-    {
-      id: generateId(),
-      type: 'bot',
-      content: '对话已清空。请问有什么可以帮您的？',
-      time: formatTime(new Date())
+async function handleClear() {
+  try {
+    const userID = user.value?.id || 'anonymous'
+    const response = await clearConversationHistory(userID)
+    if (response.code === 0) {
+      messages.value = [
+        {
+          id: generateId(),
+          type: 'bot',
+          content: '对话已清空。请问有什么可以帮您的？',
+          time: formatTime(new Date())
+        }
+      ]
+      message.success('对话已清空')
+    } else {
+      message.error(response.message || '清空对话失败')
     }
-  ]
+  } catch (error: any) {
+    message.error(error.message || '清空对话失败')
+  }
 }
 
 onMounted(() => {
@@ -446,44 +432,6 @@ onMounted(() => {
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
-}
-
-.stats-overview {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.stat-item {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  padding: 16px;
-  text-align: center;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1;
-}
-
-.stat-value.status-today {
-  color: #fbbf24;
-}
-
-.stat-value.status-resolved {
-  color: #34d399;
-}
-
-.stat-value.status-rate {
-  color: #60a5fa;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
-  margin-top: 6px;
 }
 
 .chat-row {

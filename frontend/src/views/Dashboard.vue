@@ -87,27 +87,7 @@
           <div ref="partStatusChartRef" class="chart-container"></div>
         </a-card>
       </a-col>
-      
-      <!-- 质检合格率趋势 -->
-      <a-col :xs="24" :lg="12">
-        <a-card title="质检合格率趋势" :bordered="false">
-          <div ref="qualityChartRef" class="chart-container"></div>
-        </a-card>
-      </a-col>
     </a-row>
-    
-    <!-- 最新动态 -->
-    <a-card title="最新动态" :bordered="false" class="recent-activities">
-      <a-timeline>
-        <a-timeline-item v-for="activity in recentActivities" :key="activity.id" :color="activity.color">
-          <div class="activity-item">
-            <div class="activity-title">{{ activity.title }}</div>
-            <div class="activity-desc">{{ activity.description }}</div>
-            <div class="activity-time">{{ activity.time }}</div>
-          </div>
-        </a-timeline-item>
-      </a-timeline>
-    </a-card>
   </div>
 </template>
 
@@ -130,7 +110,6 @@ const authStore = useAuthStore()
 
 // 图表引用
 const partStatusChartRef = ref<HTMLElement>()
-const qualityChartRef = ref<HTMLElement>()
 
 // 统计数据
 const statistics = reactive({
@@ -153,9 +132,6 @@ const quickActions = [
   { key: 'blockchain', text: '区块链浏览', icon: 'LinkOutlined', color: '#eb2f96', path: '/blockchain' }
 ]
 
-// 最新动态
-const recentActivities = ref<any[]>([])
-
 // ==================== 方法 ====================
 
 async function fetchStatistics() {
@@ -171,49 +147,6 @@ async function fetchStatistics() {
     statistics.totalBOMs = bomsRes.data?.length || 0
     statistics.totalFaults = faultsRes.data?.length || 0
     statistics.totalRecalls = recallsRes.data?.length || 0
-    
-    const activities: any[] = []
-    
-    if (partsRes.data && partsRes.data.length > 0) {
-      const latestParts = partsRes.data.slice(0, 2)
-      latestParts.forEach((part: any) => {
-        activities.push({
-          id: `part-${part.partID}`,
-          title: '新零部件创建',
-          description: `零部件 ${part.partID} 已成功创建`,
-          time: part.productionDate || '最近',
-          color: 'green'
-        })
-      })
-    }
-    
-    if (faultsRes.data && faultsRes.data.length > 0) {
-      const latestFaults = faultsRes.data.slice(0, 2)
-      latestFaults.forEach((fault: any) => {
-        activities.push({
-          id: `fault-${fault.faultID}`,
-          title: '故障报告',
-          description: `零部件 ${fault.partID} 故障已上报`,
-          time: fault.reportTime || '最近',
-          color: 'red'
-        })
-      })
-    }
-    
-    if (recallsRes.data && recallsRes.data.length > 0) {
-      const latestRecalls = recallsRes.data.slice(0, 1)
-      latestRecalls.forEach((recall: any) => {
-        activities.push({
-          id: `recall-${recall.recallID}`,
-          title: '召回通知',
-          description: `召回 ${recall.recallID} 已发起`,
-          time: recall.createTime || '最近',
-          color: 'orange'
-        })
-      })
-    }
-    
-    recentActivities.value = activities.slice(0, 5)
   } catch (error) {
     console.error('获取统计数据失败:', error)
   }
@@ -285,55 +218,6 @@ function initPartStatusChart() {
   window.addEventListener('resize', () => chart.resize())
 }
 
-/**
- * 初始化质检合格率趋势图表
- */
-function initQualityChart() {
-  if (!qualityChartRef.value) return
-  
-  const chart = echarts.init(qualityChartRef.value)
-  
-  const option = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    xAxis: {
-      type: 'category',
-      data: ['1月', '2月', '3月', '4月', '5月', '6月']
-    },
-    yAxis: {
-      type: 'value',
-      min: 80,
-      max: 100,
-      axisLabel: {
-        formatter: '{value}%'
-      }
-    },
-    series: [
-      {
-        name: '合格率',
-        type: 'line',
-        smooth: true,
-        data: [95, 92, 96, 94, 98, 97],
-        itemStyle: {
-          color: '#52c41a'
-        },
-        areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(82, 196, 26, 0.3)' },
-            { offset: 1, color: 'rgba(82, 196, 26, 0.1)' }
-          ])
-        }
-      }
-    ]
-  }
-  
-  chart.setOption(option)
-  
-  // 响应窗口大小变化
-  window.addEventListener('resize', () => chart.resize())
-}
-
 // ==================== 生命周期 ====================
 
 onMounted(async () => {
@@ -341,7 +225,6 @@ onMounted(async () => {
   // 初始化图表
   setTimeout(() => {
     initPartStatusChart()
-    initQualityChart()
   }, 100)
 })
 </script>
@@ -446,31 +329,6 @@ onMounted(async () => {
 .chart-container {
   width: 100%;
   height: 300px;
-}
-
-.recent-activities {
-  border-radius: 8px;
-}
-
-.activity-item {
-  padding: 8px 0;
-}
-
-.activity-title {
-  font-weight: 500;
-  color: var(--text-color);
-  margin-bottom: 4px;
-}
-
-.activity-desc {
-  font-size: 13px;
-  color: var(--text-color-secondary);
-  margin-bottom: 4px;
-}
-
-.activity-time {
-  font-size: 12px;
-  color: var(--text-color-tertiary);
 }
 
 /* 深色主题 */
