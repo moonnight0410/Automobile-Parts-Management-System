@@ -786,6 +786,45 @@ func (s *SmartContract) QueryBOM(ctx contractapi.TransactionContextInterface, bo
 	return &bom, nil
 }
 
+// DeleteBOM 删除BOM
+// 权限要求：仅零部件生产厂商可执行
+// 功能：从账本中删除BOM
+// 参数：
+//   - ctx: 交易上下文
+//   - bomID: BOM ID
+//
+// 返回：
+//   - error: 操作失败时返回错误
+func (s *SmartContract) DeleteBOM(ctx contractapi.TransactionContextInterface, bomID string) error {
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
+	}
+
+	// 检查BOM是否存在
+	bomBytes, err := ctx.GetStub().GetState("BOM_" + bomID)
+	if err != nil {
+		return fmt.Errorf("查询BOM失败: %v", err)
+	}
+	if bomBytes == nil {
+		return fmt.Errorf("BOMID %s 不存在", bomID)
+	}
+
+	// 删除BOM
+	if err := ctx.GetStub().DelState("BOM_" + bomID); err != nil {
+		return fmt.Errorf("删除BOM失败: %v", err)
+	}
+
+	// 记录操作日志
+	log.Printf("删除BOM成功，BOMID：%s", bomID)
+	if err := ctx.GetStub().SetEvent("DeleteBOM", []byte(fmt.Sprintf("删除BOM: %s", bomID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
+	return nil
+}
+
 // UpdateBOM 更新BOM
 // 权限要求：仅零部件生产厂商可执行
 // 功能：更新BOM信息（状态、物料清单等）
@@ -1076,6 +1115,45 @@ func (s *SmartContract) CreateProductionData(ctx contractapi.TransactionContextI
 	return ctx.GetStub().PutState("LIFECYCLE_"+production.PartID, lifecycleBytes)
 }
 
+// DeleteProductionData 删除生产数据
+// 权限要求：仅零部件生产厂商可执行
+// 功能：从账本中删除生产数据
+// 参数：
+//   - ctx: 交易上下文
+//   - productionID: 生产数据ID
+//
+// 返回：
+//   - error: 操作失败时返回错误
+func (s *SmartContract) DeleteProductionData(ctx contractapi.TransactionContextInterface, productionID string) error {
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
+	}
+
+	// 检查生产数据是否存在
+	productionBytes, err := ctx.GetStub().GetState("PROD_" + productionID)
+	if err != nil {
+		return fmt.Errorf("查询生产数据失败: %v", err)
+	}
+	if productionBytes == nil {
+		return fmt.Errorf("生产数据ID %s 不存在", productionID)
+	}
+
+	// 删除生产数据
+	if err := ctx.GetStub().DelState("PROD_" + productionID); err != nil {
+		return fmt.Errorf("删除生产数据失败: %v", err)
+	}
+
+	// 记录操作日志
+	log.Printf("删除生产数据成功，ProductionID：%s", productionID)
+	if err := ctx.GetStub().SetEvent("DeleteProductionData", []byte(fmt.Sprintf("删除生产数据: %s", productionID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
+	return nil
+}
+
 // CreateQualityInspection 创建质检记录
 // 参数：
 //   - ctx: 交易上下文
@@ -1154,6 +1232,45 @@ func (s *SmartContract) CreateQualityInspection(ctx contractapi.TransactionConte
 	}
 
 	return ctx.GetStub().PutState("LIFECYCLE_"+inspection.PartID, lifecycleBytes)
+}
+
+// DeleteQualityInspection 删除质检数据
+// 权限要求：仅零部件生产厂商可执行
+// 功能：从账本中删除质检数据
+// 参数：
+//   - ctx: 交易上下文
+//   - inspectionID: 质检数据ID
+//
+// 返回：
+//   - error: 操作失败时返回错误
+func (s *SmartContract) DeleteQualityInspection(ctx contractapi.TransactionContextInterface, inspectionID string) error {
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, MANUFACTURER_ORG_MSPID); err != nil {
+		return err
+	}
+
+	// 检查质检数据是否存在
+	inspectionBytes, err := ctx.GetStub().GetState("QUALITY_" + inspectionID)
+	if err != nil {
+		return fmt.Errorf("查询质检数据失败: %v", err)
+	}
+	if inspectionBytes == nil {
+		return fmt.Errorf("质检数据ID %s 不存在", inspectionID)
+	}
+
+	// 删除质检数据
+	if err := ctx.GetStub().DelState("QUALITY_" + inspectionID); err != nil {
+		return fmt.Errorf("删除质检数据失败: %v", err)
+	}
+
+	// 记录操作日志
+	log.Printf("删除质检数据成功，InspectionID：%s", inspectionID)
+	if err := ctx.GetStub().SetEvent("DeleteQualityInspection", []byte(fmt.Sprintf("删除质检数据: %s", inspectionID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
+	return nil
 }
 
 // UpdatePartStatus 更新零部件状态
@@ -1304,6 +1421,45 @@ func (s *SmartContract) CreateSupplyOrder(ctx contractapi.TransactionContextInte
 	return ctx.GetStub().PutState("ORDER_"+order.OrderID, orderBytes)
 }
 
+// DeleteSupplyOrder 删除采购订单
+// 权限要求：仅整车车企可执行
+// 功能：从账本中删除采购订单
+// 参数：
+//   - ctx: 交易上下文
+//   - orderID: 订单ID
+//
+// 返回：
+//   - error: 操作失败时返回错误
+func (s *SmartContract) DeleteSupplyOrder(ctx contractapi.TransactionContextInterface, orderID string) error {
+	// 使用辅助函数检查权限
+	if err := s.checkPermission(ctx, AUTOMAKER_ORG_MSPID); err != nil {
+		return err
+	}
+
+	// 检查订单是否存在
+	orderBytes, err := ctx.GetStub().GetState("ORDER_" + orderID)
+	if err != nil {
+		return fmt.Errorf("查询订单失败: %v", err)
+	}
+	if orderBytes == nil {
+		return fmt.Errorf("订单ID %s 不存在", orderID)
+	}
+
+	// 删除订单
+	if err := ctx.GetStub().DelState("ORDER_" + orderID); err != nil {
+		return fmt.Errorf("删除订单失败: %v", err)
+	}
+
+	// 记录操作日志
+	log.Printf("删除采购订单成功，OrderID：%s", orderID)
+	if err := ctx.GetStub().SetEvent("DeleteSupplyOrder", []byte(fmt.Sprintf("删除采购订单: %s", orderID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
+	return nil
+}
+
 // CreateLogisticsData 创建物流数据记录
 // 功能：记录零部件的物流运输信息，包括物流商、时间、GPS轨迹等
 // 参数：
@@ -1334,6 +1490,40 @@ func (s *SmartContract) CreateLogisticsData(ctx contractapi.TransactionContextIn
 	}
 
 	return ctx.GetStub().PutState("LOGISTICS_"+logistics.LogisticsID, logisticsBytes)
+}
+
+// DeleteLogisticsData 删除物流数据
+// 权限要求：所有组织成员可调用
+// 功能：从账本中删除物流数据
+// 参数：
+//   - ctx: 交易上下文
+//   - logisticsID: 物流数据ID
+//
+// 返回：
+//   - error: 操作失败时返回错误
+func (s *SmartContract) DeleteLogisticsData(ctx contractapi.TransactionContextInterface, logisticsID string) error {
+	// 检查物流数据是否存在
+	logisticsBytes, err := ctx.GetStub().GetState("LOGISTICS_" + logisticsID)
+	if err != nil {
+		return fmt.Errorf("查询物流数据失败: %v", err)
+	}
+	if logisticsBytes == nil {
+		return fmt.Errorf("物流数据ID %s 不存在", logisticsID)
+	}
+
+	// 删除物流数据
+	if err := ctx.GetStub().DelState("LOGISTICS_" + logisticsID); err != nil {
+		return fmt.Errorf("删除物流数据失败: %v", err)
+	}
+
+	// 记录操作日志
+	log.Printf("删除物流数据成功，LogisticsID：%s", logisticsID)
+	if err := ctx.GetStub().SetEvent("DeleteLogisticsData", []byte(fmt.Sprintf("删除物流数据: %s", logisticsID))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
+	return nil
 }
 
 // UpdateSupplyChainStage 更新供应链环节
