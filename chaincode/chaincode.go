@@ -529,23 +529,24 @@ func (s *SmartContract) QueryPart(ctx contractapi.TransactionContextInterface, p
 //
 // 权限要求：所有组织成员可调用
 func (s *SmartContract) QueryPartLifecycle(ctx contractapi.TransactionContextInterface, partID string) (*PartLifecycle, error) {
-	// 从账本获取生命周期数据
 	partLifecycleBytes, err := ctx.GetStub().GetState("LIFECYCLE_" + partID)
 	if err != nil {
 		return nil, fmt.Errorf("查询零部件生命周期失败: %v", err)
 	}
 	if partLifecycleBytes == nil {
-		return nil, fmt.Errorf("零部件ID %s 的生命周期数据不存在", partID)
+		return &PartLifecycle{
+			PartID:          partID,
+			AftersaleInfo:   []AftersaleRecord{},
+			SupplyChainInfo: []SupplyChainData{},
+		}, nil
 	}
 
-	// 反序列化生命周期数据
 	var lifecycle PartLifecycle
 	err = json.Unmarshal(partLifecycleBytes, &lifecycle)
 	if err != nil {
 		return nil, fmt.Errorf("反序列化生命周期数据失败: %v", err)
 	}
 
-	// 初始化空切片，避免返回nil
 	if lifecycle.AftersaleInfo == nil {
 		lifecycle.AftersaleInfo = []AftersaleRecord{}
 	}
