@@ -14,6 +14,12 @@
 #   - Org1MSP（零部件生产厂商）：CreatePart, CreateProductionData, CreateQualityInspection
 #   - Org2MSP（整车车企）：CreateSupplyOrder, CreateLogisticsData
 #   - Org3MSP（4S店/售后中心）：CreateFaultReport, CreateRecallRecord
+#
+# 链码初始化说明：
+# - 本链码已移除 InitLedger 方法
+# - 不需要在部署时调用初始化函数
+# - 链码提交后会自动启动容器
+# - 可以直接调用业务函数进行测试
 
 # ==================== 配置变量 ====================
 GIT_REPO_URL="https://github.com/moonnight0410/Automobile-Parts-Management-System.git"
@@ -637,7 +643,6 @@ main() {
             --name "$CHAINCODE_NAME" \
             --version "$NEW_VERSION" \
             --sequence "$NEW_SEQUENCE" \
-            --init-required \
             --signature-policy "$ENDORSEMENT_POLICY" \
             --peerAddresses localhost:7051 \
             --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
@@ -697,64 +702,10 @@ main() {
         log_info "步骤12: 已完成，跳过"
     fi
     
-    # ==================== 步骤13: 初始化链码 ====================
+    # ==================== 步骤13: 测试背书策略 ====================
     step=13
-    if ! is_step_completed "step13_init"; then
-        log_info "步骤13: 初始化链码"
-        
-        setup_org_env "Org1"
-        
-        log_info "检查链码是否已经初始化..."
-        local init_check=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
-        
-        if echo "$init_check" | grep -q "error"; then
-            log_info "链码尚未初始化，开始初始化..."
-            
-            if ! peer chaincode invoke \
-                -o localhost:7050 \
-                --ordererTLSHostnameOverride orderer.example.com \
-                --tls true \
-                --cafile ${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem \
-                -C "$CHANNEL_NAME" \
-                -n "$CHAINCODE_NAME" \
-                --peerAddresses localhost:7051 \
-                --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
-                --peerAddresses localhost:9051 \
-                --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt \
-                --peerAddresses localhost:11051 \
-                --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org3.example.com/peers/peer0.org3.example.com/tls/ca.crt \
-                --isInit \
-                -c '{"function":"initLedger","Args":[]}'; then
-                log_error "链码初始化失败"
-                update_state "step13_init" "failed" "链码初始化失败"
-                exit 1
-            fi
-            
-            log_success "链码初始化成功"
-        else
-            log_info "链码已经初始化，跳过初始化步骤"
-        fi
-        
-        update_state "step13_init" "completed"
-        log_success "步骤13完成"
-        
-        # 验证输出
-        log_verify "验证: 链码初始化完成"
-        log_verify "✓ 等待链码容器启动..."
-        sleep 5
-        log_verify "✓ 链码容器状态:"
-        docker ps --filter "name=dev-peer" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a "$LOG_FILE"
-        log_verify "✓ 测试链码调用:"
-        setup_org_env "Org1"
-        peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>/dev/null | head -20 | tee -a "$LOG_FILE" || log_verify "  查询失败（可能需要等待更长时间）"
-    else
-        log_info "步骤13: 已完成，跳过"
-    fi
-    
-    # ==================== 步骤14: 测试背书策略 ====================
-    step=14
-    if ! is_step_completed "step14_test_endorsement"; then
-        log_info "步骤14: 测试背书策略"
+    if ! is_step_completed "step13_test_endorsement"; then
+        log_info "步骤13: 测试背书策略"
         log_info "测试OR背书策略：任何单个组织都可以背书交易"
         
         setup_org_env "Org1"
@@ -763,7 +714,7 @@ main() {
         local test_result=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
         if echo "$test_result" | grep -q "error"; then
             log_error "Org1MSP背书测试失败"
-            update_state "step14_test_endorsement" "failed" "Org1MSP背书测试失败"
+            update_state "step13_test_endorsement" "failed" "Org1MSP背书测试失败"
             exit 1
         else
             log_success "Org1MSP背书测试成功"
@@ -775,7 +726,7 @@ main() {
         test_result=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
         if echo "$test_result" | grep -q "error"; then
             log_error "Org2MSP背书测试失败"
-            update_state "step14_test_endorsement" "failed" "Org2MSP背书测试失败"
+            update_state "step13_test_endorsement" "failed" "Org2MSP背书测试失败"
             exit 1
         else
             log_success "Org2MSP背书测试成功"
@@ -787,15 +738,15 @@ main() {
         test_result=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
         if echo "$test_result" | grep -q "error"; then
             log_error "Org3MSP背书测试失败"
-            update_state "step14_test_endorsement" "failed" "Org3MSP背书测试失败"
+            update_state "step13_test_endorsement" "failed" "Org3MSP背书测试失败"
             exit 1
         else
             log_success "Org3MSP背书测试成功"
         fi
         
         log_success "所有组织的背书测试通过"
-        update_state "step14_test_endorsement" "completed"
-        log_success "步骤14完成"
+        update_state "step13_test_endorsement" "completed"
+        log_success "步骤13完成"
         
         # 验证输出
         log_verify "验证: 背书策略测试完成"
@@ -804,18 +755,18 @@ main() {
         log_verify "✓ Org3MSP: 可以背书 ✓"
         log_verify "✓ OR背书策略验证成功"
     else
-        log_info "步骤14: 已完成，跳过"
+        log_info "步骤13: 已完成，跳过"
     fi
     
-    # ==================== 步骤15: 清理 ====================
-    step=15
-    if ! is_step_completed "step15_cleanup"; then
-        log_info "步骤15: 清理状态文件"
+    # ==================== 步骤14: 清理 ====================
+    step=14
+    if ! is_step_completed "step14_cleanup"; then
+        log_info "步骤14: 清理状态文件"
         
         delete_state
         
-        update_state "step15_cleanup" "completed"
-        log_success "步骤15完成"
+        update_state "step14_cleanup" "completed"
+        log_success "步骤14完成"
         
         # 验证输出
         log_verify "验证: 清理完成"
@@ -824,7 +775,7 @@ main() {
         log_verify "✓ 日志文件大小:"
         ls -lh "$LOG_FILE" | awk '{print "  " $5}'
     else
-        log_info "步骤15: 已完成，跳过"
+        log_info "步骤14: 已完成，跳过"
     fi
     
     # ==================== 完成 ====================

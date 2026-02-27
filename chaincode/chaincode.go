@@ -343,38 +343,6 @@ type SmartContract struct {
 	contractapi.Contract
 }
 
-// InitLedger 初始化账本数据
-// 功能：在链码首次部署时创建测试数据，验证链码功能正常
-// 参数：
-//   - ctx: 交易上下文
-//
-// 返回值：
-//   - error: 操作成功返回 nil，失败返回具体错误信息
-//
-// 权限要求：所有组织成员可调用（仅用于初始化）
-func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	// 创建测试零部件数据
-	testPart := Part{
-		PartID:       "ENG-PISTON-001",
-		VIN:          "LVX1234568789798",
-		BatchNo:      "B20260127",
-		Name:         "发动机活塞",
-		Type:         "发动机部件",
-		Manufacturer: "厂商A",
-		CreateTime:   fmt.Sprintf("%d", time.Now().Unix()),
-		Status:       "NORMAL",
-	}
-
-	// 序列化零部件数据
-	partJson, err := json.Marshal(testPart)
-	if err != nil {
-		return fmt.Errorf("序列化测试零部件失败: %v", err)
-	}
-
-	// 将测试数据写入账本
-	return ctx.GetStub().PutState(testPart.PartID, partJson)
-}
-
 // getClientIdentityMSPID 获取客户端身份信息
 // 参数：
 //   - ctx: 交易上下文
