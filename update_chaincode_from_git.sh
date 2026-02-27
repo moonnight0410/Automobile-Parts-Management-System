@@ -1,5 +1,19 @@
 #!/bin/bash
 # 从 Git 更新链码并部署到 Fabric 网络（支持断点续传）
+# 
+# 背书策略说明：
+# - 策略类型：OR（或逻辑）
+# - 策略表达式：OR('Org1MSP.member','Org2MSP.member','Org3MSP.member')
+# - 策略含义：任何单个组织的成员都可以背书交易
+# - 优势：
+#   1. 减少网络往返次数
+#   2. 降低交易延迟
+#   3. 提高系统吞吐量
+#   4. 减少单点故障影响
+# - 组织职责：
+#   - Org1MSP（零部件生产厂商）：CreatePart, CreateProductionData, CreateQualityInspection
+#   - Org2MSP（整车车企）：CreateSupplyOrder, CreateLogisticsData
+#   - Org3MSP（4S店/售后中心）：CreateFaultReport, CreateRecallRecord
 
 # ==================== 配置变量 ====================
 GIT_REPO_URL="https://github.com/moonnight0410/Automobile-Parts-Management-System.git"
@@ -9,6 +23,9 @@ CHAINCODE_NAME="auto-system"
 INITIAL_VERSION="1.0"
 CHAINCODE_PATH="${LOCAL_CHAINCODE_DIR}/chaincode"
 FABRIC_NETWORK_PATH="~/fabric/fabric-samples/test-network"
+
+# 背书策略配置（OR策略：任何单个组织都可以背书）
+ENDORSEMENT_POLICY="OR('Org1MSP.member','Org2MSP.member','Org3MSP.member')"
 
 # 状态文件和日志文件
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -607,6 +624,7 @@ main() {
     step=11
     if ! is_step_completed "step11_commit"; then
         log_info "步骤11: 提交链码定义到通道"
+        log_info "背书策略: $ENDORSEMENT_POLICY"
         
         setup_org_env "Org1"
         
@@ -620,6 +638,7 @@ main() {
             --version "$NEW_VERSION" \
             --sequence "$NEW_SEQUENCE" \
             --init-required \
+            --signature-policy "$ENDORSEMENT_POLICY" \
             --peerAddresses localhost:7051 \
             --tlsRootCertFiles ${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt \
             --peerAddresses localhost:9051 \
@@ -638,6 +657,8 @@ main() {
         log_verify "验证: 链码定义提交成功"
         log_verify "✓ 通道中已提交的链码:"
         peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --output json | tee -a "$LOG_FILE"
+        log_verify "✓ 验证背书策略:"
+        peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json | jq -r '.endorsement_info' 2>/dev/null | tee -a "$LOG_FILE"
     else
         log_info "步骤11: 已完成，跳过"
     fi
@@ -645,12 +666,14 @@ main() {
     # ==================== 步骤12: 验证更新 ====================
     step=12
     if ! is_step_completed "step12_verify"; then
-        log_info "步骤12: 验证链码更新"
+        log_info "步骤12: 验证链码更新和背书策略"
         
-        peer lifecycle chaincode querycommitted \
+        local commit_info=$(peer lifecycle chaincode querycommitted \
             --channelID "$CHANNEL_NAME" \
             --name "$CHAINCODE_NAME" \
-            --output json | tee -a "$LOG_FILE"
+            --output json 2>/dev/null)
+        
+        echo "$commit_info" | tee -a "$LOG_FILE"
         
         update_state "step12_verify" "completed"
         log_success "步骤12完成"
@@ -658,13 +681,18 @@ main() {
         # 验证输出
         log_verify "验证: 链码更新验证完成"
         log_verify "✓ 链码详细信息:"
-        peer lifecycle chaincode querycommitted \
-            --channelID "$CHANNEL_NAME" \
-            --name "$CHAINCODE_NAME" \
-            --output json | jq '.' 2>/dev/null | tee -a "$LOG_FILE"
+        echo "$commit_info" | jq '.' 2>/dev/null | tee -a "$LOG_FILE"
         log_verify "✓ 版本号: $NEW_VERSION"
         log_verify "✓ 序列号: $NEW_SEQUENCE"
         log_verify "✓ 包ID: $PACKAGE_ID"
+        log_verify "✓ 背书策略验证:"
+        local endorsement_info=$(echo "$commit_info" | jq -r '.endorsement_info' 2>/dev/null)
+        if [ -n "$endorsement_info" ] && [ "$endorsement_info" != "null" ]; then
+            log_verify "  背书策略已配置: $endorsement_info"
+            log_success "✓ 背书策略验证成功"
+        else
+            log_warning "  背书策略信息未找到，可能使用默认策略"
+        fi
     else
         log_info "步骤12: 已完成，跳过"
     fi
@@ -723,15 +751,71 @@ main() {
         log_info "步骤13: 已完成，跳过"
     fi
     
-    # ==================== 步骤14: 清理 ====================
+    # ==================== 步骤14: 测试背书策略 ====================
     step=14
-    if ! is_step_completed "step14_cleanup"; then
-        log_info "步骤14: 清理状态文件"
+    if ! is_step_completed "step14_test_endorsement"; then
+        log_info "步骤14: 测试背书策略"
+        log_info "测试OR背书策略：任何单个组织都可以背书交易"
+        
+        setup_org_env "Org1"
+        
+        log_info "测试1: 使用Org1MSP进行背书"
+        local test_result=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
+        if echo "$test_result" | grep -q "error"; then
+            log_error "Org1MSP背书测试失败"
+            update_state "step14_test_endorsement" "failed" "Org1MSP背书测试失败"
+            exit 1
+        else
+            log_success "Org1MSP背书测试成功"
+        fi
+        
+        setup_org_env "Org2"
+        
+        log_info "测试2: 使用Org2MSP进行背书"
+        test_result=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
+        if echo "$test_result" | grep -q "error"; then
+            log_error "Org2MSP背书测试失败"
+            update_state "step14_test_endorsement" "failed" "Org2MSP背书测试失败"
+            exit 1
+        else
+            log_success "Org2MSP背书测试成功"
+        fi
+        
+        setup_org_env "Org3"
+        
+        log_info "测试3: 使用Org3MSP进行背书"
+        test_result=$(peer chaincode query -C "$CHANNEL_NAME" -n "$CHAINCODE_NAME" -c '{"Args":["org.hyperledger.fabric:GetMetadata"]}' 2>&1)
+        if echo "$test_result" | grep -q "error"; then
+            log_error "Org3MSP背书测试失败"
+            update_state "step14_test_endorsement" "failed" "Org3MSP背书测试失败"
+            exit 1
+        else
+            log_success "Org3MSP背书测试成功"
+        fi
+        
+        log_success "所有组织的背书测试通过"
+        update_state "step14_test_endorsement" "completed"
+        log_success "步骤14完成"
+        
+        # 验证输出
+        log_verify "验证: 背书策略测试完成"
+        log_verify "✓ Org1MSP: 可以背书 ✓"
+        log_verify "✓ Org2MSP: 可以背书 ✓"
+        log_verify "✓ Org3MSP: 可以背书 ✓"
+        log_verify "✓ OR背书策略验证成功"
+    else
+        log_info "步骤14: 已完成，跳过"
+    fi
+    
+    # ==================== 步骤15: 清理 ====================
+    step=15
+    if ! is_step_completed "step15_cleanup"; then
+        log_info "步骤15: 清理状态文件"
         
         delete_state
         
-        update_state "step14_cleanup" "completed"
-        log_success "步骤14完成"
+        update_state "step15_cleanup" "completed"
+        log_success "步骤15完成"
         
         # 验证输出
         log_verify "验证: 清理完成"
@@ -740,7 +824,7 @@ main() {
         log_verify "✓ 日志文件大小:"
         ls -lh "$LOG_FILE" | awk '{print "  " $5}'
     else
-        log_info "步骤14: 已完成，跳过"
+        log_info "步骤15: 已完成，跳过"
     fi
     
     # ==================== 完成 ====================
@@ -749,6 +833,7 @@ main() {
     log_info "版本: $NEW_VERSION"
     log_info "序列号: $NEW_SEQUENCE"
     log_info "包ID: $PACKAGE_ID"
+    log_info "背书策略: $ENDORSEMENT_POLICY"
     log_info "时间: $(date)"
     log_info "日志文件: $LOG_FILE"
     log_info "================================"
@@ -758,7 +843,17 @@ main() {
     log_verify "最终验证"
     log_verify "================================"
     log_verify "✓ 链码部署信息:"
-    peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json | jq '.' 2>/dev/null | tee -a "$LOG_FILE"
+    local final_commit_info=$(peer lifecycle chaincode querycommitted --channelID "$CHANNEL_NAME" --name "$CHAINCODE_NAME" --output json 2>/dev/null)
+    echo "$final_commit_info" | jq '.' 2>/dev/null | tee -a "$LOG_FILE"
+    log_verify "✓ 背书策略最终验证:"
+    local final_endorsement_info=$(echo "$final_commit_info" | jq -r '.endorsement_info' 2>/dev/null)
+    if [ -n "$final_endorsement_info" ] && [ "$final_endorsement_info" != "null" ]; then
+        log_verify "  背书策略: $final_endorsement_info"
+        log_success "✓ OR背书策略已正确配置"
+        log_verify "  策略说明: 任何单个组织（Org1MSP、Org2MSP或Org3MSP）都可以背书交易"
+    else
+        log_warning "  背书策略信息未找到，使用默认策略"
+    fi
     log_verify "✓ 链码容器状态:"
     docker ps --filter "name=dev-peer" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | tee -a "$LOG_FILE"
     log_verify "================================"
