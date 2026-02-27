@@ -39,6 +39,10 @@ func (p *PartController) GetPart(c *gin.Context) {
 	}
 	part, err := p.service.QueryPart(c.Request.Context(), partID)
 	if err != nil {
+		if err.Error() == "零部件不存在" {
+			c.JSON(http.StatusNotFound, utils.Error(http.StatusNotFound, err.Error()))
+			return
+		}
 		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
 		return
 	}
@@ -106,4 +110,18 @@ func (p *PartController) DeletePart(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
+}
+
+func (p *PartController) GetPartLifecycle(c *gin.Context) {
+	partID := c.Param("id")
+	if partID == "" {
+		c.JSON(http.StatusBadRequest, utils.Error(http.StatusBadRequest, "missing partID"))
+		return
+	}
+	lifecycle, err := p.service.QueryPartLifecycle(c.Request.Context(), partID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(lifecycle, "ok"))
 }

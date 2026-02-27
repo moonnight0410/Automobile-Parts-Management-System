@@ -385,7 +385,7 @@ function handleExport() {
 }
 
 function viewDetail(record: any) {
-  message.info(`查看订单 ${record.orderID} 详情`)
+  router.push(`/supply/order/detail/${record.orderID}`)
 }
 
 function trackLogistics(record: any) {

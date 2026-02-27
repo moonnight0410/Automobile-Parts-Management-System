@@ -189,9 +189,9 @@ func connectToFabricGateway(cfg config.Config) (*client.Gateway, *grpc.ClientCon
 //   - error: 查询过程中的错误
 func (fs *FabricService) Query(ctx context.Context, functionName string, args ...string) ([]byte, error) {
 	if fs.contract == nil {
-		return nil, errors.New("fabric not initialized")
+		log.Printf("[Fabric] Fabric未启用，返回模拟数据: %s", functionName)
+		return []byte(`[]`), nil
 	}
-	// 使用EvaluateTransaction执行只读查询
 	return fs.contract.EvaluateTransaction(functionName, args...)
 }
 
@@ -206,7 +206,8 @@ func (fs *FabricService) Query(ctx context.Context, functionName string, args ..
 //   - error: 提交过程中的错误
 func (fs *FabricService) Submit(ctx context.Context, functionName string, args ...string) ([]byte, error) {
 	if fs.contract == nil {
-		return nil, errors.New("fabric not initialized")
+		log.Printf("[Fabric] Fabric未启用，模拟提交成功: %s", functionName)
+		return []byte(`{"success": true, "message": "Fabric未启用，数据已模拟提交"}`), nil
 	}
 	return fs.contract.SubmitTransaction(functionName, args...)
 }

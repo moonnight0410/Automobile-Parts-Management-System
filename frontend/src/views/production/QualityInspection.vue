@@ -395,7 +395,7 @@ function handleExport() {
 }
 
 function viewDetail(record: any) {
-  message.info(`查看质检记录 ${record.inspectionID} 详情`)
+  router.push(`/production/quality/detail/${record.inspectionID}`)
 }
 
 function viewReport(record: any) {

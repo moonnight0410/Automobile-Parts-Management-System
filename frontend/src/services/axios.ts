@@ -58,13 +58,11 @@ axiosInstance.interceptors.response.use(
     return response
   },
   error => {
-    // 处理HTTP错误
     if (error.response) {
-      const { status, data } = error.response
+      const { status, data, config } = error.response
       
       switch (status) {
         case 401:
-          // 未授权，清除token并跳转到登录页
           localStorage.removeItem(STORAGE_KEYS.TOKEN)
           localStorage.removeItem(STORAGE_KEYS.USER)
           message.error('登录已过期，请重新登录')
@@ -77,16 +75,17 @@ axiosInstance.interceptors.response.use(
           message.error('请求的资源不存在')
           break
         case 500:
+          if (config?.url?.includes('/lifecycle')) {
+            return Promise.reject(error)
+          }
           message.error(data?.message || '服务器内部错误')
           break
         default:
           message.error(data?.message || `请求失败 (${status})`)
       }
     } else if (error.request) {
-      // 请求已发出但没有收到响应
       message.error('网络错误，请检查网络连接')
     } else {
-      // 其他错误
       message.error(error.message || '请求失败')
     }
     

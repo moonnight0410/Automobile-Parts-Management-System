@@ -1,4 +1,4 @@
-import { get, post } from './axios'
+import { get, post, del } from './axios'
 import type { ApiResponse } from '../types'
 
 export interface QualityInspection {
@@ -62,4 +62,8 @@ export const createQualityInspectionWithChain = async (data: BackendQualityDTO):
   await createBackendQualityInspection(data)
   const resp = await createFabricQualityInspection(data)
   return resp
+}
+
+export const deleteQualityInspection = (inspectionID: string): Promise<ApiResponse<void>> => {
+  return del(`/api/fabric/quality/${inspectionID}`)
 }

@@ -128,6 +128,28 @@ const routes: Array<RouteRecordRaw> = [
               permission: 'bomCompare',
               roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
             }
+          },
+          {
+            path: 'detail/:id',
+            name: 'BOMDetail',
+            component: () => import('../views/boms/BOMDetail.vue'),
+            meta: {
+              requiresAuth: true,
+              title: 'BOM详情',
+              permission: 'bomDetail',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
+            }
+          },
+          {
+            path: 'edit/:id',
+            name: 'BOMEdit',
+            component: () => import('../views/boms/BOMEdit.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '编辑BOM',
+              permission: 'bomEdit',
+              roles: [UserRole.MANUFACTURER]
+            }
           }
         ]
       },
@@ -185,6 +207,28 @@ const routes: Array<RouteRecordRaw> = [
               permission: 'qualityInspectionCreate',
               roles: [UserRole.MANUFACTURER]
             }
+          },
+          {
+            path: 'detail/:id',
+            name: 'ProductionDetail',
+            component: () => import('../views/production/ProductionDetail.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '生产记录详情',
+              permission: 'productionDetail',
+              roles: [UserRole.MANUFACTURER]
+            }
+          },
+          {
+            path: 'quality/detail/:id',
+            name: 'QualityDetail',
+            component: () => import('../views/quality/QualityDetail.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '质检记录详情',
+              permission: 'qualityDetail',
+              roles: [UserRole.MANUFACTURER]
+            }
           }
         ]
       },
@@ -222,6 +266,17 @@ const routes: Array<RouteRecordRaw> = [
             }
           },
           {
+            path: 'order/detail/:id',
+            name: 'PurchaseDetail',
+            component: () => import('../views/orders/PurchaseDetail.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '采购订单详情',
+              permission: 'purchaseDetail',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
+            }
+          },
+          {
             path: 'logistics',
             name: 'Logistics',
             component: () => import('../views/supply/Logistics.vue'),
@@ -229,6 +284,17 @@ const routes: Array<RouteRecordRaw> = [
               requiresAuth: true,
               title: '物流跟踪',
               permission: 'logistics',
+              roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
+            }
+          },
+          {
+            path: 'logistics/detail/:id',
+            name: 'LogisticsDetail',
+            component: () => import('../views/logistics/LogisticsDetail.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '物流跟踪详情',
+              permission: 'logisticsDetail',
               roles: [UserRole.MANUFACTURER, UserRole.AUTOMAKER]
             }
           }

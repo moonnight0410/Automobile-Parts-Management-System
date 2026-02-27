@@ -27,10 +27,6 @@
           <div class="stat-label">生产批次</div>
         </div>
         <div class="stat-item">
-          <div class="stat-value status-production">{{ todayCount }}</div>
-          <div class="stat-label">今日生产</div>
-        </div>
-        <div class="stat-item">
           <div class="stat-value status-line">{{ activeLines }}</div>
           <div class="stat-label">活跃产线</div>
         </div>
@@ -282,12 +278,12 @@ import { listProductionData, type ProductionData } from '../../services/producti
 const router = useRouter()
 
 const columns = [
-  { title: '生产ID', dataIndex: 'recordID', key: 'recordID', width: 130 },
+  { title: '生产ID', dataIndex: 'productionID', key: 'productionID', width: 130 },
   { title: '零部件ID', dataIndex: 'partID', key: 'partID', width: 130 },
   { title: '批次号', dataIndex: 'batchNo', key: 'batchNo', width: 130 },
   { title: '生产线', dataIndex: 'productionLine', key: 'productionLine', width: 100 },
   { title: '操作员', dataIndex: 'operator', key: 'operator', width: 100 },
-  { title: '完成时间', dataIndex: 'operationTime', key: 'operationTime', width: 140 },
+  { title: '完成时间', dataIndex: 'finishTime', key: 'finishTime', width: 140 },
   { title: '操作', key: 'action', fixed: 'right', width: 140 }
 ]
 
@@ -312,26 +308,23 @@ const showCreateModal = ref(false)
 const refreshing = ref(false)
 
 const totalCount = computed(() => tableData.value.length)
-const todayCount = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  return tableData.value.filter(item => item.operationTime?.startsWith(today)).length
-})
 const activeLines = computed(() => {
   const lines = new Set(tableData.value.map(item => item.productionLine))
   return lines.size
 })
-const totalOutput = computed(() => tableData.value.length * 100)
+const totalOutput = computed(() => {
+  return tableData.value.reduce((total, item) => {
+    const quantity = parseInt(item.params?.quantity || '0')
+    return total + (isNaN(quantity) ? 0 : quantity)
+  }, 0)
+})
 
 async function fetchData() {
   loading.value = true
   try {
     const response = await listProductionData()
     if (response.code === 0 && response.data) {
-      tableData.value = response.data.map((item: ProductionData) => ({
-        ...item,
-        productionID: item.recordID,
-        finishTime: item.operationTime
-      }))
+      tableData.value = response.data
     }
   } catch (error: any) {
     message.error(error.message || '获取数据失败')
@@ -344,7 +337,7 @@ async function fetchData() {
 const filteredData = computed(() => {
   let result = [...tableData.value]
   if (searchForm.value.productionID) {
-    result = result.filter(item => item.recordID?.toLowerCase().includes(searchForm.value.productionID.toLowerCase()))
+    result = result.filter(item => item.productionID?.toLowerCase().includes(searchForm.value.productionID.toLowerCase()))
   }
   if (searchForm.value.partID) {
     result = result.filter(item => item.partID?.toLowerCase().includes(searchForm.value.partID.toLowerCase()))
@@ -400,11 +393,11 @@ function handleExport() {
 }
 
 function viewDetail(record: any) {
-  message.info(`查看生产记录 ${record.recordID} 详情`)
+  router.push(`/production/detail/${record.productionID}`)
 }
 
 function viewQuality(record: any) {
-  message.info(`查看生产记录 ${record.recordID} 的质检信息`)
+  message.info(`查看生产记录 ${record.productionID} 的质检信息`)
 }
 
 function goToCreate() {

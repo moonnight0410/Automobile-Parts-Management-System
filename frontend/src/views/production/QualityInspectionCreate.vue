@@ -436,14 +436,39 @@ async function handleSubmit() {
 
   try {
     const id = form.inspectionID || `QC-${Date.now().toString().slice(-8)}`
+    const now = new Date()
+    const handleTime = now.toLocaleString('zh-CN', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+    
+    const indicators: Record<string, string> = {}
+    if (form.inspectionType) {
+      indicators['inspectionType'] = form.inspectionType
+    }
+    if (form.inspectionItem) {
+      indicators['inspectionItem'] = form.inspectionItem
+    }
+    if (form.defectCount > 0) {
+      indicators['defectCount'] = form.defectCount.toString()
+    }
+    if (form.remark) {
+      indicators['remark'] = form.remark
+    }
+    
     const payload: BackendQualityDTO = {
       inspectionID: id,
       partID: form.partID.trim(),
       batchNo: form.batchNo.trim(),
-      indicators: {},
+      indicators: indicators,
       result: form.result,
       handler: form.handler.trim(),
-      handleTime: Math.floor(Date.now() / 1000).toString(),
+      handleTime: handleTime,
       disposal: form.result === '不合格' ? '' : ''
     }
     await createQualityInspectionWithChain(payload)
@@ -451,7 +476,14 @@ async function handleSubmit() {
     showSuccessModal.value = true
     message.success('质检数据录入成功')
   } catch (error: any) {
-    message.error(error.message || '录入失败')
+    console.error('提交失败:', error)
+    if (error.response) {
+      message.error(error.response.data?.message || '录入失败，请稍后重试')
+    } else if (error.message) {
+      message.error(error.message)
+    } else {
+      message.error('录入失败，请稍后重试')
+    }
   } finally {
     submitting.value = false
   }

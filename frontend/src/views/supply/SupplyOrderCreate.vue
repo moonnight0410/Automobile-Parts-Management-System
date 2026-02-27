@@ -81,9 +81,9 @@
                   </template>
                 </a-input>
               </a-form-item>
-              <a-form-item label="供应商" name="supplier" class="form-item half">
+              <a-form-item label="供应商" name="seller" class="form-item half">
                 <a-input
-                  v-model:value="form.supplier"
+                  v-model:value="form.seller"
                   placeholder="请输入供应商名称"
                   :maxlength="50"
                   class="custom-input"
@@ -95,7 +95,35 @@
               </a-form-item>
             </div>
 
-            <!-- 订单状态和订单金额 -->
+            <!-- 零部件ID和批次号 -->
+            <div class="form-row">
+              <a-form-item label="零部件ID" name="partID" class="form-item half">
+                <a-input
+                  v-model:value="form.partID"
+                  placeholder="请输入零部件ID"
+                  :maxlength="50"
+                  class="custom-input"
+                >
+                  <template #prefix>
+                    <span class="input-icon"><AppstoreOutlined /></span>
+                  </template>
+                </a-input>
+              </a-form-item>
+              <a-form-item label="批次号" name="batchNo" class="form-item half">
+                <a-input
+                  v-model:value="form.batchNo"
+                  placeholder="请输入批次号"
+                  :maxlength="50"
+                  class="custom-input"
+                >
+                  <template #prefix>
+                    <span class="input-icon"><BarcodeOutlined /></span>
+                  </template>
+                </a-input>
+              </a-form-item>
+            </div>
+
+            <!-- 订单状态和数量 -->
             <div class="form-row">
               <a-form-item label="订单状态" name="status" class="form-item half">
                 <a-select
@@ -107,37 +135,26 @@
                   :dropdown-style="{ zIndex: 1050 }"
                 />
               </a-form-item>
-              <a-form-item label="订单金额" name="amount" class="form-item half">
+              <a-form-item label="数量" name="quantity" class="form-item half">
                 <a-input-number
-                  v-model:value="form.amount"
-                  placeholder="请输入订单金额"
-                  :min="0"
-                  :max="9999999"
-                  :precision="2"
+                  v-model:value="form.quantity"
+                  placeholder="请输入数量"
+                  :min="1"
+                  :max="999999"
+                  :precision="0"
                   class="custom-input-number"
                 />
               </a-form-item>
             </div>
 
-            <!-- 交货日期 -->
-            <a-form-item label="交货日期" name="deliveryDate" class="form-item">
+            <!-- 约定时间 -->
+            <a-form-item label="约定时间" name="agreedTime" class="form-item">
               <a-date-picker
-                v-model:value="form.deliveryDate"
-                placeholder="请选择交货日期"
+                v-model:value="form.agreedTime"
+                placeholder="请选择约定时间"
                 class="custom-date-picker"
                 style="width: 100%"
                 :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
-              />
-            </a-form-item>
-
-            <!-- 备注 -->
-            <a-form-item label="备注" name="remark" class="form-item">
-              <a-textarea
-                v-model:value="form.remark"
-                placeholder="请输入备注信息（可选）"
-                :rows="4"
-                :maxlength="500"
-                class="custom-textarea"
               />
             </a-form-item>
 
@@ -183,10 +200,6 @@
               <CheckCircleOutlined class="guide-icon success" />
               <span>提交后订单将记录到区块链</span>
             </li>
-            <li>
-              <CheckCircleOutlined class="guide-icon warning" />
-              <span>订单金额单位为元</span>
-            </li>
           </ul>
         </a-card>
 
@@ -207,21 +220,27 @@
             </div>
             <div class="preview-item">
               <span class="preview-label">供应商</span>
-              <span class="preview-value">{{ form.supplier || '-' }}</span>
+              <span class="preview-value">{{ form.seller || '-' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-label">零部件ID</span>
+              <span class="preview-value">{{ form.partID || '-' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-label">批次号</span>
+              <span class="preview-value">{{ form.batchNo || '-' }}</span>
+            </div>
+            <div class="preview-item">
+              <span class="preview-label">数量</span>
+              <span class="preview-value">{{ form.quantity || '-' }}</span>
             </div>
             <div class="preview-item">
               <span class="preview-label">订单状态</span>
-              <a-tag :color="getStatusColor(form.status)" size="small">
-                {{ form.status || '-' }}
-              </a-tag>
+              <span class="preview-value">{{ form.status || '-' }}</span>
             </div>
             <div class="preview-item">
-              <span class="preview-label">订单金额</span>
-              <span class="preview-value">{{ form.amount ? `¥${form.amount.toFixed(2)}` : '-' }}</span>
-            </div>
-            <div class="preview-item">
-              <span class="preview-label">交货日期</span>
-              <span class="preview-value">{{ formatDate(form.deliveryDate) }}</span>
+              <span class="preview-label">约定时间</span>
+              <span class="preview-value">{{ form.agreedTime ? form.agreedTime.format('YYYY-MM-DD HH:mm:ss') : '-' }}</span>
             </div>
           </div>
         </a-card>
@@ -265,10 +284,6 @@
           <span class="label">订单ID：</span>
           <span class="value">{{ createdOrderID }}</span>
         </div>
-        <div class="success-result">
-          <span class="label">订单金额：</span>
-          <span class="value">¥{{ form.amount?.toFixed(2) || '0.00' }}</span>
-        </div>
         <div class="success-actions">
           <a-button type="primary" @click="handleCreateAnother">
             <template #icon><PlusOutlined /></template>
@@ -290,6 +305,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance, SelectProps } from 'ant-design-vue'
 import dayjs, { Dayjs } from 'dayjs'
+import { createSupplyOrder } from '../../services/supply.service'
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -301,6 +317,8 @@ import {
   NumberOutlined,
   UserOutlined,
   ShopOutlined,
+  AppstoreOutlined,
+  BarcodeOutlined,
   ThunderboltOutlined,
   PlusOutlined,
   UnorderedListOutlined,
@@ -316,11 +334,13 @@ const createdOrderID = ref('')
 const form = reactive({
   orderID: '',
   buyer: '',
-  supplier: '',
+  seller: '',
+  partID: '',
+  quantity: 1,
+  batchNo: '',
   status: '',
-  amount: 0,
-  deliveryDate: null as Dayjs | null,
-  remark: ''
+  agreedTime: null as Dayjs | null,
+  createTime: ''
 })
 
 const formStatus = computed(() => {
@@ -334,30 +354,34 @@ const formStatus = computed(() => {
 })
 
 const statusOptions = computed<SelectProps['options']>(() => [
-  { value: '待处理', label: '待处理' },
-  { value: '运输中', label: '运输中' },
+  { value: '待发货', label: '待发货' },
+  { value: '已发货', label: '已发货' },
   { value: '已签收', label: '已签收' }
 ])
 
 const isFormValid = computed(() => {
   return (
     form.buyer.trim() !== '' &&
-    form.supplier.trim() !== '' &&
+    form.seller.trim() !== '' &&
+    form.partID.trim() !== '' &&
+    form.batchNo.trim() !== '' &&
     form.status !== '' &&
-    form.amount > 0 &&
-    form.deliveryDate !== null
+    form.quantity > 0 &&
+    form.agreedTime !== null
   )
 })
 
 const formRules = {
   buyer: [{ required: true, message: '请输入采购方名称', trigger: 'blur' }],
-  supplier: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
+  seller: [{ required: true, message: '请输入供应商名称', trigger: 'blur' }],
+  partID: [{ required: true, message: '请输入零部件ID', trigger: 'blur' }],
+  batchNo: [{ required: true, message: '请输入批次号', trigger: 'blur' }],
   status: [{ required: true, message: '请选择订单状态', trigger: 'change' }],
-  amount: [
-    { required: true, message: '请输入订单金额', trigger: 'blur' },
-    { type: 'number', min: 0.01, message: '订单金额必须大于0', trigger: 'blur' }
+  quantity: [
+    { required: true, message: '请输入数量', trigger: 'blur' },
+    { type: 'number', min: 1, message: '数量必须大于0', trigger: 'blur' }
   ],
-  deliveryDate: [{ required: true, message: '请选择交货日期', trigger: 'change' }]
+  agreedTime: [{ required: true, message: '请选择约定时间', trigger: 'change' }]
 }
 
 function getStatusColor(status: string) {
@@ -379,15 +403,18 @@ function goBack() {
 function generateOrderID() {
   const timestamp = Date.now().toString().slice(-8)
   form.orderID = `ORD-${timestamp}`
+  form.createTime = timestamp
   message.success('已生成订单ID')
 }
 
 function fillTestData() {
   form.buyer = '测试采购方'
-  form.supplier = '测试供应商'
-  form.status = '待处理'
-  form.amount = 10000
-  form.deliveryDate = dayjs().add(7, 'day')
+  form.seller = '测试供应商'
+  form.partID = 'TEST-PART-001'
+  form.batchNo = 'TEST-BATCH-001'
+  form.quantity = 100
+  form.status = '待发货'
+  form.agreedTime = dayjs().add(7, 'day')
   message.success('已填充测试数据')
 }
 
@@ -396,10 +423,26 @@ async function handleSubmit() {
   submitting.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    createdOrderID.value = form.orderID || `ORD-${Date.now().toString().slice(-8)}`
-    showSuccessModal.value = true
-    message.success('采购订单创建成功')
+    const orderData = {
+      orderID: form.orderID || `ORD-${Date.now().toString().slice(-8)}`,
+      buyer: form.buyer,
+      seller: form.seller,
+      partID: form.partID,
+      quantity: form.quantity,
+      batchNo: form.batchNo,
+      agreedTime: form.agreedTime ? form.agreedTime.format('YYYY-MM-DD HH:mm:ss') : '',
+      status: form.status,
+      createTime: form.createTime || Date.now().toString()
+    }
+
+    const response = await createSupplyOrder(orderData)
+    if (response.success) {
+      createdOrderID.value = orderData.orderID
+      showSuccessModal.value = true
+      message.success('采购订单创建成功')
+    } else {
+      message.error(response.message || '创建失败')
+    }
   } catch (error: any) {
     message.error(error.message || '创建失败')
   } finally {
@@ -411,11 +454,13 @@ function handleReset() {
   formRef.value?.resetFields()
   form.orderID = ''
   form.buyer = ''
-  form.supplier = ''
+  form.seller = ''
+  form.partID = ''
+  form.quantity = 1
+  form.batchNo = ''
   form.status = ''
-  form.amount = 0
-  form.deliveryDate = null
-  form.remark = ''
+  form.agreedTime = null
+  form.createTime = ''
 }
 
 function handleCreateAnother() {

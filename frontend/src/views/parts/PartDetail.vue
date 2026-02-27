@@ -140,12 +140,16 @@
                 <ExportOutlined class="action-icon-item" />
                 <span>导出数据</span>
               </div>
+              <div class="action-item delete-action" @click="handleDelete">
+                <DeleteOutlined class="action-icon-item" />
+                <span>删除该数据</span>
+              </div>
             </div>
           </a-card>
         </div>
 
         <!-- 右侧生命周期区 -->
-        <div class="lifecycle-container">
+        <div class="lifecycle-container" ref="lifecycleContainerRef">
           <a-card :bordered="false" class="lifecycle-card">
             <div class="card-header">
               <div class="header-icon lifecycle-icon">
@@ -279,16 +283,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { usePartStore } from '../../stores'
 import type { Part, PartLifecycle } from '../../types'
 import {
   ArrowLeftOutlined,
-  AppstoreOutlined,
   NumberOutlined,
   TagOutlined,
+  AppstoreOutlined,
   BarcodeOutlined,
   CarOutlined,
   ShopOutlined,
@@ -299,6 +303,7 @@ import {
   FileTextOutlined,
   SwapOutlined,
   ExportOutlined,
+  DeleteOutlined,
   PlusCircleOutlined,
   ToolOutlined,
   SettingOutlined,
@@ -317,6 +322,7 @@ const partStore = usePartStore()
 const loading = ref(false)
 const partData = ref<Part | null>(null)
 const lifecycleData = ref<PartLifecycle | null>(null)
+const lifecycleContainerRef = ref<HTMLElement | null>(null)
 
 function goBack() {
   router.push('/parts/list')
@@ -359,19 +365,230 @@ function getTypeColor(type: string) {
 }
 
 function viewLifecycle() {
-  message.info('生命周期信息已展示在右侧')
+  if (lifecycleContainerRef.value) {
+    lifecycleContainerRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 }
 
 function viewBOM() {
-  message.info('BOM信息功能开发中')
+  if (!partData.value) {
+    message.error('零部件数据未加载')
+    return
+  }
+  
+  Modal.info({
+    title: 'BOM信息',
+    width: 600,
+    content: h('div', { style: { padding: '16px' } }, [
+      h('div', { style: { marginBottom: '16px' } }, [
+        h('strong', { style: { fontSize: '16px' } }, '零部件BOM关联信息')
+      ]),
+      h('div', { style: { marginBottom: '12px' } }, [
+        h('span', { style: { color: '#8c8c8c' } }, '零部件ID: '),
+        h('span', { style: { fontWeight: '500', marginLeft: '8px' } }, partData.value.partID)
+      ]),
+      h('div', { style: { marginBottom: '12px' } }, [
+        h('span', { style: { color: '#8c8c8c' } }, '零部件名称: '),
+        h('span', { style: { fontWeight: '500', marginLeft: '8px' } }, partData.value.name)
+      ]),
+      h('div', { style: { marginBottom: '12px' } }, [
+        h('span', { style: { color: '#8c8c8c' } }, '批次号: '),
+        h('span', { style: { fontWeight: '500', marginLeft: '8px' } }, partData.value.batchNo)
+      ]),
+      h('a-divider', { style: { margin: '16px 0' } }),
+      h('div', { style: { color: '#8c8c8c', fontSize: '13px' } }, [
+        '该零部件可能关联到多个BOM清单中。您可以在BOM管理页面查看完整的BOM信息。'
+      ]),
+      h('div', { style: { marginTop: '12px' } }, [
+        h('a-button', { 
+          type: 'primary', 
+          onClick: () => {
+            router.push('/bom/list')
+            Modal.destroyAll()
+          }
+        }, '前往BOM列表')
+      ])
+    ])
+  })
 }
 
 function viewSupplyChain() {
-  message.info('供应链信息功能开发中')
+  if (!partData.value) {
+    message.error('零部件数据未加载')
+    return
+  }
+  
+  const status = partData.value.status
+  const statusText = getStatusText(status)
+  
+  Modal.info({
+    title: '供应链信息',
+    width: 600,
+    content: h('div', { style: { padding: '16px' } }, [
+      h('div', { style: { marginBottom: '16px' } }, [
+        h('strong', { style: { fontSize: '16px' } }, '供应链流转状态')
+      ]),
+      h('div', { style: { marginBottom: '12px' } }, [
+        h('span', { style: { color: '#8c8c8c' } }, '零部件ID: '),
+        h('span', { style: { fontWeight: '500', marginLeft: '8px' } }, partData.value.partID)
+      ]),
+      h('div', { style: { marginBottom: '12px' } }, [
+        h('span', { style: { color: '#8c8c8c' } }, '当前状态: '),
+        h('a-tag', { 
+          color: getStatusColor(status),
+          style: { marginLeft: '8px' }
+        }, statusText)
+      ]),
+      h('a-divider', { style: { margin: '16px 0' } }),
+      h('div', { style: { color: '#8c8c8c', fontSize: '13px', lineHeight: '1.8' } }, [
+        '该零部件的供应链流转信息已记录在区块链上。您可以在供应链管理页面查看完整的物流追踪信息。'
+      ]),
+      h('div', { style: { marginTop: '12px' } }, [
+        h('a-button', { 
+          type: 'primary', 
+          onClick: () => {
+            router.push('/supply/logistics')
+            Modal.destroyAll()
+          }
+        }, '前往物流跟踪')
+      ])
+    ])
+  })
 }
 
 function exportData() {
-  message.success('数据导出成功')
+  if (!partData.value) {
+    message.error('没有可导出的数据')
+    return
+  }
+  
+  try {
+    const partID = route.params.id as string
+    const data = partData.value
+    
+    let csvContent = '\uFEFF'
+    csvContent += '零部件信息\n'
+    csvContent += `零部件ID,${data.partID}\n`
+    csvContent += `零部件名称,${data.name}\n`
+    csvContent += `类型,${data.type}\n`
+    csvContent += `批次号,${data.batchNo}\n`
+    csvContent += `VIN码,${data.vin}\n`
+    csvContent += `生产厂商,${data.manufacturer}\n`
+    csvContent += `状态,${getStatusText(data.status)}\n`
+    csvContent += `创建时间,${data.createTime}\n\n`
+    
+    if (lifecycleData.value) {
+      csvContent += '生命周期信息\n'
+      
+      if (lifecycleData.value.productionInfo) {
+        csvContent += '生产信息\n'
+        csvContent += `生产线,${lifecycleData.value.productionInfo.productionLine}\n`
+        csvContent += `操作员,${lifecycleData.value.productionInfo.operator}\n`
+        csvContent += `完成时间,${lifecycleData.value.productionInfo.finishTime}\n\n`
+      }
+      
+      if (lifecycleData.value.qualityInfo) {
+        csvContent += '质检信息\n'
+        csvContent += `质检结果,${lifecycleData.value.qualityInfo.result}\n`
+        csvContent += `质检员,${lifecycleData.value.qualityInfo.inspector}\n`
+        csvContent += `处理时间,${lifecycleData.value.qualityInfo.handleTime}\n\n`
+      }
+      
+      if (lifecycleData.value.supplyChainInfo) {
+        csvContent += '供应链信息\n'
+        csvContent += `物流公司,${lifecycleData.value.supplyChainInfo.logisticsCompany}\n`
+        csvContent += `运输方式,${lifecycleData.value.supplyChainInfo.transportMethod}\n`
+        csvContent += `当前节点,${lifecycleData.value.supplyChainInfo.currentNode}\n\n`
+      }
+    }
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    
+    link.setAttribute('href', url)
+    link.setAttribute('download', `Part_${partID}_${data.batchNo}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    message.success('数据导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    message.error('数据导出失败')
+  }
+}
+
+async function handleDelete() {
+  const partID = route.params.id as string
+  if (!partID) {
+    message.error('零部件ID不存在')
+    return
+  }
+  
+  // 权限检查
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const userRole = user.role || user.userType || ''
+  const hasDeletePermission = userRole === 'admin' || userRole === 'manufacturer' || userRole === 'manufacturer_user'
+  
+  if (!hasDeletePermission) {
+    message.error('您没有权限删除该数据')
+    return
+  }
+  
+  // 数据验证
+  if (!partData.value) {
+    message.error('数据加载失败，无法删除')
+    return
+  }
+  
+  // 检查零部件状态，防止删除重要数据
+  const status = partData.value.status
+  if (status === 'IN_SUPPLY_CHAIN' || status === 'RECALLED') {
+    message.warning('该零部件当前状态不允许删除')
+    return
+  }
+  
+  // 显示确认对话框
+  Modal.confirm({
+    title: '确认删除',
+    icon: () => h(DeleteOutlined, { style: { color: '#ff4d4f' } }),
+    maskClosable: false,
+    maskStyle: { backgroundColor: 'rgba(0, 0, 0, 0.6)' },
+    content: h('div', { style: { lineHeight: '1.8' } }, [
+      h('p', { style: { marginBottom: '8px' } }, [
+        h('strong', { style: { color: '#ff4d4f' } }, '警告：此操作不可恢复！')
+      ]),
+      h('p', { style: { marginBottom: '8px' } }, [
+        `您确定要删除零部件 ${partData.value.partID} 吗？`
+      ]),
+      h('p', { style: { marginBottom: '8px', fontSize: '13px', color: '#999' } }, [
+        `零部件名称：${partData.value.name}`
+      ]),
+      h('p', { style: { marginBottom: '8px', fontSize: '13px', color: '#999' } }, [
+        `批次号：${partData.value.batchNo}`
+      ]),
+      h('p', { style: { fontSize: '13px', color: '#999' } }, [
+        '删除后将无法恢复，请谨慎操作。'
+      ])
+    ]),
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        await partStore.removePart(partID)
+        message.success('删除成功')
+        // 延迟跳转，让用户看到成功提示
+        setTimeout(() => {
+          goBack()
+        }, 1000)
+      } catch (error: any) {
+        message.error(error.message || '删除失败')
+      }
+    }
+  })
 }
 
 async function loadData() {
@@ -388,8 +605,13 @@ async function loadData() {
     await partStore.fetchPart(partID)
     partData.value = partStore.currentPart
     
-    await partStore.fetchLifecycle(partID)
-    lifecycleData.value = partStore.currentLifecycle
+    try {
+      await partStore.fetchLifecycle(partID)
+      lifecycleData.value = partStore.currentLifecycle
+    } catch (lifecycleError: any) {
+      console.log('生命周期数据不存在:', lifecycleError.message)
+      lifecycleData.value = null
+    }
   } catch (error: any) {
     message.error(error.message || '加载数据失败')
   } finally {
@@ -646,6 +868,25 @@ onMounted(() => {
   font-size: 14px;
   color: var(--text-color);
   font-weight: 500;
+}
+
+.action-item.delete-action {
+  border-color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.05);
+}
+
+.action-item.delete-action:hover {
+  border-color: #ff7875;
+  background: rgba(255, 77, 79, 0.1);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.15);
+}
+
+.action-item.delete-action .action-icon-item {
+  color: #ff4d4f;
+}
+
+.action-item.delete-action span {
+  color: #ff4d4f;
 }
 
 .timeline-wrapper {

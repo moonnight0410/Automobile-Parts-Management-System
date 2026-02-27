@@ -309,8 +309,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { listLogisticsData, type LogisticsData } from '../../services/supply.service'
+
+const router = useRouter()
 
 const columns = [
   { title: '物流ID', dataIndex: 'logisticsID', key: 'logisticsID', width: 130 },
@@ -437,7 +440,7 @@ function viewTrack(record: any) {
 }
 
 function viewDetail(record: any) {
-  message.info(`查看物流 ${record.logisticsID} 详情`)
+  router.push(`/supply/logistics/detail/${record.logisticsID}`)
 }
 
 onMounted(() => {

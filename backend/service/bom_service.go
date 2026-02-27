@@ -47,3 +47,17 @@ func (s *BOMService) ListAllBOMs(ctx context.Context, creator string) ([]model.B
 	}
 	return boms, nil
 }
+
+func (s *BOMService) DeleteBOM(ctx context.Context, bomID string) error {
+	_, err := s.fabric.Submit(ctx, "DeleteBOM", bomID)
+	return err
+}
+
+func (s *BOMService) UpdateBOM(ctx context.Context, dto model.BOMDTO) error {
+	payload, err := json.Marshal(dto)
+	if err != nil {
+		return err
+	}
+	_, err = s.fabric.Submit(ctx, "UpdateBOM", string(payload))
+	return err
+}

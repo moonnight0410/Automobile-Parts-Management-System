@@ -1,35 +1,28 @@
 import { get, post } from './axios'
 import type { ApiResponse } from '../types'
 
-export interface SupplyOrderItem {
-  partID: string
-  partName: string
-  quantity: number
-  unitPrice: number
-}
-
 export interface SupplyOrder {
   orderID: string
   buyer: string
   seller: string
-  orderDate: string
-  deliveryDate: string
+  partID: string
+  quantity: number
+  batchNo: string
+  agreedTime: string
   status: string
-  totalAmount: number
-  items: SupplyOrderItem[]
-  remarks?: string
+  createTime: string
 }
 
 export interface SupplyOrderDTO {
   orderID: string
   buyer: string
   seller: string
-  orderDate: string
-  deliveryDate: string
+  partID: string
+  quantity: number
+  batchNo: string
+  agreedTime: string
   status: string
-  totalAmount: number
-  items: SupplyOrderItem[]
-  remarks?: string
+  createTime?: string
 }
 
 export interface LogisticsData {

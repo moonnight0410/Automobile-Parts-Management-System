@@ -303,6 +303,8 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance, SelectProps } from 'ant-design-vue'
+import { post } from '../../services/axios'
+import { createProductionData } from '../../services/production.service'
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -413,15 +415,73 @@ function fillTestData() {
 
 async function handleSubmit() {
   if (submitting.value) return
+  
+  if (!formRef.value) return
+  
+  try {
+    await formRef.value.validate()
+  } catch (error) {
+    message.error('请检查表单填写是否正确')
+    return
+  }
+  
   submitting.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    createdProductionID.value = form.productionID || `PROD-${Date.now().toString().slice(-8)}`
-    showSuccessModal.value = true
-    message.success('生产数据录入成功')
+    const now = new Date()
+    const finishTime = now.toLocaleString('zh-CN', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+    
+    const productionData = {
+      productionID: form.productionID || `PROD-${Date.now().toString().slice(-8)}`,
+      partID: form.partID,
+      batchNo: form.batchNo,
+      productionLine: form.productionLine,
+      operator: form.operator,
+      finishTime: finishTime,
+      params: {
+        quantity: form.quantity.toString(),
+        status: form.status,
+        remark: form.remark
+      }
+    }
+    
+    // 直接调用Fabric API
+    const response = await post('/api/fabric/production', productionData)
+    
+    if (response.code === 0) {
+      createdProductionID.value = productionData.productionID
+      showSuccessModal.value = true
+      message.success('生产数据录入成功')
+    } else {
+      message.error(response.message || '录入失败')
+    }
   } catch (error: any) {
-    message.error(error.message || '录入失败')
+    console.error('提交失败:', error)
+    if (error.response) {
+      const status = error.response.status
+      const errorMessage = error.response.data?.message || '录入失败，请稍后重试'
+      
+      if (status === 404) {
+        message.warning({
+          content: errorMessage,
+          duration: 5
+        })
+      } else {
+        message.error(errorMessage)
+      }
+    } else if (error.message) {
+      message.error(error.message)
+    } else {
+      message.error('录入失败，请稍后重试')
+    }
   } finally {
     submitting.value = false
   }

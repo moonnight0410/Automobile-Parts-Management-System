@@ -107,16 +107,73 @@
                   </template>
                 </a-input>
               </a-form-item>
-              <a-form-item label="状态" name="status" class="form-item half">
-                <a-select
-                  v-model:value="form.status"
-                  placeholder="请选择状态"
-                  :options="statusOptions"
-                  class="custom-select"
-                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
-                  :dropdown-style="{ zIndex: 1050 }"
-                />
+              <a-form-item label="零部件批次号" name="partBatchNo" class="form-item half">
+                <a-input
+                  v-model:value="form.partBatchNo"
+                  placeholder="请输入零部件批次号"
+                  :maxlength="50"
+                  class="custom-input"
+                >
+                  <template #prefix>
+                    <span class="input-icon"><BarcodeOutlined /></span>
+                  </template>
+                </a-input>
               </a-form-item>
+            </div>
+
+            <!-- 状态 -->
+            <a-form-item label="状态" name="status" class="form-item">
+              <a-select
+                v-model:value="form.status"
+                placeholder="请选择状态"
+                :options="statusOptions"
+                class="custom-select"
+                :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                :dropdown-style="{ zIndex: 1050 }"
+              />
+            </a-form-item>
+
+            <!-- 物料列表 -->
+            <div class="form-item">
+              <label class="ant-form-item-required">物料列表</label>
+              <div class="material-list">
+                <div v-for="(material, index) in form.materialList" :key="index" class="material-item">
+                  <div class="material-header">
+                    <span class="material-index">物料 {{ index + 1 }}</span>
+                    <a-button
+                      type="text"
+                      danger
+                      size="small"
+                      @click="removeMaterial(index)"
+                      v-if="form.materialList.length > 1"
+                    >
+                      <template #icon><MinusCircleOutlined /></template>
+                      删除
+                    </a-button>
+                  </div>
+                  <div class="material-fields">
+                    <a-input
+                      v-model:value="material.materialID"
+                      placeholder="物料ID"
+                      class="material-input"
+                    />
+                    <a-input
+                      v-model:value="material.materialName"
+                      placeholder="物料名称"
+                      class="material-input"
+                    />
+                    <a-input
+                      v-model:value="material.quantity"
+                      placeholder="物料数量"
+                      class="material-input"
+                    />
+                  </div>
+                </div>
+                <a-button type="dashed" @click="addMaterial" class="add-material-btn">
+                  <template #icon><PlusOutlined /></template>
+                  添加物料
+                </a-button>
+              </div>
             </div>
 
             <!-- 备注 -->
@@ -270,6 +327,8 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance, SelectProps } from 'ant-design-vue'
+import { createBOM } from '../../services/bom.service'
+import type { BOMDTO } from '../../services/bom.service'
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -299,8 +358,16 @@ const form = reactive({
   bomType: '',
   productModel: '',
   version: '',
+  partBatchNo: '',
   status: '草稿',
-  remark: ''
+  remark: '',
+  materialList: [
+    {
+      materialID: '',
+      materialName: '',
+      quantity: 1
+    }
+  ]
 })
 
 const formStatus = computed(() => {
@@ -330,7 +397,10 @@ const isFormValid = computed(() => {
     form.bomType !== '' &&
     form.productModel.trim() !== '' &&
     form.version.trim() !== '' &&
-    form.status !== ''
+    form.partBatchNo.trim() !== '' &&
+    form.status !== '' &&
+    form.materialList.length > 0 &&
+    form.materialList.every(m => m.materialID.trim() !== '' && m.materialName.trim() !== '' && m.quantity > 0)
   )
 })
 
@@ -339,7 +409,22 @@ const formRules = {
   bomType: [{ required: true, message: '请选择BOM类型', trigger: 'change' }],
   productModel: [{ required: true, message: '请输入车型', trigger: 'blur' }],
   version: [{ required: true, message: '请输入版本号', trigger: 'blur' }],
+  partBatchNo: [{ required: true, message: '请输入零部件批次号', trigger: 'blur' }],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }]
+}
+
+function addMaterial() {
+  form.materialList.push({
+    materialID: '',
+    materialName: '',
+    quantity: 1
+  })
+}
+
+function removeMaterial(index: number) {
+  if (form.materialList.length > 1) {
+    form.materialList.splice(index, 1)
+  }
 }
 
 function getStatusColor(status: string) {
@@ -368,8 +453,21 @@ function fillTestData() {
   form.bomID = `BOM-${Date.now().toString().slice(-8)}`
   form.bomType = '生产BOM'
   form.productModel = 'MODEL-' + Date.now().toString().slice(-6)
+  form.partBatchNo = 'BATCH-' + Date.now().toString().slice(-6)
   form.version = 'v1.0'
   form.status = '草稿'
+  form.materialList = [
+    {
+      materialID: 'MAT-' + Date.now().toString().slice(-6),
+      materialName: '测试物料1',
+      quantity: 10
+    },
+    {
+      materialID: 'MAT-' + (Date.now() + 1).toString().slice(-6),
+      materialName: '测试物料2',
+      quantity: 5
+    }
+  ]
   message.success('已填充测试数据')
 }
 
@@ -378,7 +476,24 @@ async function handleSubmit() {
   submitting.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const bomData: BOMDTO = {
+      bomID: form.bomID,
+      bomType: form.bomType,
+      productModel: form.productModel,
+      partBatchNo: form.partBatchNo,
+      version: form.version,
+      creator: user.username || 'unknown',
+      status: form.status,
+      materialList: form.materialList.map(m => ({
+        materialID: m.materialID,
+        materialName: m.materialName,
+        quantity: parseInt(m.quantity.toString()) || 1,
+        spec: '',
+        supplierID: ''
+      }))
+    }
+    await createBOM(bomData)
     createdBOMID.value = form.bomID || `BOM-${Date.now().toString().slice(-8)}`
     showSuccessModal.value = true
     message.success('BOM创建成功')
@@ -395,8 +510,16 @@ function handleReset() {
   form.bomType = ''
   form.productModel = ''
   form.version = ''
+  form.partBatchNo = ''
   form.status = '草稿'
   form.remark = ''
+  form.materialList = [
+    {
+      materialID: '',
+      materialName: '',
+      quantity: 1
+    }
+  ]
 }
 
 function handleCreateAnother() {
@@ -572,6 +695,22 @@ function handleCreateAnother() {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-color);
+}
+
+.form-item label.ant-form-item-required {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.form-item label.ant-form-item-required::before {
+  display: inline-block;
+  margin-right: 4px;
+  color: #ff4d4f;
+  font-size: 14px;
+  font-family: SimSun, sans-serif;
+  line-height: 1;
+  content: '*';
 }
 
 .form-row {
@@ -1042,6 +1181,56 @@ function handleCreateAnother() {
   .submit-btn,
   .secondary-btn {
     width: 100%;
+  }
+}
+
+.material-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.material-item {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.material-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.material-index {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.material-fields {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.material-input {
+  width: 100%;
+}
+
+.add-material-btn {
+  width: 100%;
+  border-style: dashed;
+  border-width: 2px;
+  padding: 12px;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .material-fields {
+    grid-template-columns: 1fr;
   }
 }
 </style>

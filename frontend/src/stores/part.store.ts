@@ -11,7 +11,8 @@ import {
   queryPartLifecycle, 
   queryPartByBatchNo, 
   queryPartByVIN,
-  updatePartStatus 
+  updatePartStatus,
+  deletePart
 } from '../services/part.service'
 import type { Part, PartLifecycle, CreatePartRequest, UpdatePartStatusRequest } from '../types'
 
@@ -102,6 +103,16 @@ export const usePartStore = defineStore('part', () => {
         throw new Error(response.message || '查询生命周期失败')
       }
     } catch (err: any) {
+      if (err.response?.status === 500) {
+        currentLifecycle.value = {
+          partID: partID,
+          productionInfo: null,
+          qualityInfo: null,
+          supplyChainInfo: [],
+          aftersaleInfo: []
+        }
+        return currentLifecycle.value
+      }
       error.value = err.message || '查询生命周期失败'
       throw err
     } finally {
@@ -189,6 +200,41 @@ export const usePartStore = defineStore('part', () => {
   }
   
   /**
+   * 删除零部件
+   * @param partID 零部件ID
+   */
+  async function removePart(partID: string) {
+    loading.value = true
+    error.value = null
+    
+    try {
+      const response = await deletePart(partID)
+      
+      if (response.code !== 0) {
+        throw new Error(response.message || '删除零部件失败')
+      }
+      
+      // 清除当前零部件
+      if (currentPart.value && currentPart.value.partID === partID) {
+        clearCurrentPart()
+      }
+      
+      // 从列表中移除
+      const index = partList.value.findIndex(p => p.partID === partID)
+      if (index !== -1) {
+        partList.value.splice(index, 1)
+      }
+      
+      return response
+    } catch (err: any) {
+      error.value = err.message || '删除零部件失败'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+  
+  /**
    * 清除当前零部件
    */
   function clearCurrentPart() {
@@ -220,6 +266,7 @@ export const usePartStore = defineStore('part', () => {
     fetchByBatchNo,
     fetchByVIN,
     updateStatus,
+    removePart,
     clearCurrentPart,
     clearError
   }

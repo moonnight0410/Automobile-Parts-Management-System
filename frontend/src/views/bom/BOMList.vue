@@ -387,11 +387,11 @@ function goCompare() {
 }
 
 function viewDetail(record: any) {
-  message.info(`查看BOM: ${record.bomID}`)
+  router.push(`/bom/detail/${record.bomID}`)
 }
 
 function editBOM(record: any) {
-  message.info(`编辑BOM: ${record.bomID}`)
+  router.push(`/bom/edit/${record.bomID}`)
 }
 
 onMounted(() => {

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	"automobile-parts-backend/model"
 )
@@ -27,6 +29,10 @@ func (s *PartService) CreatePart(ctx context.Context, dto model.PartDTO) error {
 func (s *PartService) QueryPart(ctx context.Context, partID string) (*model.Part, error) {
 	resp, err := s.fabric.Query(ctx, "QueryPart", partID)
 	if err != nil {
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "不存在") || strings.Contains(errMsg, "not found") {
+			return nil, fmt.Errorf("零部件不存在")
+		}
 		return nil, err
 	}
 	var part model.Part
@@ -78,4 +84,40 @@ func (s *PartService) ListAllParts(ctx context.Context, manufacturer string) ([]
 func (s *PartService) DeletePart(ctx context.Context, partID string) error {
 	_, err := s.fabric.Submit(ctx, "DeletePart", partID)
 	return err
+}
+
+func (s *PartService) QueryPartLifecycle(ctx context.Context, partID string) (*model.PartLifecycle, error) {
+	resp, err := s.fabric.Query(ctx, "QueryPartLifecycle", partID)
+	if err != nil {
+		errMsg := err.Error()
+		if errMsg != "" && (strings.Contains(errMsg, "chaincode response 500") ||
+			strings.Contains(errMsg, "lifecycle data not found") ||
+			strings.Contains(errMsg, "lifecycle does not exist") ||
+			strings.Contains(errMsg, "生命周期数据不存在")) {
+			return &model.PartLifecycle{}, nil
+		}
+		return nil, err
+	}
+	if len(resp) == 0 {
+		return &model.PartLifecycle{}, nil
+	}
+
+	respStr := string(resp)
+	if strings.Contains(respStr, "生命周期数据不存在") ||
+		strings.Contains(respStr, "lifecycle data not found") ||
+		strings.Contains(respStr, "does not exist") {
+		return &model.PartLifecycle{}, nil
+	}
+
+	var lifecycle model.PartLifecycle
+	if err := json.Unmarshal(resp, &lifecycle); err != nil {
+		return &model.PartLifecycle{}, nil
+	}
+	if lifecycle.AftersaleInfo == nil {
+		lifecycle.AftersaleInfo = []model.AftersaleRecord{}
+	}
+	if lifecycle.SupplyChainInfo == nil {
+		lifecycle.SupplyChainInfo = []model.SupplyChainData{}
+	}
+	return &lifecycle, nil
 }

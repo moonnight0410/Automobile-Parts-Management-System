@@ -1,4 +1,4 @@
-import { get, post } from './axios'
+import { get, post, del } from './axios'
 import type { ApiResponse } from '../types'
 
 export interface Part {
@@ -64,4 +64,8 @@ export const queryPartLifecycle = (partID: string): Promise<ApiResponse<any>> =>
 
 export const updatePartStatus = (data: { partID: string; status: string }): Promise<ApiResponse<void>> => {
   return post(`/api/parts/${data.partID}/status`, data)
+}
+
+export const deletePart = (partID: string): Promise<ApiResponse<void>> => {
+  return del(`/api/parts/${partID}`)
 }

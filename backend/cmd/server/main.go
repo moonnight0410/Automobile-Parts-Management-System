@@ -72,20 +72,23 @@ func setupRouter(
 	parts := router.Group("/api/parts")
 	parts.Use(middleware.Auth(cfg)) // 应用JWT认证中间件
 	{
-		parts.POST("", partController.CreatePart)       // 创建零部件
-		parts.GET("", partController.ListParts)         // 列出零部件（按批次号或VIN）
-		parts.GET("/my", partController.ListMyParts)    // 列出我的零部件
-		parts.GET("/:id", partController.GetPart)       // 获取单个零部件
-		parts.DELETE("/:id", partController.DeletePart) // 删除零部件
+		parts.POST("", partController.CreatePart)                    // 创建零部件
+		parts.GET("", partController.ListParts)                      // 列出零部件（按批次号或VIN）
+		parts.GET("/my", partController.ListMyParts)                 // 列出我的零部件
+		parts.GET("/:id", partController.GetPart)                    // 获取单个零部件
+		parts.GET("/:id/lifecycle", partController.GetPartLifecycle) // 获取零部件生命周期
+		parts.DELETE("/:id", partController.DeletePart)              // 删除零部件
 	}
 
 	// BOM API组：需要身份验证
 	boms := router.Group("/api/boms")
 	boms.Use(middleware.Auth(cfg))
 	{
-		boms.POST("", bomController.CreateBOM) // 创建BOM
-		boms.GET("", bomController.ListBOMs)   // 列出BOM列表
-		boms.GET("/:id", bomController.GetBOM) // 获取单个BOM
+		boms.POST("", bomController.CreateBOM)       // 创建BOM
+		boms.GET("", bomController.ListBOMs)         // 列出BOM列表
+		boms.GET("/:id", bomController.GetBOM)       // 获取单个BOM
+		boms.PUT("/:id", bomController.UpdateBOM)    // 更新BOM
+		boms.DELETE("/:id", bomController.DeleteBOM) // 删除BOM
 	}
 
 	// 生产数据API组：需要身份验证

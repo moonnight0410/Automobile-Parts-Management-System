@@ -1,30 +1,24 @@
-import { get, post } from './axios'
+import { get, post, del } from './axios'
 import type { ApiResponse } from '../types'
 
 export interface ProductionData {
-  recordID: string
+  productionID: string
   partID: string
   batchNo: string
   productionLine: string
   operator: string
-  operationType: string
-  operationTime: string
-  operationResult: string
-  qualityStatus: string
-  remarks?: string
+  finishTime: string
+  params: Record<string, string>
 }
 
 export interface ProductionDataDTO {
-  recordID: string
+  productionID: string
   partID: string
   batchNo: string
   productionLine: string
   operator: string
-  operationType: string
-  operationTime: string
-  operationResult: string
-  qualityStatus: string
-  remarks?: string
+  finishTime: string
+  params: Record<string, string>
 }
 
 export const createProductionData = (data: ProductionDataDTO): Promise<ApiResponse<void>> => {
@@ -33,4 +27,8 @@ export const createProductionData = (data: ProductionDataDTO): Promise<ApiRespon
 
 export const listProductionData = (): Promise<ApiResponse<ProductionData[]>> => {
   return get('/api/production')
+}
+
+export const deleteProductionData = (productionID: string): Promise<ApiResponse<void>> => {
+  return del(`/api/fabric/production/${productionID}`)
 }

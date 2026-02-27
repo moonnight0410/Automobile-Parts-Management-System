@@ -22,6 +22,7 @@ type BOMDTO struct {
 	PartBatchNo  string         `json:"partBatchNo" binding:"required"`
 	Version      string         `json:"version" binding:"required"`
 	Creator      string         `json:"creator" binding:"required"`
+	CreateTime   string         `json:"createTime"`
 	Status       string         `json:"status"`
 	MaterialList []MaterialItem `json:"materialList" binding:"required"`
 }

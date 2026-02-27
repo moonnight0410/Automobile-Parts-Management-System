@@ -1,4 +1,4 @@
-import { get, post } from './axios'
+import { get, post, put, del } from './axios'
 import type { ApiResponse } from '../types'
 
 export interface BOMMaterial {
@@ -69,4 +69,12 @@ export const getBOM = (bomID: string): Promise<ApiResponse<BOM>> => {
 
 export const listBOMs = (): Promise<ApiResponse<BOM[]>> => {
   return get('/api/boms')
+}
+
+export const deleteBOM = (bomID: string): Promise<ApiResponse<void>> => {
+  return del(`/api/boms/${bomID}`)
+}
+
+export const updateBOM = (bomID: string, data: BOMDTO): Promise<ApiResponse<void>> => {
+  return put(`/api/boms/${bomID}`, data)
 }
