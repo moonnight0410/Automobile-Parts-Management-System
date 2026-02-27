@@ -250,10 +250,6 @@
                 <EyeOutlined />
                 详情
               </a-button>
-              <a-button type="link" size="small" @click="trackLogistics(record)" class="action-btn track-btn">
-                <EnvironmentOutlined />
-                物流
-              </a-button>
             </a-space>
           </template>
         </template>
@@ -386,10 +382,6 @@ function handleExport() {
 
 function viewDetail(record: any) {
   router.push(`/supply/order/detail/${record.orderID}`)
-}
-
-function trackLogistics(record: any) {
-  message.info(`追踪订单 ${record.orderID} 物流`)
 }
 
 function handleCreate() {
@@ -970,10 +962,6 @@ onMounted(() => {
 
 .detail-btn {
   color: #6366f1;
-}
-
-.track-btn {
-  color: #10b981;
 }
 
 /* 深色主题 */

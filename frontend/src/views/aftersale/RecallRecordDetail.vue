@@ -1,5 +1,5 @@
 <template>
-  <div class="purchase-detail">
+  <div class="recall-detail">
     <div class="top-bar">
       <div class="top-bar-left">
         <a-button type="text" class="back-btn" @click="goBack">
@@ -8,13 +8,13 @@
         </a-button>
         <a-divider type="vertical" class="divider" />
         <div class="page-info">
-          <h1 class="page-title">采购订单详情</h1>
-          <span class="page-subtitle">查看采购订单完整信息</span>
+          <h1 class="page-title">召回记录详情</h1>
+          <span class="page-subtitle">查看召回记录完整信息</span>
         </div>
       </div>
       <div class="top-bar-right">
-        <a-tag :color="getStatusColor(orderData?.status || '')" class="status-badge">
-          {{ getStatusText(orderData?.status || '') }}
+        <a-tag :color="getStatusColor(recallData?.status || '')" class="status-badge">
+          {{ recallData?.status || '-' }}
         </a-tag>
       </div>
     </div>
@@ -25,11 +25,11 @@
           <a-card :bordered="false" class="info-card">
             <div class="card-header">
               <div class="header-icon">
-                <ShoppingCartOutlined />
+                <WarningOutlined />
               </div>
               <div class="header-text">
                 <h3>基本信息</h3>
-                <p>采购订单核心属性</p>
+                <p>召回记录核心属性</p>
               </div>
             </div>
             <a-divider class="card-divider" />
@@ -37,23 +37,27 @@
               <div class="info-item">
                 <div class="info-label">
                   <NumberOutlined class="label-icon" />
-                  <span>订单ID</span>
+                  <span>召回ID</span>
                 </div>
-                <div class="info-value order-id">{{ orderData?.orderID || '-' }}</div>
+                <div class="info-value recall-id">{{ recallData?.recallID || '-' }}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <ExperimentOutlined class="label-icon" />
+                  <span>召回类型</span>
+                </div>
+                <div class="info-value">
+                  <a-tag :color="getRecallTypeColor(recallData?.recallType || '')" class="type-tag">
+                    {{ recallData?.recallType || '-' }}
+                  </a-tag>
+                </div>
               </div>
               <div class="info-item">
                 <div class="info-label">
                   <UserOutlined class="label-icon" />
-                  <span>采购方</span>
+                  <span>发起人</span>
                 </div>
-                <div class="info-value">{{ orderData?.buyer || '-' }}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">
-                  <ShopOutlined class="label-icon" />
-                  <span>供应商</span>
-                </div>
-                <div class="info-value">{{ orderData?.seller || '-' }}</div>
+                <div class="info-value">{{ recallData?.initiator || '-' }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label">
@@ -61,31 +65,31 @@
                   <span>状态</span>
                 </div>
                 <div class="info-value">
-                  <a-tag :color="getStatusColor(orderData?.status || '')" class="status-tag">
-                    {{ getStatusText(orderData?.status || '') }}
+                  <a-tag :color="getStatusColor(recallData?.status || '')" class="status-tag">
+                    {{ recallData?.status || '-' }}
                   </a-tag>
                 </div>
               </div>
               <div class="info-item">
                 <div class="info-label">
-                  <CalendarOutlined class="label-icon" />
-                  <span>订单日期</span>
-                </div>
-                <div class="info-value">{{ orderData?.orderDate || '-' }}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">
                   <ClockCircleOutlined class="label-icon" />
-                  <span>交货日期</span>
+                  <span>召回日期</span>
                 </div>
-                <div class="info-value">{{ orderData?.deliveryDate || '-' }}</div>
+                <div class="info-value">{{ recallData?.recallDate || '-' }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label">
-                  <DollarOutlined class="label-icon" />
-                  <span>订单金额</span>
+                  <AppstoreOutlined class="label-icon" />
+                  <span>涉及零部件</span>
                 </div>
-                <div class="info-value amount">¥{{ formatAmount(orderData?.totalAmount || 0) }}</div>
+                <div class="info-value">{{ recallData?.affectedParts?.length || 0 }} 个</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <CarOutlined class="label-icon" />
+                  <span>涉及车辆</span>
+                </div>
+                <div class="info-value">{{ recallData?.affectedVins?.length || 0 }} 辆</div>
               </div>
             </div>
           </a-card>
@@ -102,11 +106,11 @@
             </div>
             <a-divider class="card-divider" />
             <div class="action-grid">
-              <div class="action-item" @click="editOrder">
+              <div class="action-item" @click="editRecord">
                 <EditOutlined class="action-icon-item" />
-                <span>编辑订单</span>
+                <span>编辑记录</span>
               </div>
-              <div class="action-item" @click="printOrder">
+              <div class="action-item" @click="printRecord">
                 <PrinterOutlined class="action-icon-item" />
                 <span>打印</span>
               </div>
@@ -114,13 +118,13 @@
                 <ExportOutlined class="action-icon-item" />
                 <span>导出数据</span>
               </div>
-              <div class="action-item" @click="viewLogistics">
-                <CarOutlined class="action-icon-item" />
-                <span>物流跟踪</span>
+              <div class="action-item" @click="viewAffectedParts">
+                <AppstoreOutlined class="action-icon-item" />
+                <span>查看零部件</span>
               </div>
-              <div class="action-item delete-action" @click="handleDelete">
-                <DeleteOutlined class="action-icon-item" />
-                <span>删除该数据</span>
+              <div class="action-item delete-action" @click="handleDelete" :class="{ 'deleting': deleting }">
+                <DeleteOutlined class="action-icon-item" :class="{ 'spinning': deleting }" />
+                <span>{{ deleting ? '删除中...' : '删除该数据' }}</span>
               </div>
             </div>
           </a-card>
@@ -130,61 +134,61 @@
           <a-card :bordered="false" class="details-card">
             <div class="card-header">
               <div class="header-icon details-icon">
-                <UnorderedListOutlined />
-              </div>
-              <div class="header-text">
-                <h3>订单明细</h3>
-                <p>采购物品清单</p>
-              </div>
-            </div>
-            <a-divider class="card-divider" />
-            <a-table
-              :columns="itemColumns"
-              :data-source="orderData?.items || []"
-              :pagination="false"
-              :scroll="{ x: 800 }"
-              class="item-table"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'partID'">
-                  <span class="part-id">{{ record.partID }}</span>
-                </template>
-                <template v-else-if="column.key === 'quantity'">
-                  <span class="quantity">{{ record.quantity }}</span>
-                </template>
-                <template v-else-if="column.key === 'unitPrice'">
-                  <span class="price">¥{{ record.unitPrice.toFixed(2) }}</span>
-                </template>
-                <template v-else-if="column.key === 'total'">
-                  <span class="total">¥{{ (record.quantity * record.unitPrice).toFixed(2) }}</span>
-                </template>
-              </template>
-              <template #summary>
-                <a-table-summary>
-                  <a-table-summary-row>
-                    <a-table-summary-cell :index="0" :col-span="3">总计</a-table-summary-cell>
-                    <a-table-summary-cell :index="1">
-                      <span class="total-amount">¥{{ formatAmount(orderData?.totalAmount || 0) }}</span>
-                    </a-table-summary-cell>
-                  </a-table-summary-row>
-                </a-table-summary>
-              </template>
-            </a-table>
-          </a-card>
-
-          <a-card :bordered="false" class="details-card" v-if="orderData?.remarks">
-            <div class="card-header">
-              <div class="header-icon details-icon">
                 <FileTextOutlined />
               </div>
               <div class="header-text">
-                <h3>备注信息</h3>
-                <p>订单备注</p>
+                <h3>召回详情</h3>
+                <p>召回详细信息</p>
               </div>
             </div>
             <a-divider class="card-divider" />
-            <div class="remarks-content">
-              {{ orderData.remarks }}
+            <div class="recall-details">
+              <div class="info-item">
+                <div class="info-label">召回原因</div>
+                <div class="info-value reason">{{ recallData?.recallReason || '-' }}</div>
+              </div>
+              <div class="info-item" v-if="recallData?.handlingMeasures">
+                <div class="info-label">处理措施</div>
+                <div class="info-value handling">{{ recallData.handlingMeasures }}</div>
+              </div>
+            </div>
+          </a-card>
+
+          <a-card :bordered="false" class="details-card">
+            <div class="card-header">
+              <div class="header-icon details-icon">
+                <AppstoreOutlined />
+              </div>
+              <div class="header-text">
+                <h3>涉及零部件</h3>
+                <p>受影响的零部件列表</p>
+              </div>
+            </div>
+            <a-divider class="card-divider" />
+            <div class="affected-parts">
+              <a-tag v-for="part in recallData?.affectedParts" :key="part" color="blue" class="part-tag">
+                {{ part }}
+              </a-tag>
+              <a-empty v-if="!recallData?.affectedParts || recallData.affectedParts.length === 0" description="暂无涉及零部件" />
+            </div>
+          </a-card>
+
+          <a-card :bordered="false" class="details-card">
+            <div class="card-header">
+              <div class="header-icon details-icon">
+                <CarOutlined />
+              </div>
+              <div class="header-text">
+                <h3>涉及车辆</h3>
+                <p>受影响的车辆VIN码列表</p>
+              </div>
+            </div>
+            <a-divider class="card-divider" />
+            <div class="affected-vins">
+              <a-tag v-for="vin in recallData?.affectedVins" :key="vin" color="orange" class="vin-tag">
+                {{ vin }}
+              </a-tag>
+              <a-empty v-if="!recallData?.affectedVins || recallData.affectedVins.length === 0" description="暂无涉及车辆" />
             </div>
           </a-card>
 
@@ -194,8 +198,8 @@
                 <HistoryOutlined />
               </div>
               <div class="header-text">
-                <h3>订单时间线</h3>
-                <p>订单流程记录</p>
+                <h3>召回时间线</h3>
+                <p>召回处理流程记录</p>
               </div>
             </div>
             <a-divider class="card-divider" />
@@ -203,32 +207,28 @@
               <a-timeline-item color="blue">
                 <template #dot>
                   <div class="timeline-dot blue">
-                    <PlusCircleOutlined />
+                    <PlayCircleOutlined />
                   </div>
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-header">
-                    <span class="timeline-title">订单创建</span>
-                    <span class="timeline-time">{{ orderData?.orderDate }}</span>
+                    <span class="timeline-title">召回发起</span>
+                    <span class="timeline-time">{{ recallData?.recallDate }}</span>
                   </div>
                   <div class="timeline-content">
                     <div class="timeline-desc">
-                      <ShoppingCartOutlined />
-                      订单已创建
-                    </div>
-                    <div class="timeline-desc">
                       <UserOutlined />
-                      采购方: {{ orderData?.buyer }}
+                      发起人: {{ recallData?.initiator }}
                     </div>
                     <div class="timeline-desc">
-                      <ShopOutlined />
-                      供应商: {{ orderData?.seller }}
+                      <ExperimentOutlined />
+                      召回类型: {{ recallData?.recallType }}
                     </div>
                   </div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item color="green">
+              <a-timeline-item color="green" v-if="recallData?.status === '已完成'">
                 <template #dot>
                   <div class="timeline-dot green">
                     <CheckCircleOutlined />
@@ -236,41 +236,33 @@
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-header">
-                    <span class="timeline-title">订单确认</span>
-                    <span class="timeline-time">{{ orderData?.orderDate }}</span>
+                    <span class="timeline-title">召回完成</span>
+                    <span class="timeline-time">已完成</span>
                   </div>
                   <div class="timeline-content">
                     <div class="timeline-desc">
                       <CheckCircleOutlined />
-                      订单金额: ¥{{ formatAmount(orderData?.totalAmount || 0) }}
-                    </div>
-                    <div class="timeline-desc">
-                      <CalendarOutlined />
-                      交货日期: {{ orderData?.deliveryDate }}
+                      所有受影响零部件和车辆已处理完毕
                     </div>
                   </div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item color="orange">
+              <a-timeline-item color="orange" v-if="recallData?.status === '进行中'">
                 <template #dot>
                   <div class="timeline-dot orange">
-                    <CarOutlined />
+                    <SyncOutlined />
                   </div>
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-header">
-                    <span class="timeline-title">物流配送</span>
-                    <span class="timeline-time">{{ orderData?.deliveryDate }}</span>
+                    <span class="timeline-title">处理中</span>
+                    <span class="timeline-time">进行中</span>
                   </div>
                   <div class="timeline-content">
                     <div class="timeline-desc">
-                      <CarOutlined />
-                      物流配送中
-                    </div>
-                    <div class="timeline-desc">
-                      <ClockCircleOutlined />
-                      预计交货日期: {{ orderData?.deliveryDate }}
+                      <SyncOutlined />
+                      正在处理受影响的零部件和车辆
                     </div>
                   </div>
                 </div>
@@ -287,96 +279,63 @@
 import { ref, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { listSupplyOrders } from '../../services/supply.service'
-import type { SupplyOrder } from '../../services/supply.service'
+import { listRecallRecords, type RecallRecord } from '../../services/aftersale.service'
 import {
   ArrowLeftOutlined,
   NumberOutlined,
+  AppstoreOutlined,
+  CarOutlined,
   UserOutlined,
-  ShopOutlined,
   CheckCircleOutlined,
-  CalendarOutlined,
   ClockCircleOutlined,
-  DollarOutlined,
   ThunderboltOutlined,
-  ShoppingCartOutlined,
+  WarningOutlined,
   EditOutlined,
   PrinterOutlined,
   ExportOutlined,
   DeleteOutlined,
-  UnorderedListOutlined,
   FileTextOutlined,
   HistoryOutlined,
-  PlusCircleOutlined,
-  CarOutlined
+  PlayCircleOutlined,
+  ExperimentOutlined,
+  SyncOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
-const orderData = ref<SupplyOrder | null>(null)
-
-const itemColumns = [
-  {
-    title: '零部件ID',
-    dataIndex: 'partID',
-    key: 'partID',
-    width: 200
-  },
-  {
-    title: '零部件名称',
-    dataIndex: 'partName',
-    key: 'partName',
-    width: 200
-  },
-  {
-    title: '数量',
-    dataIndex: 'quantity',
-    key: 'quantity',
-    width: 100
-  },
-  {
-    title: '单价',
-    dataIndex: 'unitPrice',
-    key: 'unitPrice',
-    width: 120
-  },
-  {
-    title: '小计',
-    key: 'total',
-    width: 120
-  }
-]
+const deleting = ref(false)
+const recallData = ref<RecallRecord | null>(null)
 
 function goBack() {
-  router.push('/supply/orders')
+  router.push('/aftersale/recall')
 }
 
 function getStatusColor(status: string) {
   const colors: Record<string, string> = {
-    '待确认': 'warning',
-    '已确认': 'processing',
-    '配送中': 'blue',
+    '进行中': 'processing',
     '已完成': 'success',
-    '已取消': 'default'
+    '待处理': 'warning'
   }
   return colors[status] || 'default'
 }
 
-function getStatusText(status: string) {
-  return status || status
+function getRecallTypeColor(type: string) {
+  const colors: Record<string, string> = {
+    '安全召回': 'error',
+    '质量召回': 'orange',
+    '环保召回': 'green',
+    '其他': 'default'
+  }
+  return colors[type] || 'default'
 }
 
-function formatAmount(amount: number) {
-  return amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function editOrder() {
+function editRecord() {
   message.info('编辑功能开发中')
 }
 
-function printOrder() {
+function printRecord() {
   message.success('打印任务已提交')
 }
 
@@ -384,14 +343,19 @@ function exportData() {
   message.success('数据导出成功')
 }
 
-function viewLogistics() {
-  message.info('物流跟踪功能开发中')
+function viewAffectedParts() {
+  if (recallData.value?.affectedParts && recallData.value.affectedParts.length > 0) {
+    const firstPart = recallData.value.affectedParts[0]
+    router.push(`/parts/detail/${firstPart}`)
+  } else {
+    message.warning('暂无涉及零部件')
+  }
 }
 
 async function handleDelete() {
-  const orderID = route.params.id as string
-  if (!orderID) {
-    message.error('订单ID不存在')
+  const recallID = route.params.id as string
+  if (!recallID) {
+    message.error('召回ID不存在')
     return
   }
   
@@ -414,13 +378,13 @@ async function handleDelete() {
         h('strong', { style: { color: '#ff4d4f' } }, '警告：此操作不可恢复！')
       ]),
       h('p', { style: { marginBottom: '8px' } }, [
-        `您确定要删除采购订单 ${orderID} 吗？`
+        `您确定要删除召回记录 ${recallID} 吗？`
       ]),
       h('p', { style: { marginBottom: '8px', fontSize: '13px', color: '#999' } }, [
-        `采购方：${orderData.value?.buyer || '-'}`
+        `涉及零部件：${recallData.value?.affectedParts?.length || 0} 个`
       ]),
       h('p', { style: { marginBottom: '8px', fontSize: '13px', color: '#999' } }, [
-        `供应商：${orderData.value?.seller || '-'}`
+        `涉及车辆：${recallData.value?.affectedVins?.length || 0} 辆`
       ]),
       h('p', { style: { fontSize: '13px', color: '#999' } }, [
         '删除后将无法恢复，请谨慎操作。'
@@ -429,44 +393,53 @@ async function handleDelete() {
     okText: '确认删除',
     okType: 'danger',
     cancelText: '取消',
+    okButtonProps: {
+      loading: deleting.value,
+      disabled: deleting.value
+    },
     onOk: async () => {
-      message.success('删除成功')
-      setTimeout(() => {
+      deleting.value = true
+      try {
+        message.success('删除成功')
         goBack()
-      }, 1000)
+      } catch (error: any) {
+        message.error(error.message || '删除失败，请稍后重试')
+      } finally {
+        deleting.value = false
+      }
     }
   })
 }
 
-async function fetchOrderData() {
+async function fetchRecallData() {
   loading.value = true
   try {
-    const response = await listSupplyOrders()
+    const response = await listRecallRecords()
     if (response.code === 0 && response.data) {
-      const orderID = route.params.id as string
-      const order = response.data.find((item: SupplyOrder) => item.orderID === orderID)
-      if (order) {
-        orderData.value = order
+      const recallID = route.params.id as string
+      const record = response.data.find((item: RecallRecord) => item.recallID === recallID)
+      if (record) {
+        recallData.value = record
       } else {
-        message.error('未找到该采购订单')
+        message.error('未找到该召回记录')
       }
     } else {
-      message.error(response.message || '获取采购订单失败')
+      message.error(response.message || '获取召回记录失败')
     }
   } catch (error: any) {
-    message.error(error.message || '获取采购订单失败')
+    message.error(error.message || '获取召回记录失败')
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  fetchOrderData()
+  fetchRecallData()
 })
 </script>
 
 <style scoped>
-.purchase-detail {
+.recall-detail {
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   padding: 24px;
@@ -627,18 +600,13 @@ onMounted(() => {
   word-break: break-all;
 }
 
-.order-id {
+.recall-id {
   font-family: 'Courier New', monospace;
   color: #667eea;
   font-weight: 600;
 }
 
-.amount {
-  font-size: 16px;
-  color: #f59e0b;
-  font-weight: 600;
-}
-
+.type-tag,
 .status-tag {
   font-size: 12px;
 }
@@ -685,8 +653,33 @@ onMounted(() => {
   border-color: #ef4444;
 }
 
+.action-item.delete-action.deleting {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.action-item.delete-action.deleting:hover {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #ef4444;
+}
+
 .action-item.delete-action .action-icon-item {
   color: #ef4444;
+  transition: all 0.3s;
+}
+
+.action-item.delete-action .action-icon-item.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .details-container {
@@ -703,68 +696,41 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.item-table {
+.recall-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 0 24px 24px;
-  max-width: 100%;
-  overflow: hidden;
 }
 
-.item-table :deep(.ant-table) {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.item-table :deep(.ant-table-container) {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.item-table :deep(.ant-table-content) {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.item-table :deep(.ant-table-expanded-row-fixed) {
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
-.part-id {
-  font-family: 'Courier New', monospace;
-  color: #667eea;
-  font-weight: 600;
-}
-
-.quantity {
-  font-weight: 600;
-  color: #f59e0b;
-}
-
-.price,
-.total {
-  font-weight: 600;
-  color: #10b981;
-}
-
-.total-amount {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f59e0b;
-}
-
-.remarks-content {
-  padding: 0 24px 24px;
+.reason,
+.handling {
   white-space: pre-wrap;
   line-height: 1.6;
-  color: #4b5563;
 }
 
-.timeline-wrapper {
+.affected-parts,
+.affected-vins {
   padding: 0 24px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.part-tag,
+.vin-tag {
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.vin-tag {
+  font-family: 'Courier New', monospace;
 }
 
 .custom-timeline {
   margin-top: 16px;
+  padding: 0 24px 24px;
 }
 
 .timeline-item {
@@ -800,47 +766,43 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #6b7280;
+  color: #4b5563;
 }
 
-.timeline-desc .anticon {
-  font-size: 14px;
-  color: #9ca3af;
+.timeline-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
 }
 
-@media (max-width: 1200px) {
-  .main-content {
-    grid-template-columns: 1fr;
-  }
-  
-  .info-container {
-    max-width: 100%;
-  }
+.timeline-dot.blue {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.timeline-dot.green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.timeline-dot.orange {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
 @media (max-width: 768px) {
-  .purchase-detail {
-    padding: 16px;
+  .main-content {
+    grid-template-columns: 1fr;
   }
-  
-  .top-bar {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
+
+  .info-container {
+    width: 100%;
   }
-  
-  .top-bar-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
+
   .action-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .item-table :deep(.ant-table) {
-    font-size: 12px;
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 </style>

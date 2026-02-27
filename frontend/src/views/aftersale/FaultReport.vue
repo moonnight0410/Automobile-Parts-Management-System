@@ -385,7 +385,7 @@ const handleExport = () => {
 }
 
 const viewDetail = (record: any) => {
-  message.info(`查看故障详情: ${record.faultID}`)
+  router.push(`/aftersale/fault/detail/${record.faultID}`)
 }
 
 const handleReview = (record: any) => {

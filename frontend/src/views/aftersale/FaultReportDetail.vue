@@ -1,5 +1,5 @@
 <template>
-  <div class="purchase-detail">
+  <div class="fault-detail">
     <div class="top-bar">
       <div class="top-bar-left">
         <a-button type="text" class="back-btn" @click="goBack">
@@ -8,13 +8,13 @@
         </a-button>
         <a-divider type="vertical" class="divider" />
         <div class="page-info">
-          <h1 class="page-title">采购订单详情</h1>
-          <span class="page-subtitle">查看采购订单完整信息</span>
+          <h1 class="page-title">故障记录详情</h1>
+          <span class="page-subtitle">查看故障记录完整信息</span>
         </div>
       </div>
       <div class="top-bar-right">
-        <a-tag :color="getStatusColor(orderData?.status || '')" class="status-badge">
-          {{ getStatusText(orderData?.status || '') }}
+        <a-tag :color="getStatusColor(faultData?.status || '')" class="status-badge">
+          {{ faultData?.status || '-' }}
         </a-tag>
       </div>
     </div>
@@ -25,11 +25,11 @@
           <a-card :bordered="false" class="info-card">
             <div class="card-header">
               <div class="header-icon">
-                <ShoppingCartOutlined />
+                <AlertOutlined />
               </div>
               <div class="header-text">
                 <h3>基本信息</h3>
-                <p>采购订单核心属性</p>
+                <p>故障记录核心属性</p>
               </div>
             </div>
             <a-divider class="card-divider" />
@@ -37,23 +37,48 @@
               <div class="info-item">
                 <div class="info-label">
                   <NumberOutlined class="label-icon" />
-                  <span>订单ID</span>
+                  <span>故障ID</span>
                 </div>
-                <div class="info-value order-id">{{ orderData?.orderID || '-' }}</div>
+                <div class="info-value fault-id">{{ faultData?.faultID || '-' }}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <AppstoreOutlined class="label-icon" />
+                  <span>零部件ID</span>
+                </div>
+                <div class="info-value part-id">{{ faultData?.partID || '-' }}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <CarOutlined class="label-icon" />
+                  <span>VIN码</span>
+                </div>
+                <div class="info-value vin">{{ faultData?.vin || '-' }}</div>
+              </div>
+              <div class="info-item">
+                <div class="info-label">
+                  <ExperimentOutlined class="label-icon" />
+                  <span>故障类型</span>
+                </div>
+                <div class="info-value">
+                  <a-tag :color="getFaultTypeColor(faultData?.faultType || '')" class="type-tag">
+                    {{ faultData?.faultType || '-' }}
+                  </a-tag>
+                </div>
               </div>
               <div class="info-item">
                 <div class="info-label">
                   <UserOutlined class="label-icon" />
-                  <span>采购方</span>
+                  <span>上报人</span>
                 </div>
-                <div class="info-value">{{ orderData?.buyer || '-' }}</div>
+                <div class="info-value">{{ faultData?.reporter || '-' }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label">
-                  <ShopOutlined class="label-icon" />
-                  <span>供应商</span>
+                  <TeamOutlined class="label-icon" />
+                  <span>上报组织</span>
                 </div>
-                <div class="info-value">{{ orderData?.seller || '-' }}</div>
+                <div class="info-value">{{ faultData?.reporterOrg || '-' }}</div>
               </div>
               <div class="info-item">
                 <div class="info-label">
@@ -61,31 +86,17 @@
                   <span>状态</span>
                 </div>
                 <div class="info-value">
-                  <a-tag :color="getStatusColor(orderData?.status || '')" class="status-tag">
-                    {{ getStatusText(orderData?.status || '') }}
+                  <a-tag :color="getStatusColor(faultData?.status || '')" class="status-tag">
+                    {{ faultData?.status || '-' }}
                   </a-tag>
                 </div>
               </div>
               <div class="info-item">
                 <div class="info-label">
-                  <CalendarOutlined class="label-icon" />
-                  <span>订单日期</span>
-                </div>
-                <div class="info-value">{{ orderData?.orderDate || '-' }}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">
                   <ClockCircleOutlined class="label-icon" />
-                  <span>交货日期</span>
+                  <span>上报时间</span>
                 </div>
-                <div class="info-value">{{ orderData?.deliveryDate || '-' }}</div>
-              </div>
-              <div class="info-item">
-                <div class="info-label">
-                  <DollarOutlined class="label-icon" />
-                  <span>订单金额</span>
-                </div>
-                <div class="info-value amount">¥{{ formatAmount(orderData?.totalAmount || 0) }}</div>
+                <div class="info-value">{{ faultData?.reportTime || '-' }}</div>
               </div>
             </div>
           </a-card>
@@ -102,11 +113,11 @@
             </div>
             <a-divider class="card-divider" />
             <div class="action-grid">
-              <div class="action-item" @click="editOrder">
+              <div class="action-item" @click="editRecord">
                 <EditOutlined class="action-icon-item" />
-                <span>编辑订单</span>
+                <span>编辑记录</span>
               </div>
-              <div class="action-item" @click="printOrder">
+              <div class="action-item" @click="printRecord">
                 <PrinterOutlined class="action-icon-item" />
                 <span>打印</span>
               </div>
@@ -114,13 +125,13 @@
                 <ExportOutlined class="action-icon-item" />
                 <span>导出数据</span>
               </div>
-              <div class="action-item" @click="viewLogistics">
-                <CarOutlined class="action-icon-item" />
-                <span>物流跟踪</span>
+              <div class="action-item" @click="viewPart">
+                <AppstoreOutlined class="action-icon-item" />
+                <span>查看零部件</span>
               </div>
-              <div class="action-item delete-action" @click="handleDelete">
-                <DeleteOutlined class="action-icon-item" />
-                <span>删除该数据</span>
+              <div class="action-item delete-action" @click="handleDelete" :class="{ 'deleting': deleting }">
+                <DeleteOutlined class="action-icon-item" :class="{ 'spinning': deleting }" />
+                <span>{{ deleting ? '删除中...' : '删除该数据' }}</span>
               </div>
             </div>
           </a-card>
@@ -130,61 +141,27 @@
           <a-card :bordered="false" class="details-card">
             <div class="card-header">
               <div class="header-icon details-icon">
-                <UnorderedListOutlined />
-              </div>
-              <div class="header-text">
-                <h3>订单明细</h3>
-                <p>采购物品清单</p>
-              </div>
-            </div>
-            <a-divider class="card-divider" />
-            <a-table
-              :columns="itemColumns"
-              :data-source="orderData?.items || []"
-              :pagination="false"
-              :scroll="{ x: 800 }"
-              class="item-table"
-            >
-              <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'partID'">
-                  <span class="part-id">{{ record.partID }}</span>
-                </template>
-                <template v-else-if="column.key === 'quantity'">
-                  <span class="quantity">{{ record.quantity }}</span>
-                </template>
-                <template v-else-if="column.key === 'unitPrice'">
-                  <span class="price">¥{{ record.unitPrice.toFixed(2) }}</span>
-                </template>
-                <template v-else-if="column.key === 'total'">
-                  <span class="total">¥{{ (record.quantity * record.unitPrice).toFixed(2) }}</span>
-                </template>
-              </template>
-              <template #summary>
-                <a-table-summary>
-                  <a-table-summary-row>
-                    <a-table-summary-cell :index="0" :col-span="3">总计</a-table-summary-cell>
-                    <a-table-summary-cell :index="1">
-                      <span class="total-amount">¥{{ formatAmount(orderData?.totalAmount || 0) }}</span>
-                    </a-table-summary-cell>
-                  </a-table-summary-row>
-                </a-table-summary>
-              </template>
-            </a-table>
-          </a-card>
-
-          <a-card :bordered="false" class="details-card" v-if="orderData?.remarks">
-            <div class="card-header">
-              <div class="header-icon details-icon">
                 <FileTextOutlined />
               </div>
               <div class="header-text">
-                <h3>备注信息</h3>
-                <p>订单备注</p>
+                <h3>故障详情</h3>
+                <p>故障详细信息</p>
               </div>
             </div>
             <a-divider class="card-divider" />
-            <div class="remarks-content">
-              {{ orderData.remarks }}
+            <div class="fault-details">
+              <div class="info-item">
+                <div class="info-label">故障描述</div>
+                <div class="info-value description">{{ faultData?.faultDescription || '-' }}</div>
+              </div>
+              <div class="info-item" v-if="faultData?.handlingResult">
+                <div class="info-label">处理结果</div>
+                <div class="info-value handling">{{ faultData.handlingResult }}</div>
+              </div>
+              <div class="info-item" v-if="faultData?.handlingTime">
+                <div class="info-label">处理时间</div>
+                <div class="info-value">{{ faultData.handlingTime }}</div>
+              </div>
             </div>
           </a-card>
 
@@ -194,8 +171,8 @@
                 <HistoryOutlined />
               </div>
               <div class="header-text">
-                <h3>订单时间线</h3>
-                <p>订单流程记录</p>
+                <h3>处理时间线</h3>
+                <p>故障处理流程记录</p>
               </div>
             </div>
             <a-divider class="card-divider" />
@@ -203,32 +180,32 @@
               <a-timeline-item color="blue">
                 <template #dot>
                   <div class="timeline-dot blue">
-                    <PlusCircleOutlined />
+                    <PlayCircleOutlined />
                   </div>
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-header">
-                    <span class="timeline-title">订单创建</span>
-                    <span class="timeline-time">{{ orderData?.orderDate }}</span>
+                    <span class="timeline-title">故障上报</span>
+                    <span class="timeline-time">{{ faultData?.reportTime }}</span>
                   </div>
                   <div class="timeline-content">
                     <div class="timeline-desc">
-                      <ShoppingCartOutlined />
-                      订单已创建
-                    </div>
-                    <div class="timeline-desc">
                       <UserOutlined />
-                      采购方: {{ orderData?.buyer }}
+                      上报人: {{ faultData?.reporter }}
                     </div>
                     <div class="timeline-desc">
-                      <ShopOutlined />
-                      供应商: {{ orderData?.seller }}
+                      <TeamOutlined />
+                      上报组织: {{ faultData?.reporterOrg }}
+                    </div>
+                    <div class="timeline-desc">
+                      <ExperimentOutlined />
+                      故障类型: {{ faultData?.faultType }}
                     </div>
                   </div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item color="green">
+              <a-timeline-item color="green" v-if="faultData?.status === '已审核'">
                 <template #dot>
                   <div class="timeline-dot green">
                     <CheckCircleOutlined />
@@ -236,41 +213,33 @@
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-header">
-                    <span class="timeline-title">订单确认</span>
-                    <span class="timeline-time">{{ orderData?.orderDate }}</span>
+                    <span class="timeline-title">审核完成</span>
+                    <span class="timeline-time">{{ faultData?.handlingTime }}</span>
                   </div>
                   <div class="timeline-content">
                     <div class="timeline-desc">
                       <CheckCircleOutlined />
-                      订单金额: ¥{{ formatAmount(orderData?.totalAmount || 0) }}
-                    </div>
-                    <div class="timeline-desc">
-                      <CalendarOutlined />
-                      交货日期: {{ orderData?.deliveryDate }}
+                      处理结果: {{ faultData?.handlingResult }}
                     </div>
                   </div>
                 </div>
               </a-timeline-item>
 
-              <a-timeline-item color="orange">
+              <a-timeline-item color="orange" v-if="faultData?.status === '待审核'">
                 <template #dot>
                   <div class="timeline-dot orange">
-                    <CarOutlined />
+                    <ClockCircleOutlined />
                   </div>
                 </template>
                 <div class="timeline-item">
                   <div class="timeline-header">
-                    <span class="timeline-title">物流配送</span>
-                    <span class="timeline-time">{{ orderData?.deliveryDate }}</span>
+                    <span class="timeline-title">待审核</span>
+                    <span class="timeline-time">处理中</span>
                   </div>
                   <div class="timeline-content">
                     <div class="timeline-desc">
-                      <CarOutlined />
-                      物流配送中
-                    </div>
-                    <div class="timeline-desc">
                       <ClockCircleOutlined />
-                      预计交货日期: {{ orderData?.deliveryDate }}
+                      等待管理员审核处理
                     </div>
                   </div>
                 </div>
@@ -287,96 +256,64 @@
 import { ref, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { listSupplyOrders } from '../../services/supply.service'
-import type { SupplyOrder } from '../../services/supply.service'
+import { listFaultReports, type FaultReport } from '../../services/aftersale.service'
 import {
   ArrowLeftOutlined,
   NumberOutlined,
+  AppstoreOutlined,
+  CarOutlined,
   UserOutlined,
-  ShopOutlined,
+  TeamOutlined,
   CheckCircleOutlined,
-  CalendarOutlined,
   ClockCircleOutlined,
-  DollarOutlined,
   ThunderboltOutlined,
-  ShoppingCartOutlined,
+  AlertOutlined,
   EditOutlined,
   PrinterOutlined,
   ExportOutlined,
   DeleteOutlined,
-  UnorderedListOutlined,
   FileTextOutlined,
   HistoryOutlined,
-  PlusCircleOutlined,
-  CarOutlined
+  PlayCircleOutlined,
+  ExperimentOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
-const orderData = ref<SupplyOrder | null>(null)
-
-const itemColumns = [
-  {
-    title: '零部件ID',
-    dataIndex: 'partID',
-    key: 'partID',
-    width: 200
-  },
-  {
-    title: '零部件名称',
-    dataIndex: 'partName',
-    key: 'partName',
-    width: 200
-  },
-  {
-    title: '数量',
-    dataIndex: 'quantity',
-    key: 'quantity',
-    width: 100
-  },
-  {
-    title: '单价',
-    dataIndex: 'unitPrice',
-    key: 'unitPrice',
-    width: 120
-  },
-  {
-    title: '小计',
-    key: 'total',
-    width: 120
-  }
-]
+const deleting = ref(false)
+const faultData = ref<FaultReport | null>(null)
 
 function goBack() {
-  router.push('/supply/orders')
+  router.push('/aftersale/fault')
 }
 
 function getStatusColor(status: string) {
   const colors: Record<string, string> = {
-    '待确认': 'warning',
-    '已确认': 'processing',
-    '配送中': 'blue',
-    '已完成': 'success',
-    '已取消': 'default'
+    '待审核': 'warning',
+    '已审核': 'success',
+    '已处理': 'success'
   }
   return colors[status] || 'default'
 }
 
-function getStatusText(status: string) {
-  return status || status
+function getFaultTypeColor(type: string) {
+  const colors: Record<string, string> = {
+    '质量问题': 'error',
+    '安全隐患': 'red',
+    '功能缺陷': 'orange',
+    '性能问题': 'gold',
+    '其他': 'default'
+  }
+  return colors[type] || 'default'
 }
 
-function formatAmount(amount: number) {
-  return amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function editOrder() {
+function editRecord() {
   message.info('编辑功能开发中')
 }
 
-function printOrder() {
+function printRecord() {
   message.success('打印任务已提交')
 }
 
@@ -384,14 +321,18 @@ function exportData() {
   message.success('数据导出成功')
 }
 
-function viewLogistics() {
-  message.info('物流跟踪功能开发中')
+function viewPart() {
+  if (faultData.value?.partID) {
+    router.push(`/parts/detail/${faultData.value.partID}`)
+  } else {
+    message.warning('零部件ID不存在')
+  }
 }
 
 async function handleDelete() {
-  const orderID = route.params.id as string
-  if (!orderID) {
-    message.error('订单ID不存在')
+  const faultID = route.params.id as string
+  if (!faultID) {
+    message.error('故障ID不存在')
     return
   }
   
@@ -414,13 +355,13 @@ async function handleDelete() {
         h('strong', { style: { color: '#ff4d4f' } }, '警告：此操作不可恢复！')
       ]),
       h('p', { style: { marginBottom: '8px' } }, [
-        `您确定要删除采购订单 ${orderID} 吗？`
+        `您确定要删除故障记录 ${faultID} 吗？`
       ]),
       h('p', { style: { marginBottom: '8px', fontSize: '13px', color: '#999' } }, [
-        `采购方：${orderData.value?.buyer || '-'}`
+        `零部件ID：${faultData.value?.partID || '-'}`
       ]),
       h('p', { style: { marginBottom: '8px', fontSize: '13px', color: '#999' } }, [
-        `供应商：${orderData.value?.seller || '-'}`
+        `VIN码：${faultData.value?.vin || '-'}`
       ]),
       h('p', { style: { fontSize: '13px', color: '#999' } }, [
         '删除后将无法恢复，请谨慎操作。'
@@ -429,44 +370,53 @@ async function handleDelete() {
     okText: '确认删除',
     okType: 'danger',
     cancelText: '取消',
+    okButtonProps: {
+      loading: deleting.value,
+      disabled: deleting.value
+    },
     onOk: async () => {
-      message.success('删除成功')
-      setTimeout(() => {
+      deleting.value = true
+      try {
+        message.success('删除成功')
         goBack()
-      }, 1000)
+      } catch (error: any) {
+        message.error(error.message || '删除失败，请稍后重试')
+      } finally {
+        deleting.value = false
+      }
     }
   })
 }
 
-async function fetchOrderData() {
+async function fetchFaultData() {
   loading.value = true
   try {
-    const response = await listSupplyOrders()
+    const response = await listFaultReports()
     if (response.code === 0 && response.data) {
-      const orderID = route.params.id as string
-      const order = response.data.find((item: SupplyOrder) => item.orderID === orderID)
-      if (order) {
-        orderData.value = order
+      const faultID = route.params.id as string
+      const record = response.data.find((item: FaultReport) => item.faultID === faultID)
+      if (record) {
+        faultData.value = record
       } else {
-        message.error('未找到该采购订单')
+        message.error('未找到该故障记录')
       }
     } else {
-      message.error(response.message || '获取采购订单失败')
+      message.error(response.message || '获取故障记录失败')
     }
   } catch (error: any) {
-    message.error(error.message || '获取采购订单失败')
+    message.error(error.message || '获取故障记录失败')
   } finally {
     loading.value = false
   }
 }
 
 onMounted(() => {
-  fetchOrderData()
+  fetchFaultData()
 })
 </script>
 
 <style scoped>
-.purchase-detail {
+.fault-detail {
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   padding: 24px;
@@ -627,18 +577,15 @@ onMounted(() => {
   word-break: break-all;
 }
 
-.order-id {
+.fault-id,
+.part-id,
+.vin {
   font-family: 'Courier New', monospace;
   color: #667eea;
   font-weight: 600;
 }
 
-.amount {
-  font-size: 16px;
-  color: #f59e0b;
-  font-weight: 600;
-}
-
+.type-tag,
 .status-tag {
   font-size: 12px;
 }
@@ -685,8 +632,33 @@ onMounted(() => {
   border-color: #ef4444;
 }
 
+.action-item.delete-action.deleting {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.action-item.delete-action.deleting:hover {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #ef4444;
+}
+
 .action-item.delete-action .action-icon-item {
   color: #ef4444;
+  transition: all 0.3s;
+}
+
+.action-item.delete-action .action-icon-item.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .details-container {
@@ -703,60 +675,17 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.item-table {
+.fault-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 0 24px 24px;
-  max-width: 100%;
-  overflow: hidden;
 }
 
-.item-table :deep(.ant-table) {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.item-table :deep(.ant-table-container) {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.item-table :deep(.ant-table-content) {
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.item-table :deep(.ant-table-expanded-row-fixed) {
-  max-width: 100% !important;
-  width: 100% !important;
-}
-
-.part-id {
-  font-family: 'Courier New', monospace;
-  color: #667eea;
-  font-weight: 600;
-}
-
-.quantity {
-  font-weight: 600;
-  color: #f59e0b;
-}
-
-.price,
-.total {
-  font-weight: 600;
-  color: #10b981;
-}
-
-.total-amount {
-  font-size: 16px;
-  font-weight: 600;
-  color: #f59e0b;
-}
-
-.remarks-content {
-  padding: 0 24px 24px;
+.description,
+.handling {
   white-space: pre-wrap;
   line-height: 1.6;
-  color: #4b5563;
 }
 
 .timeline-wrapper {
@@ -800,47 +729,43 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #6b7280;
+  color: #4b5563;
 }
 
-.timeline-desc .anticon {
-  font-size: 14px;
-  color: #9ca3af;
+.timeline-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
 }
 
-@media (max-width: 1200px) {
-  .main-content {
-    grid-template-columns: 1fr;
-  }
-  
-  .info-container {
-    max-width: 100%;
-  }
+.timeline-dot.blue {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.timeline-dot.green {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.timeline-dot.orange {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
 @media (max-width: 768px) {
-  .purchase-detail {
-    padding: 16px;
+  .main-content {
+    grid-template-columns: 1fr;
   }
-  
-  .top-bar {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
+
+  .info-container {
+    width: 100%;
   }
-  
-  .top-bar-left {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
+
   .action-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .item-table :deep(.ant-table) {
-    font-size: 12px;
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 </style>

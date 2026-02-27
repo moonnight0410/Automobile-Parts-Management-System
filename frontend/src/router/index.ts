@@ -334,6 +334,17 @@ const routes: Array<RouteRecordRaw> = [
             }
           },
           {
+            path: 'fault/detail/:id',
+            name: 'FaultReportDetail',
+            component: () => import('../views/aftersale/FaultReportDetail.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '故障记录详情',
+              permission: 'faultReportDetail',
+              roles: [UserRole.AUTOMAKER, UserRole.AFTERSALE]
+            }
+          },
+          {
             path: 'recall',
             name: 'RecallRecord',
             component: () => import('../views/aftersale/RecallRecord.vue'),
@@ -352,6 +363,17 @@ const routes: Array<RouteRecordRaw> = [
               requiresAuth: true,
               title: '发起召回',
               permission: 'recallRecord',
+              roles: [UserRole.AUTOMAKER, UserRole.AFTERSALE]
+            }
+          },
+          {
+            path: 'recall/detail/:id',
+            name: 'RecallRecordDetail',
+            component: () => import('../views/aftersale/RecallRecordDetail.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '召回记录详情',
+              permission: 'recallRecordDetail',
               roles: [UserRole.AUTOMAKER, UserRole.AFTERSALE]
             }
           },

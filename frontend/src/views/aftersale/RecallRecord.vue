@@ -367,7 +367,7 @@ const handleExport = () => {
 }
 
 const viewDetail = (record: any) => {
-  message.info(`查看召回详情: ${record.recallID}`)
+  router.push(`/aftersale/recall/detail/${record.recallID}`)
 }
 
 const handleComplete = (record: any) => {

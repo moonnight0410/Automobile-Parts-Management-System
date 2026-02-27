@@ -508,6 +508,8 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 400px 1fr;
   gap: 24px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .info-container {
@@ -689,6 +691,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .details-card {
