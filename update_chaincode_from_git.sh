@@ -574,6 +574,7 @@ main() {
                 --version "$NEW_VERSION" \
                 --sequence "$NEW_SEQUENCE" \
                 --init-required \
+                --signature-policy "$ENDORSEMENT_POLICY" \
                 --package-id "$PACKAGE_ID"; then
                 log_error "${org}批准链码定义失败"
                 update_state "step9_approve" "failed" "${org}批准链码定义失败"

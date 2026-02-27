@@ -741,7 +741,7 @@ func (s *SmartContract) QueryBOM(ctx contractapi.TransactionContextInterface, bo
 		return nil, fmt.Errorf("查询BOM失败: %v", err)
 	}
 	if bomBytes == nil {
-		return nil, fmt.Errorf("BOMID %s 不存在哦", bomID)
+		return nil, fmt.Errorf("BOMID %s 不存在", bomID)
 	}
 
 	// 反序列化BOM数据
