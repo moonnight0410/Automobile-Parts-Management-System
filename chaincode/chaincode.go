@@ -2347,6 +2347,78 @@ func (s *SmartContract) ListAllFaultReports(ctx contractapi.TransactionContextIn
 	return faults, nil
 }
 
+// UpdateFaultReportStatus 更新故障报告状态
+// 权限要求：车企或厂商组织成员可调用
+// 功能：更新故障报告的处理状态（待审核/已审核/已召回）
+// 参数：
+//   - ctx: 交易上下文
+//   - faultID: 故障报告ID
+//   - status: 新状态
+//
+// 返回：
+//   - error: 操作成功返回 nil，失败返回具体错误信息
+func (s *SmartContract) UpdateFaultReportStatus(ctx contractapi.TransactionContextInterface, faultID string, status string) error {
+	// 1. 校验调用者身份
+	clientMSPID, err := s.getClientIdentityMSPID(ctx)
+	if err != nil {
+		log.Printf("获取调用者身份失败，FaultID：%s，错误：%v", faultID, err)
+		return fmt.Errorf("获取调用者身份失败：%v", err)
+	}
+	if clientMSPID != MANUFACTURER_ORG_MSPID && clientMSPID != AUTOMAKER_ORG_MSPID {
+		log.Printf("权限不足，FaultID：%s，MSPID：%s", faultID, clientMSPID)
+		return fmt.Errorf("只有零部件生产厂商或整车车企组织的成员才能更新故障报告状态")
+	}
+
+	// 2. 数据验证
+	if status != "待审核" && status != "已审核" && status != "已召回" && status != "PENDING" && status != "REVIEWED" && status != "RECALLED" {
+		log.Printf("故障状态无效，FaultID：%s，状态：%s", faultID, status)
+		return fmt.Errorf("故障状态必须是：待审核、已审核、已召回或PENDING、REVIEWED、RECALLED")
+	}
+
+	// 3. 查询故障报告
+	faultBytes, err := ctx.GetStub().GetState("FAULT_" + faultID)
+	if err != nil {
+		log.Printf("查询故障报告失败，FaultID：%s，错误：%v", faultID, err)
+		return fmt.Errorf("查询故障报告失败: %v", err)
+	}
+	if faultBytes == nil {
+		log.Printf("故障报告不存在，FaultID：%s", faultID)
+		return fmt.Errorf("故障报告ID %s 不存在", faultID)
+	}
+
+	// 4. 反序列化并更新状态
+	var fault FaultReport
+	err = json.Unmarshal(faultBytes, &fault)
+	if err != nil {
+		log.Printf("反序列化故障报告失败，FaultID：%s，错误：%v", faultID, err)
+		return fmt.Errorf("反序列化故障报告失败: %v", err)
+	}
+
+	fault.Status = status
+
+	// 5. 序列化并更新
+	updatedFaultBytes, err := json.Marshal(fault)
+	if err != nil {
+		log.Printf("序列化故障报告失败，FaultID：%s，错误：%v", faultID, err)
+		return fmt.Errorf("序列化故障报告失败: %v", err)
+	}
+
+	err = ctx.GetStub().PutState("FAULT_"+faultID, updatedFaultBytes)
+	if err != nil {
+		log.Printf("更新故障报告失败，FaultID：%s，错误：%v", faultID, err)
+		return fmt.Errorf("更新故障报告失败: %v", err)
+	}
+
+	// 6. 记录操作日志
+	log.Printf("更新故障报告状态成功，FaultID：%s，状态：%s", faultID, status)
+	if err := ctx.GetStub().SetEvent("UpdateFaultReportStatus", []byte(fmt.Sprintf("更新故障报告状态: %s -> %s", faultID, status))); err != nil {
+		log.Printf("设置事件失败：%v", err)
+		return fmt.Errorf("设置事件失败: %v", err)
+	}
+
+	return nil
+}
+
 // ListAllRecallRecords 获取所有召回记录列表
 // 权限要求：所有组织可查询
 // 功能：获取所有召回记录

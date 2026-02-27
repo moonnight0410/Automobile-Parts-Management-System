@@ -232,7 +232,7 @@
           <template v-else-if="column.key === 'reportTime'">
             <div class="time-cell">
               <ClockCircleOutlined class="time-icon" />
-              <span>{{ record.reportTime }}</span>
+              <span>{{ formatTime(record.reportTime) }}</span>
             </div>
           </template>
           <template v-else-if="column.key === 'action'">
@@ -245,11 +245,11 @@
                 type="link"
                 size="small"
                 @click="handleReview(record)"
-                :disabled="record.status === '已审核'"
+                :loading="record.reviewing"
                 class="action-btn review-btn"
               >
                 <CheckCircleOutlined />
-                审核
+                {{ record.status === '已审核' || record.status === 'REVIEWED' ? '取消审核' : '审核' }}
               </a-button>
             </a-space>
           </template>
@@ -263,7 +263,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { listFaultReports, type FaultReport } from '../../services/aftersale.service'
+import { listFaultReports, updateFaultReportStatus, type FaultReport } from '../../services/aftersale.service'
 import {
   AlertOutlined,
   PlusOutlined,
@@ -314,7 +314,8 @@ async function fetchData() {
     if (response.code === 0 && response.data) {
       tableData.value = response.data.map((item: FaultReport) => ({
         ...item,
-        riskProb: item.riskProbability ? `${item.riskProbability}%` : '0%'
+        riskProb: item.riskProbability ? `${item.riskProbability}%` : '0%',
+        reviewing: false
       }))
     }
   } catch (error: any) {
@@ -350,6 +351,21 @@ const getRiskColor = (risk: string) => {
 
 const getStatusDotClass = (status: string) => {
   return status === '已审核' || status === 'REVIEWED' ? 'dot-reviewed' : 'dot-pending'
+}
+
+const formatTime = (timestamp: string) => {
+  if (!timestamp) return '-'
+  const time = parseInt(timestamp)
+  if (isNaN(time)) return timestamp
+  const date = new Date(time * 1000)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 }
 
 const handleSearch = () => {
@@ -388,10 +404,22 @@ const viewDetail = (record: any) => {
   router.push(`/aftersale/fault/detail/${record.faultID}`)
 }
 
-const handleReview = (record: any) => {
-  if (record.status === '已审核' || record.status === 'REVIEWED') return
-  record.status = '已审核'
-  message.success(`故障 ${record.faultID} 已审核通过`)
+const handleReview = async (record: any) => {
+  const currentStatus = record.status
+  const isReviewed = currentStatus === '已审核' || currentStatus === 'REVIEWED'
+  
+  record.reviewing = true
+  
+  try {
+    const newStatus = isReviewed ? '待审核' : '已审核'
+    await updateFaultReportStatus(record.faultID, newStatus)
+    record.status = newStatus
+    message.success(`故障 ${record.faultID} ${isReviewed ? '已取消审核' : '已审核通过'}`)
+  } catch (error: any) {
+    message.error(error.message || '操作失败')
+  } finally {
+    record.reviewing = false
+  }
 }
 
 onMounted(() => {

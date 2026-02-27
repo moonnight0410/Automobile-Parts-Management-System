@@ -1,4 +1,4 @@
-import { get, post } from './axios'
+import { get, post, put } from './axios'
 import type { ApiResponse } from '../types'
 
 export interface FaultReport {
@@ -99,4 +99,8 @@ export const createAftersaleRecord = (data: AftersaleRecordDTO): Promise<ApiResp
 
 export const listAftersaleRecords = (): Promise<ApiResponse<AftersaleRecord[]>> => {
   return get('/api/aftersale-records')
+}
+
+export const updateFaultReportStatus = (faultID: string, status: string): Promise<ApiResponse<void>> => {
+  return put('/api/faults/status', { faultID, status })
 }

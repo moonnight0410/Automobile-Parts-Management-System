@@ -102,3 +102,19 @@ func (a *AftersaleController) ListAftersaleRecords(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, utils.Success(records, "ok"))
 }
+
+func (a *AftersaleController) UpdateFaultReportStatus(c *gin.Context) {
+	var req struct {
+		FaultID string `json:"faultID" binding:"required"`
+		Status   string `json:"status" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, utils.Error(http.StatusBadRequest, err.Error()))
+		return
+	}
+	if err := a.service.UpdateFaultReportStatus(c.Request.Context(), req.FaultID, req.Status); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(nil, "ok"))
+}

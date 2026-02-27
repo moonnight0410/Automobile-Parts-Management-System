@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"automobile-parts-backend/model"
 )
@@ -76,4 +77,9 @@ func (s *AftersaleService) ListAllAftersaleRecords(ctx context.Context, handlerO
 		return nil, err
 	}
 	return records, nil
+}
+
+func (s *AftersaleService) UpdateFaultReportStatus(ctx context.Context, faultID string, status string) error {
+	_, err := s.fabric.Submit(ctx, "UpdateFaultReportStatus", fmt.Sprintf(`{"faultID":"%s","status":"%s"}`, faultID, status))
+	return err
 }

@@ -269,8 +269,11 @@ import {
   UnorderedListOutlined,
   CheckCircleFilled
 } from '@ant-design/icons-vue'
+import { createFaultReport } from '../../services/aftersale.service'
+import { useAuthStore } from '../../stores/auth.store'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const formRef = ref<FormInstance>()
 const submitting = ref(false)
 const showSuccessModal = ref(false)
@@ -280,8 +283,8 @@ const form = reactive({
   partID: '',
   vin: '',
   faultType: '',
-  riskProb: 50,
-  description: ''
+  description: '',
+  riskProb: 50
 })
 
 const formStatus = computed(() => {
@@ -356,8 +359,23 @@ async function handleSubmit() {
   submitting.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    createdFaultID.value = `FAULT-${Date.now().toString().slice(-8)}`
+    const faultID = `FAULT-${Date.now().toString().slice(-8)}`
+    const reportTime = Math.floor(Date.now() / 1000).toString()
+    
+    const data = {
+      faultID,
+      vin: form.vin,
+      partID: form.partID,
+      faultType: form.faultType,
+      description: form.description,
+      riskProb: form.riskProb,
+      reporter: authStore.user?.username || 'unknown',
+      status: '待处理',
+      reportTime
+    }
+    
+    await createFaultReport(data)
+    createdFaultID.value = faultID
     showSuccessModal.value = true
     message.success('故障上报成功')
   } catch (error: any) {
@@ -372,8 +390,8 @@ function handleReset() {
   form.partID = ''
   form.vin = ''
   form.faultType = ''
-  form.riskProb = 50
   form.description = ''
+  form.riskProb = 50
 }
 
 function handleCreateAnother() {

@@ -127,8 +127,9 @@ func setupRouter(
 	faults := router.Group("/api/faults")
 	faults.Use(middleware.Auth(cfg))
 	{
-		faults.POST("", aftersaleController.CreateFaultReport) // 创建故障报告
-		faults.GET("", aftersaleController.ListFaultReports)   // 列出故障报告
+		faults.POST("", aftersaleController.CreateFaultReport)           // 创建故障报告
+		faults.GET("", aftersaleController.ListFaultReports)             // 列出故障报告
+		faults.PUT("/status", aftersaleController.UpdateFaultReportStatus) // 更新故障报告状态
 	}
 
 	// 召回记录API组：需要身份验证
