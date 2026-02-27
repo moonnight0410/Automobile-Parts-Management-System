@@ -26,12 +26,12 @@ type AIService struct {
 func NewAIService(baseURL string) *AIService {
 	return &AIService{
 		client: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: 120 * time.Second,
 		},
 		baseURL:    baseURL,
-		timeout:    30 * time.Second,
+		timeout:    120 * time.Second,
 		maxRetries: 3,
-		retryDelay: 1 * time.Second,
+		retryDelay: 5 * time.Second,
 	}
 }
 

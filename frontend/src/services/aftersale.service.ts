@@ -41,14 +41,10 @@ export interface RecallRecord {
 
 export interface RecallRecordDTO {
   recallID: string
-  recallType: string
+  batchNos: string[]
+  reason: string
   affectedParts: string[]
-  affectedVins: string[]
-  recallReason: string
-  recallDate: string
-  initiator: string
   status: string
-  handlingMeasures?: string
 }
 
 export interface AftersaleRecord {

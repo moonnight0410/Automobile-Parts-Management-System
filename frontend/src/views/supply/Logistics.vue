@@ -17,9 +17,9 @@
           </div>
         </div>
         <div class="header-actions">
-          <a-button class="action-btn" @click="handleRefresh" :loading="refreshing">
-            <template #icon><ReloadOutlined :spin="refreshing" /></template>
-            刷新状态
+          <a-button type="primary" class="action-btn create-btn" @click="handleCreate">
+            <template #icon><PlusOutlined /></template>
+            添加物流记录
           </a-button>
         </div>
       </div>
@@ -180,7 +180,11 @@
         </div>
         <div class="table-header-right">
           <a-space :size="12">
-            <a-button class="toolbar-btn export-btn" @click="handleExport">
+            <a-button class="action-btn" @click="handleRefresh" :loading="refreshing">
+              <template #icon><ReloadOutlined :spin="refreshing" /></template>
+              刷新状态
+            </a-button>
+            <a-button class="action-btn export-btn" @click="handleExport">
               <template #icon><ExportOutlined /></template>
               导出数据
             </a-button>
@@ -312,6 +316,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { listLogisticsData, type LogisticsData } from '../../services/supply.service'
+import { PlusOutlined, ExportOutlined } from '@ant-design/icons-vue'
 
 const router = useRouter()
 
@@ -319,10 +324,9 @@ const columns = [
   { title: '物流ID', dataIndex: 'logisticsID', key: 'logisticsID', width: 130 },
   { title: '订单ID', dataIndex: 'orderID', key: 'orderID', width: 130 },
   { title: '物流商', dataIndex: 'carrier', key: 'carrier', width: 120 },
-  { title: '出发时间', dataIndex: 'startTime', key: 'startTime', width: 130 },
-  { title: '送达时间', dataIndex: 'endTime', key: 'endTime', width: 130 },
-  { title: '签收人', dataIndex: 'receiver', width: 100 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
+  { title: '出发时间', dataIndex: 'startTime', key: 'startTime', width: 160 },
+  { title: '送达时间', dataIndex: 'endTime', key: 'endTime', width: 160 },
+  { title: '签收人', dataIndex: 'receiver', key: 'receiver', width: 100 },
   { title: '操作', key: 'action', fixed: 'right', width: 140 }
 ]
 
@@ -430,6 +434,10 @@ async function handleRefresh() {
   }
 }
 
+function handleCreate() {
+  router.push('/supply/logistics/create')
+}
+
 function handleExport() {
   message.success('数据导出成功')
 }
@@ -462,6 +470,45 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    flex: 1;
+    min-width: 120px;
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    line-height: 40px !important;
+  }
+  
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .table-header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .header-title {
@@ -497,17 +544,67 @@ onMounted(() => {
 }
 
 .action-btn {
-  height: 40px;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
   border-radius: 10px;
   padding: 0 20px;
   font-weight: 500;
   color: #10b981;
   border-color: #10b981;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .action-btn:hover {
   color: #059669;
   border-color: #059669;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
+}
+
+.action-btn.create-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #000000;
+  border: none;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+  flex-shrink: 0;
+  white-space: nowrap;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
+}
+
+.action-btn.create-btn:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
+}
+
+.action-btn.export-btn {
+  color: #6366f1;
+  border-color: #6366f1;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
+}
+
+.action-btn.export-btn:hover {
+  color: #4f46e5;
+  border-color: #4f46e5;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
 }
 
 .stats-overview {
@@ -696,6 +793,11 @@ onMounted(() => {
   gap: 12px;
 }
 
+.table-header-right {
+  display: flex;
+  align-items: center;
+}
+
 .table-title {
   display: flex;
   align-items: center;
@@ -713,17 +815,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.toolbar-btn {
-  height: 34px;
-  border-radius: 8px;
-  font-size: 13px;
-}
-
-.export-btn {
-  color: #10b981;
-  border-color: #10b981;
 }
 
 .custom-table :deep(.ant-table-thead > tr > th) {

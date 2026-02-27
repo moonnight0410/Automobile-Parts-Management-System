@@ -1,4 +1,4 @@
-import { get, post } from './axios'
+import { get, post, del } from './axios'
 import type { ApiResponse } from '../types'
 
 export interface SupplyOrder {
@@ -29,28 +29,20 @@ export interface LogisticsData {
   logisticsID: string
   orderID: string
   carrier: string
-  trackingNo: string
-  departureLocation: string
-  arrivalLocation: string
-  departureTime: string
-  estimatedArrivalTime: string
-  actualArrivalTime?: string
-  status: string
-  currentLocation?: string
+  startTime: string
+  endTime: string
+  gpsHash: string
+  receiver: string
 }
 
 export interface LogisticsDataDTO {
   logisticsID: string
   orderID: string
   carrier: string
-  trackingNo: string
-  departureLocation: string
-  arrivalLocation: string
-  departureTime: string
-  estimatedArrivalTime: string
-  actualArrivalTime?: string
-  status: string
-  currentLocation?: string
+  startTime?: string
+  endTime?: string
+  gpsHash?: string
+  receiver?: string
 }
 
 export const createSupplyOrder = (data: SupplyOrderDTO): Promise<ApiResponse<void>> => {
@@ -67,4 +59,8 @@ export const createLogisticsData = (data: LogisticsDataDTO): Promise<ApiResponse
 
 export const listLogisticsData = (): Promise<ApiResponse<LogisticsData[]>> => {
   return get('/api/logistics')
+}
+
+export const deleteLogisticsData = (id: string): Promise<ApiResponse<void>> => {
+  return del(`/api/logistics/${id}`)
 }

@@ -34,6 +34,7 @@ export const PAGE_PERMISSIONS: Record<string, UserRole[]> = {
   supplyOrders: [UserRole.MANUFACTURER, UserRole.AUTOMAKER],
   supplyOrderCreate: [UserRole.AUTOMAKER],
   logistics: [UserRole.MANUFACTURER, UserRole.AUTOMAKER],
+  logisticsCreate: [UserRole.MANUFACTURER],
 
   // 售后管理
   faultReport: [UserRole.AUTOMAKER, UserRole.AFTERSALE],
@@ -107,6 +108,7 @@ export const MENU_CONFIG: MenuConfig[] = [
       { key: '/supply/orders', title: '采购订单', permission: 'supplyOrders' },
       { key: '/supply/order/create', title: '创建采购订单', permission: 'supplyOrderCreate' },
       { key: '/supply/logistics', title: '物流跟踪', permission: 'logistics' },
+      { key: '/supply/logistics/create', title: '添加物流记录', permission: 'logisticsCreate' },
     ],
   },
   {
@@ -154,6 +156,7 @@ export const ROUTE_PERMISSION_MAP: Record<string, string> = {
   '/supply/orders': 'supplyOrders',
   '/supply/order/create': 'supplyOrderCreate',
   '/supply/logistics': 'logistics',
+  '/supply/logistics/create': 'logisticsCreate',
   '/aftersale/fault': 'faultReport',
   '/aftersale/recall': 'recallRecord',
   '/aftersale/assistant': 'aiAssistant',

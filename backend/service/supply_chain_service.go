@@ -62,3 +62,8 @@ func (s *SupplyChainService) ListAllLogisticsData(ctx context.Context) ([]model.
 	}
 	return logisticsList, nil
 }
+
+func (s *SupplyChainService) DeleteLogisticsData(ctx context.Context, logisticsID string) error {
+	_, err := s.fabric.Submit(ctx, "DeleteLogisticsData", logisticsID)
+	return err
+}

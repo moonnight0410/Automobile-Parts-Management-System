@@ -121,6 +121,7 @@ func setupRouter(
 	{
 		logistics.POST("", supplyChainController.CreateLogisticsData) // 创建物流数据
 		logistics.GET("", supplyChainController.ListLogisticsData)    // 列出物流数据
+		logistics.DELETE("/:id", supplyChainController.DeleteLogisticsData) // 删除物流数据
 	}
 
 	// 故障报告API组：需要身份验证

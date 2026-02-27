@@ -471,18 +471,28 @@ onMounted(() => {
 }
 
 .create-btn {
-  height: 40px;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
   border-radius: 10px;
   padding: 0 20px;
   font-weight: 500;
   background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
   border: none;
   box-shadow: 0 4px 12px rgba(6, 182, 212, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .create-btn:hover {
   background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
   box-shadow: 0 6px 16px rgba(6, 182, 212, 0.45);
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  line-height: 40px !important;
 }
 
 .stats-overview {

@@ -62,3 +62,16 @@ func (s *SupplyChainController) ListLogisticsData(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, utils.Success(logisticsList, "ok"))
 }
+
+func (s *SupplyChainController) DeleteLogisticsData(c *gin.Context) {
+	logisticsID := c.Param("id")
+	if logisticsID == "" {
+		c.JSON(http.StatusBadRequest, utils.Error(http.StatusBadRequest, "物流ID不能为空"))
+		return
+	}
+	if err := s.service.DeleteLogisticsData(c.Request.Context(), logisticsID); err != nil {
+		c.JSON(http.StatusInternalServerError, utils.Error(http.StatusInternalServerError, err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, utils.Success(nil, "删除成功"))
+}

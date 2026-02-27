@@ -254,7 +254,7 @@
 import { ref, onMounted, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { listLogisticsData } from '../../services/supply.service'
+import { listLogisticsData, deleteLogisticsData } from '../../services/supply.service'
 import type { LogisticsData } from '../../services/supply.service'
 import {
   ArrowLeftOutlined,
@@ -363,10 +363,15 @@ async function handleDelete() {
     okType: 'danger',
     cancelText: '取消',
     onOk: async () => {
-      message.success('删除成功')
-      setTimeout(() => {
-        goBack()
-      }, 1000)
+      try {
+        await deleteLogisticsData(logisticsID)
+        message.success('删除成功')
+        setTimeout(() => {
+          goBack()
+        }, 1000)
+      } catch (error: any) {
+        message.error(error.message || '删除失败')
+      }
     }
   })
 }

@@ -20,7 +20,7 @@
       </div>
       <div class="top-bar-right">
         <a-tag :color="formStatus.color" class="status-badge">
-          <component :is="formStatus.icon" />
+          <component v-if="formStatus.icon" :is="formStatus.icon" />
           {{ formStatus.text }}
         </a-tag>
       </div>
@@ -53,99 +53,65 @@
             @finish="handleSubmit"
             class="create-form"
           >
-            <!-- 召回ID和零部件ID -->
-            <div class="form-row">
-              <a-form-item label="召回ID" name="recallID" class="form-item half">
-                <a-input
-                  v-model:value="form.recallID"
-                  placeholder="自动生成或手动输入"
-                  :maxlength="50"
-                  class="custom-input"
-                >
-                  <template #prefix>
-                    <span class="input-icon"><NumberOutlined /></span>
-                  </template>
-                </a-input>
-              </a-form-item>
-              <a-form-item label="零部件ID" name="partID" class="form-item half">
-                <a-input
-                  v-model:value="form.partID"
-                  placeholder="请输入零部件ID"
-                  :maxlength="50"
-                  class="custom-input"
-                >
-                  <template #prefix>
-                    <span class="input-icon"><AppstoreOutlined /></span>
-                  </template>
-                </a-input>
-              </a-form-item>
-            </div>
+            <!-- 召回ID -->
+            <a-form-item label="召回ID" name="recallID" class="form-item">
+              <a-input
+                v-model:value="form.recallID"
+                placeholder="自动生成或手动输入"
+                :maxlength="50"
+                class="custom-input"
+              >
+                <template #prefix>
+                  <span class="input-icon"><NumberOutlined /></span>
+                </template>
+              </a-input>
+            </a-form-item>
 
-            <!-- 涉及批次和召回类型 -->
-            <div class="form-row">
-              <a-form-item label="涉及批次" name="batchNo" class="form-item half">
-                <a-input
-                  v-model:value="form.batchNo"
-                  placeholder="请输入批次号"
-                  :maxlength="30"
-                  class="custom-input"
-                >
-                  <template #prefix>
-                    <span class="input-icon"><TagOutlined /></span>
-                  </template>
-                </a-input>
-              </a-form-item>
-              <a-form-item label="召回类型" name="recallType" class="form-item half">
-                <a-select
-                  v-model:value="form.recallType"
-                  placeholder="请选择召回类型"
-                  :options="recallTypeOptions"
-                  class="custom-select"
-                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
-                  :dropdown-style="{ zIndex: 1050 }"
-                />
-              </a-form-item>
-            </div>
+            <!-- 涉及批次 -->
+            <a-form-item label="涉及批次" name="batchNos" class="form-item enhanced-form-item">
+              <a-select
+                v-model:value="form.batchNos"
+                mode="tags"
+                placeholder="请输入批次号，按回车添加多个批次"
+                :max-tag-count="5"
+                :token-separators="[',']"
+                :options="[]"
+                class="custom-select enhanced-select"
+                :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                :dropdown-style="{ zIndex: 1050 }"
+                :open="false"
+              >
+                <template #suffixIcon>
+                  <AppstoreOutlined class="select-suffix-icon" />
+                </template>
+              </a-select>
+            </a-form-item>
 
-            <!-- 影响数量和优先级 -->
-            <div class="form-row">
-              <a-form-item label="影响数量" name="affectedCount" class="form-item half">
-                <a-input-number
-                  v-model:value="form.affectedCount"
-                  placeholder="请输入影响数量"
-                  :min="1"
-                  :max="999999"
-                  class="custom-input-number"
-                />
-              </a-form-item>
-              <a-form-item label="优先级" name="priority" class="form-item half">
-                <a-select
-                  v-model:value="form.priority"
-                  placeholder="请选择优先级"
-                  :options="priorityOptions"
-                  class="custom-select"
-                  :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
-                  :dropdown-style="{ zIndex: 1050 }"
-                />
-              </a-form-item>
-            </div>
+            <!-- 受影响零部件 -->
+            <a-form-item label="受影响零部件" name="affectedParts" class="form-item enhanced-form-item">
+              <a-select
+                v-model:value="form.affectedParts"
+                mode="tags"
+                placeholder="请输入零部件ID，按回车添加多个零部件"
+                :max-tag-count="5"
+                :token-separators="[',']"
+                :options="[]"
+                class="custom-select enhanced-select"
+                :get-popup-container="(triggerNode: any) => triggerNode.parentNode"
+                :dropdown-style="{ zIndex: 1050 }"
+                :open="false"
+              >
+                <template #suffixIcon>
+                  <AppstoreOutlined class="select-suffix-icon" />
+                </template>
+              </a-select>
+            </a-form-item>
 
             <!-- 召回原因 -->
             <a-form-item label="召回原因" name="reason" class="form-item">
               <a-textarea
                 v-model:value="form.reason"
                 placeholder="请详细描述召回原因"
-                :rows="4"
-                :maxlength="500"
-                class="custom-textarea"
-              />
-            </a-form-item>
-
-            <!-- 处理方案 -->
-            <a-form-item label="处理方案" name="solution" class="form-item">
-              <a-textarea
-                v-model:value="form.solution"
-                placeholder="请描述处理方案"
                 :rows="4"
                 :maxlength="500"
                 class="custom-textarea"
@@ -213,27 +179,17 @@
               <span class="preview-value">{{ form.recallID || '-' }}</span>
             </div>
             <div class="preview-item">
-              <span class="preview-label">零部件ID</span>
-              <span class="preview-value">{{ form.partID || '-' }}</span>
-            </div>
-            <div class="preview-item">
               <span class="preview-label">涉及批次</span>
-              <span class="preview-value">{{ form.batchNo || '-' }}</span>
+              <span class="preview-value">{{ form.batchNos.join(', ') || '-' }}</span>
             </div>
             <div class="preview-item">
-              <span class="preview-label">召回类型</span>
-              <a-tag :color="getRecallTypeColor(form.recallType)" size="small">
-                {{ form.recallType || '-' }}
-              </a-tag>
+              <span class="preview-label">受影响零部件</span>
+              <span class="preview-value">{{ form.affectedParts.join(', ') || '-' }}</span>
             </div>
             <div class="preview-item">
-              <span class="preview-label">影响数量</span>
-              <span class="preview-value">{{ form.affectedCount || '-' }} 件</span>
-            </div>
-            <div class="preview-item">
-              <span class="preview-label">优先级</span>
-              <a-tag :color="getPriorityColor(form.priority)" size="small">
-                {{ form.priority || '-' }}
+              <span class="preview-label">状态</span>
+              <a-tag color="orange" size="small">
+                {{ form.status }}
               </a-tag>
             </div>
           </div>
@@ -298,6 +254,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import type { FormInstance, SelectProps } from 'ant-design-vue'
+import { createRecallRecord } from '@/services/aftersale.service'
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -307,12 +264,11 @@ import {
   EyeOutlined,
   WarningOutlined,
   NumberOutlined,
-  AppstoreOutlined,
-  TagOutlined,
   ThunderboltOutlined,
   PlusOutlined,
   UnorderedListOutlined,
-  CheckCircleFilled
+  CheckCircleFilled,
+  AppstoreOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -323,13 +279,10 @@ const createdRecallID = ref('')
 
 const form = reactive({
   recallID: '',
-  partID: '',
-  batchNo: '',
-  recallType: '',
-  affectedCount: 0,
-  priority: '',
+  batchNos: [] as string[],
   reason: '',
-  solution: ''
+  affectedParts: [] as string[],
+  status: '待通知'
 })
 
 const formStatus = computed(() => {
@@ -342,40 +295,18 @@ const formStatus = computed(() => {
   return { text: '待填写', color: 'warning', icon: WarningOutlined }
 })
 
-const recallTypeOptions = computed<SelectProps['options']>(() => [
-  { value: '安全召回', label: '安全召回' },
-  { value: '质量召回', label: '质量召回' },
-  { value: '环保召回', label: '环保召回' },
-  { value: '其他', label: '其他' }
-])
-
-const priorityOptions = computed<SelectProps['options']>(() => [
-  { value: '紧急', label: '紧急' },
-  { value: '高', label: '高' },
-  { value: '中', label: '中' },
-  { value: '低', label: '低' }
-])
-
 const isFormValid = computed(() => {
   return (
-    form.partID.trim() !== '' &&
-    form.batchNo.trim() !== '' &&
-    form.recallType !== '' &&
-    form.affectedCount > 0 &&
-    form.priority !== '' &&
-    form.reason.trim() !== '' &&
-    form.solution.trim() !== ''
+    form.recallID.trim() !== '' &&
+    form.batchNos.length > 0 &&
+    form.batchNos.every(b => b.trim() !== '') &&
+    form.reason.trim() !== ''
   )
 })
 
 const formRules = {
-  partID: [{ required: true, message: '请输入零部件ID', trigger: 'blur' }],
-  batchNo: [{ required: true, message: '请输入批次号', trigger: 'blur' }],
-  recallType: [{ required: true, message: '请选择召回类型', trigger: 'change' }],
-  affectedCount: [{ required: true, message: '请输入影响数量', trigger: 'blur' }],
-  priority: [{ required: true, message: '请选择优先级', trigger: 'change' }],
-  reason: [{ required: true, message: '请输入召回原因', trigger: 'blur' }],
-  solution: [{ required: true, message: '请输入处理方案', trigger: 'blur' }]
+  recallID: [{ required: true, message: '请输入召回ID', trigger: 'blur' }],
+  reason: [{ required: true, message: '请输入召回原因', trigger: 'blur' }]
 }
 
 function getRecallTypeColor(type: string) {
@@ -410,13 +341,9 @@ function generateRecallID() {
 
 function fillTestData() {
   form.recallID = `RECALL-${Date.now().toString().slice(-8)}`
-  form.partID = 'PART-' + Date.now().toString().slice(-6)
-  form.batchNo = 'BATCH-' + Date.now().toString().slice(-6)
-  form.recallType = '安全召回'
-  form.affectedCount = 100
-  form.priority = '高'
+  form.batchNos = ['BATCH-' + Date.now().toString().slice(-6), 'BATCH-' + (Date.now() + 1).toString().slice(-6)]
+  form.affectedParts = ['PART-' + Date.now().toString().slice(-6)]
   form.reason = '测试召回原因：发现零部件存在安全隐患，可能影响车辆正常使用。'
-  form.solution = '测试处理方案：对受影响批次进行全面检查，更换存在问题的零部件，并提供免费维修服务。'
   message.success('已填充测试数据')
 }
 
@@ -425,8 +352,14 @@ async function handleSubmit() {
   submitting.value = true
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    createdRecallID.value = form.recallID || `RECALL-${Date.now().toString().slice(-8)}`
+    await createRecallRecord({
+      recallID: form.recallID,
+      batchNos: form.batchNos,
+      reason: form.reason,
+      affectedParts: form.affectedParts,
+      status: form.status
+    })
+    createdRecallID.value = form.recallID
     showSuccessModal.value = true
     message.success('召回发起成功')
   } catch (error: any) {
@@ -439,13 +372,10 @@ async function handleSubmit() {
 function handleReset() {
   formRef.value?.resetFields()
   form.recallID = ''
-  form.partID = ''
-  form.batchNo = ''
-  form.recallType = ''
-  form.affectedCount = 0
-  form.priority = ''
+  form.batchNos = []
+  form.affectedParts = []
   form.reason = ''
-  form.solution = ''
+  form.status = '待通知'
 }
 
 function handleCreateAnother() {
@@ -779,6 +709,365 @@ function handleCreateAnother() {
 
 .custom-input-number :deep(.ant-input-number-handler-wrap) {
   display: none;
+}
+
+/* ==================== 增强输入框样式 ==================== */
+.enhanced-form-item {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.enhanced-form-item :deep(.ant-form-item-label > label) {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.enhanced-form-item :deep(.ant-form-item-label > label::after) {
+  content: '';
+  display: none;
+}
+
+.enhanced-form-item :deep(.ant-form-item-explain) {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: rgba(250, 84, 28, 0.08);
+  border-radius: 6px;
+  border-left: 3px solid #fa541c;
+  color: #fa541c;
+}
+
+.enhanced-form-item :deep(.ant-form-item-has-error .ant-form-item-explain) {
+  background: rgba(250, 84, 28, 0.08);
+  border-left-color: #ff4d4f;
+  color: #ff4d4f;
+}
+
+.enhanced-form-item :deep(.ant-form-item-has-warning .ant-form-item-explain) {
+  background: rgba(250, 173, 20, 0.08);
+  border-left-color: #faad14;
+  color: #faad14;
+}
+
+.enhanced-form-item :deep(.ant-form-item-has-success .ant-form-item-explain) {
+  background: rgba(82, 196, 26, 0.08);
+  border-left-color: #52c41a;
+  color: #52c41a;
+}
+
+.enhanced-select {
+  position: relative;
+}
+
+.enhanced-select :deep(.ant-select-selector) {
+  height: auto !important;
+  min-height: 48px !important;
+  border-radius: 12px !important;
+  border: 2px solid var(--border-color) !important;
+  background: linear-gradient(135deg, var(--bg-color-secondary) 0%, var(--bg-color-tertiary) 100%) !important;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-size: 14px;
+  padding: 6px 16px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden !important;
+}
+
+.enhanced-select :deep(.ant-select-selection-overflow) {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.enhanced-select :deep(.ant-select-selection-overflow-item) {
+  flex-shrink: 0 !important;
+}
+
+.enhanced-select :deep(.ant-select-selection-overflow-item-suffix) {
+  flex: 1 !important;
+  min-width: 100px !important;
+}
+
+.enhanced-select :deep(.ant-select-selector:hover) {
+  border-color: #6366f1 !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+.enhanced-select :deep(.ant-select-focused .ant-select-selector) {
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+}
+
+.enhanced-select :deep(.ant-select-selection-search) {
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.enhanced-select :deep(.ant-select-selection-search-input) {
+  height: 44px !important;
+  font-size: 14px;
+  color: var(--text-color);
+  background: transparent;
+}
+
+.enhanced-select :deep(.ant-select-selection-search-input::placeholder) {
+  color: var(--text-color-tertiary);
+  font-size: 13px;
+}
+
+.enhanced-select :deep(.ant-select-selection-placeholder) {
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  color: var(--text-color-tertiary) !important;
+  font-size: 13px;
+}
+
+.enhanced-select :deep(.ant-select-selection-item) {
+  height: 32px;
+  line-height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 0 10px;
+  margin: 4px 6px 4px 0;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  border: 1px solid #a78bfa;
+  border-radius: 8px;
+  color: #5b21b6;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  max-width: 100%;
+  flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enhanced-select :deep(.ant-select-selection-item-content) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.enhanced-select :deep(.ant-select-selection-item:hover) {
+  background: linear-gradient(135deg, #c7d2fe 0%, #a78bfa 100%);
+  border-color: #8b5cf6;
+  color: #4c1d95;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+}
+
+.enhanced-select :deep(.ant-select-selection-item-remove) {
+  color: #7c3aed;
+  margin-left: 6px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.enhanced-select :deep(.ant-select-selection-item-remove:hover) {
+  color: #dc2626;
+  transform: scale(1.2);
+}
+
+.enhanced-select :deep(.ant-select-arrow) {
+  display: none;
+}
+
+.select-suffix-icon {
+  font-size: 16px;
+  color: var(--text-color-tertiary);
+  transition: all 0.3s ease;
+}
+
+.enhanced-select:hover .select-suffix-icon {
+  color: #6366f1;
+  transform: scale(1.1);
+}
+
+.enhanced-select :deep(.ant-select-focused) .select-suffix-icon {
+  color: #6366f1;
+  transform: scale(1.1);
+}
+
+/* 下拉菜单增强样式 */
+.enhanced-select :deep(.ant-select-dropdown) {
+  z-index: 1050 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid var(--border-color);
+  padding: 8px;
+  background: var(--bg-color-secondary);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.enhanced-select :deep(.ant-select-item) {
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  margin: 2px 0 !important;
+  transition: all 0.2s ease !important;
+  font-size: 14px;
+  color: var(--text-color);
+  display: flex !important;
+  align-items: center !important;
+}
+
+.enhanced-select :deep(.ant-select-item:hover) {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+  color: #6366f1 !important;
+  transform: translateX(4px);
+}
+
+.enhanced-select :deep(.ant-select-item-option-selected) {
+  background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%) !important;
+  color: #6366f1 !important;
+  font-weight: 600 !important;
+}
+
+.enhanced-select :deep(.ant-select-item-option-active) {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%) !important;
+  color: #6366f1 !important;
+}
+
+/* 错误状态样式 */
+.enhanced-form-item :deep(.ant-form-item-has-error .enhanced-select .ant-select-selector) {
+  border-color: #ff4d4f !important;
+  box-shadow: 0 0 0 3px rgba(255, 77, 79, 0.1) !important;
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* 警告状态样式 */
+.enhanced-form-item :deep(.ant-form-item-has-warning .enhanced-select .ant-select-selector) {
+  border-color: #faad14 !important;
+  box-shadow: 0 0 0 3px rgba(250, 173, 20, 0.1) !important;
+}
+
+/* 成功状态样式 */
+.enhanced-form-item :deep(.ant-form-item-has-success .enhanced-select .ant-select-selector) {
+  border-color: #52c41a !important;
+  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.1) !important;
+}
+
+/* 输入框聚焦时的标签动画 */
+.enhanced-form-item :deep(.ant-form-item-label) {
+  transition: all 0.3s ease;
+}
+
+.enhanced-form-item :deep(.ant-form-item-has-feedback .ant-form-item-label > label) {
+  color: var(--primary-color);
+}
+
+/* 深色主题适配 */
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selector) {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important;
+  border-color: #4b5563 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  height: auto !important;
+  min-height: 48px !important;
+  padding: 6px 16px !important;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selector:hover) {
+  border-color: #818cf8 !important;
+  box-shadow: 0 4px 12px rgba(129, 140, 248, 0.3) !important;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-focused .ant-select-selector) {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2) !important;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selection-search-input) {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selection-search-input::placeholder) {
+  color: #6b7280;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selection-placeholder) {
+  color: #6b7280 !important;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selection-item) {
+  background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+  border-color: #7c3aed;
+  color: #e9d5ff;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selection-item:hover) {
+  background: linear-gradient(135deg, #5b21b6 0%, #6d28d9 100%);
+  border-color: #8b5cf6;
+  color: #fff;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selection-item-remove) {
+  color: #c4b5fd;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-selection-item-remove:hover) {
+  color: #f87171;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-dropdown) {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-item) {
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-item:hover) {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%) !important;
+  color: #a5b4fc !important;
+}
+
+[data-theme='dark'] .enhanced-select :deep(.ant-select-item-option-selected) {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%) !important;
+  color: #a5b4fc !important;
+}
+
+[data-theme='dark'] .enhanced-form-item :deep(.ant-form-item-has-error .enhanced-select .ant-select-selector) {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2) !important;
+}
+
+[data-theme='dark'] .enhanced-form-item :deep(.ant-form-item-has-warning .enhanced-select .ant-select-selector) {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2) !important;
+}
+
+[data-theme='dark'] .enhanced-form-item :deep(.ant-form-item-has-success .enhanced-select .ant-select-selector) {
+  border-color: #34d399 !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2) !important;
 }
 
 .custom-textarea {

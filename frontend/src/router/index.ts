@@ -288,6 +288,17 @@ const routes: Array<RouteRecordRaw> = [
             }
           },
           {
+            path: 'logistics/create',
+            name: 'LogisticsCreate',
+            component: () => import('../views/supply/LogisticsCreate.vue'),
+            meta: {
+              requiresAuth: true,
+              title: '添加物流记录',
+              permission: 'logisticsCreate',
+              roles: [UserRole.MANUFACTURER]
+            }
+          },
+          {
             path: 'logistics/detail/:id',
             name: 'LogisticsDetail',
             component: () => import('../views/logistics/LogisticsDetail.vue'),
