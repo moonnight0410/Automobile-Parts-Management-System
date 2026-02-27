@@ -104,7 +104,7 @@
                 <span>Fabric通道</span>
               </div>
               <div class="config-value">
-                <span class="value-text">mychannel</span>
+                <span class="value-text">channel1</span>
               </div>
             </div>
             <div class="config-item">
@@ -113,7 +113,7 @@
                 <span>链码名称</span>
               </div>
               <div class="config-value">
-                <span class="value-text">parts</span>
+                <span class="value-text">auto-system</span>
               </div>
             </div>
             <div class="config-item">
@@ -122,7 +122,7 @@
                 <span>节点数量</span>
               </div>
               <div class="config-value">
-                <span class="value-text">4 个Peer节点</span>
+                <span class="value-text">6 个Peer节点</span>
                 <a-tag color="purple" size="small">正常</a-tag>
               </div>
             </div>
@@ -164,79 +164,12 @@
                 <span class="info-value">Hyperledger Fabric</span>
               </div>
               <div class="info-item">
-                <span class="info-label">开发团队</span>
-                <span class="info-value">Automobile Parts Dev Team</span>
+                <span class="info-label">开发人员</span>
+                <span class="info-value">邹健宇</span>
               </div>
               <div class="info-item">
                 <span class="info-label">更新日期</span>
-                <span class="info-value">2024-01-15</span>
-              </div>
-            </div>
-            <div class="system-links">
-              <a-button type="link" class="link-btn">
-                <template #icon><BookOutlined /></template>
-                使用文档
-              </a-button>
-              <a-button type="link" class="link-btn">
-                <template #icon><GithubOutlined /></template>
-                源码仓库
-              </a-button>
-              <a-button type="link" class="link-btn">
-                <template #icon><QuestionCircleOutlined /></template>
-                帮助中心
-              </a-button>
-            </div>
-          </div>
-        </a-card>
-
-        <a-card :bordered="false" class="settings-card stats-card">
-          <div class="card-header">
-            <div class="header-left">
-              <div class="card-icon-wrapper stats-icon">
-                <DashboardOutlined />
-              </div>
-              <div class="card-info">
-                <span class="card-title">系统状态</span>
-                <span class="card-desc">实时监控与运行指标</span>
-              </div>
-            </div>
-          </div>
-          <a-divider class="card-divider" />
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-icon cpu">
-                <DashboardOutlined />
-              </div>
-              <div class="stat-content">
-                <span class="stat-value">32%</span>
-                <span class="stat-label">CPU使用率</span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon memory">
-                <DatabaseOutlined />
-              </div>
-              <div class="stat-content">
-                <span class="stat-value">2.4GB</span>
-                <span class="stat-label">内存占用</span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon disk">
-                <HddOutlined />
-              </div>
-              <div class="stat-content">
-                <span class="stat-value">128GB</span>
-                <span class="stat-label">存储空间</span>
-              </div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-icon network">
-                <WifiOutlined />
-              </div>
-              <div class="stat-content">
-                <span class="stat-value">稳定</span>
-                <span class="stat-label">网络状态</span>
+                <span class="info-value">2026-02-28</span>
               </div>
             </div>
           </div>
@@ -260,15 +193,7 @@ import {
   CodeOutlined,
   ClusterOutlined,
   InfoCircleOutlined,
-  CarOutlined,
-  BookOutlined,
-  GithubOutlined,
-  QuestionCircleOutlined,
-  DashboardOutlined,
-  DatabaseOutlined,
-  HdOutlined,
-  WifiOutlined,
-  HddOutlined
+  CarOutlined
 } from '@ant-design/icons-vue'
 
 const appStore = useAppStore()
@@ -623,84 +548,6 @@ const selectTheme = (newTheme: string) => {
   color: #374151;
 }
 
-.system-links {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.link-btn {
-  padding: 0 12px;
-  height: 32px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #6366f1;
-}
-
-.link-btn:hover {
-  background: #eef2ff;
-  color: #4f46e5;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #f9fafb;
-  border-radius: 10px;
-}
-
-.stat-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  color: #fff;
-}
-
-.stat-icon.cpu {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-}
-
-.stat-icon.memory {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.stat-icon.disk {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.stat-icon.network {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 2px;
-}
-
 [data-theme='dark'] .page-header {
   background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
   box-shadow: 0 4px 20px rgba(67, 56, 202, 0.3);
@@ -784,26 +631,5 @@ const selectTheme = (newTheme: string) => {
 
 [data-theme='dark'] .info-value {
   color: #e5e7eb;
-}
-
-[data-theme='dark'] .link-btn {
-  color: #a78bfa;
-}
-
-[data-theme='dark'] .link-btn:hover {
-  background: rgba(129, 140, 248, 0.1);
-  color: #c4b5fd;
-}
-
-[data-theme='dark'] .stat-item {
-  background: #111827;
-}
-
-[data-theme='dark'] .stat-value {
-  color: #f3f4f6;
-}
-
-[data-theme='dark'] .stat-label {
-  color: #9ca3af;
 }
 </style>
