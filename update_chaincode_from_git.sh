@@ -573,7 +573,6 @@ main() {
                 --name "$CHAINCODE_NAME" \
                 --version "$NEW_VERSION" \
                 --sequence "$NEW_SEQUENCE" \
-                --init-required \
                 --signature-policy "$ENDORSEMENT_POLICY" \
                 --package-id "$PACKAGE_ID"; then
                 log_error "${org}批准链码定义失败"
